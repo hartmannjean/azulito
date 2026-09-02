@@ -6,7 +6,13 @@ const PUBLIC_PATHS = ["/login", "/signup"];
 function isPublicPath(pathname: string) {
   return (
     PUBLIC_PATHS.some((path) => pathname === path) ||
+    // Webhook da Pluggy: chamado pela Pluggy, não por um usuário logado.
+    // Autenticado por assinatura HMAC dentro do próprio handler, não por
+    // sessão do Supabase — por isso fica fora da checagem de auth aqui.
     pathname.startsWith("/api/pluggy/webhook") ||
+    // Rota de sync/polling: chamada pelo Vercel Cron, não por um usuário
+    // logado. Autenticada por CRON_SECRET dentro do próprio handler.
+    pathname.startsWith("/api/pluggy/sync") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico"
   );

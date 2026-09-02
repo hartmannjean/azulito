@@ -7,9 +7,22 @@ import type { NextRequest } from "next/server";
  * headers de IP podem ser forjados por quem não passa por um proxy confiável.
  */
 export function getClientIp(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
+  return extractIp(request.headers);
+}
+
+/**
+ * Mesma extração de IP, mas a partir do objeto `Headers` retornado por
+ * `headers()` de "next/headers" — necessário em Server Actions, que não têm
+ * acesso a um `NextRequest`.
+ */
+export function getClientIpFromHeaders(headersList: Headers): string {
+  return extractIp(headersList);
+}
+
+function extractIp(headersList: Headers): string {
+  const forwardedFor = headersList.get("x-forwarded-for");
   if (forwardedFor) {
     return forwardedFor.split(",")[0]!.trim();
   }
-  return request.headers.get("x-real-ip") ?? "unknown";
+  return headersList.get("x-real-ip") ?? "unknown";
 }
