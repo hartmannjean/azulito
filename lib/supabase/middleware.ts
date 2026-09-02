@@ -28,9 +28,16 @@ function isPublicPath(pathname: string) {
  * próprio handler (o middleware já garante que a sessão chega atualizada),
  * mas a decisão de "autenticado ou não" para navegação é centralizada aqui
  * para evitar checagens duplicadas e inconsistentes espalhadas pelo app.
+ *
+ * `nonce` é repassado via header `x-nonce` para que Server Components
+ * consigam ler o mesmo nonce usado na CSP (ver `middleware.ts` e `lib/csp.ts`)
+ * e aplicá-lo em qualquer `<script>`/`<style>` inline que precisem renderizar.
  */
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function updateSession(request: NextRequest, nonce: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,7 +51,7 @@ export async function updateSession(request: NextRequest) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
           for (const { name, value, options } of cookiesToSet) {
             supabaseResponse.cookies.set(name, value, options);
           }
