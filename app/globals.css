@@ -1,0 +1,135 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0b1220;
+  --surface: #131c2e;
+  --border: #263248;
+  --text: #e7ecf5;
+  --muted: #93a1b8;
+  --accent: #4f8dfd;
+  --danger: #ff6b6b;
+  --positive: #3ecf8e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.auth-page {
+  max-width: 380px;
+  margin: 10vh auto;
+  padding: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auth-form label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.auth-form input {
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.button {
+  margin-top: 1rem;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.form-notice {
+  color: var(--positive);
+  font-size: 0.9rem;
+}
+
+.dashboard {
+  max-width: 720px;
+  margin: 4vh auto;
+  padding: 0 1.5rem;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.transaction-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.transaction-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.transaction-amount.negative {
+  color: var(--danger);
+}
+
+.transaction-amount.positive {
+  color: var(--positive);
+}
+
+.empty-state {
+  color: var(--muted);
+  text-align: center;
+  padding: 3rem 1rem;
+}
