@@ -1,23 +1,19 @@
 version: 2
 updates:
-  # Dependências npm (package.json). Versões estão pinadas exatas de
-  # propósito (sem ^/~) — o Dependabot é quem propõe as atualizações, via PR
-  # individual, para cada uma poder ser revisada e testada isoladamente antes
-  # de entrar na branch principal.
+  # Cada workspace do monorepo tem seu próprio lockfile efetivo (via npm
+  # workspaces) — o Dependabot entende workspaces e abre PRs por pacote.
+  # Versões estão pinadas exatas de propósito (sem ^/~) em todo o projeto.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      # Agrupa patches/minor de baixo risco num PR só; major fica sempre
-      # separado, para revisão manual antes de atualizar.
       minor-and-patch:
         update-types:
           - "minor"
           - "patch"
 
-  # GitHub Actions, caso o projeto venha a ter workflows de CI no futuro.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

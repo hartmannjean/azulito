@@ -1,36 +1,24 @@
 {
   "name": "azulito",
-  "version": "0.1.0",
   "private": true,
-  "description": "App pessoal de controle financeiro em tempo real, integrado ao Nubank via Pluggy (Open Finance).",
+  "description": "Monorepo: apps/web (Next.js, frontend) + apps/api (Express, backend) para o app pessoal de controle financeiro integrado ao Nubank via Pluggy.",
   "engines": {
     "node": ">=22.0.0"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@supabase/ssr": "0.12.5",
-    "@supabase/supabase-js": "2.112.4",
-    "@upstash/ratelimit": "2.0.8",
-    "@upstash/redis": "1.38.3",
-    "next": "15.5.25",
-    "server-only": "0.0.1",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "zod": "4.5.4"
+    "predev:web": "npm run build -w packages/shared",
+    "dev:web": "npm run dev -w apps/web",
+    "predev:api": "npm run build -w packages/shared",
+    "dev:api": "npm run dev -w apps/api",
+    "build": "npm run build -w packages/shared && npm run build -w apps/api && npm run build -w apps/web",
+    "typecheck": "npm run build -w packages/shared && npm run typecheck -w apps/api && npm run typecheck -w apps/web",
+    "lint": "npm run lint -w apps/api && npm run lint -w apps/web"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "3.3.7",
-    "@types/node": "22.20.1",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
-    "eslint": "9.39.5",
-    "eslint-config-next": "15.5.25",
     "typescript": "5.9.3"
   },
   "overrides": {
