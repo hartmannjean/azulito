@@ -1,5 +1,7 @@
 {
-  "framework": null,
+  "functions": {
+    "api/index.ts": {}
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
   "crons": [
     {
