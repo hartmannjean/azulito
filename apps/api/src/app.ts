@@ -1,6 +1,18 @@
 import express, { type ErrorRequestHandler } from "express";
-import helmet from "helmet";
+import { createRequire } from "node:module";
 import cors from "cors";
+
+// `helmet` não declara uma condição "types" em `exports` (só "import"/
+// "require", com `types` no nível legado do package.json) — sob
+// `moduleResolution: NodeNext` isso resolve de forma inconsistente entre
+// ambientes (passou local, quebrou no build da Vercel com "not callable").
+// `createRequire` contorna a ambiguidade: importa via CJS de verdade,
+// mantendo o tipo certo via `typeof import(...)`.
+const require = createRequire(import.meta.url);
+const helmet = require("helmet") as typeof import(
+  "helmet",
+  { with: { "resolution-mode": "require" } }
+).default;
 import { requireAuth } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/rateLimit.js";
 import { transactionsRouter } from "./routes/transactions.js";
