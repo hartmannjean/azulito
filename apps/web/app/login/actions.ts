@@ -52,6 +52,7 @@ export async function login(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    console.error("falha ao autenticar no Supabase Auth:", error);
     try {
       await registerFailedLoginAttempt(email);
     } catch (rateLimitError) {

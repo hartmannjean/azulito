@@ -38,6 +38,7 @@ export async function signup(
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
+    console.error("falha ao criar conta no Supabase Auth:", error);
     // Mensagem genérica: não confirma nem nega se o e-mail já está cadastrado.
     return { error: "Não foi possível criar a conta. Tente novamente." };
   }

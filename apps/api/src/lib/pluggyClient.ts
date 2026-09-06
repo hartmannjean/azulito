@@ -43,10 +43,10 @@ async function getApiKey(): Promise<string> {
 }
 
 /**
- * TODO(pluggy): gera um Connect Token de uso único para o widget de conexão
- * da Pluggy no client. O `clientUserId` deve ser o `user.id` do Supabase,
- * para a Pluggy conseguir associar o Item criado a este usuário quando o
- * webhook chegar.
+ * Gera um Connect Token de uso único para o widget de conexão da Pluggy no
+ * client. `clientUserId` é o `user.id` do Supabase — a Pluggy devolve esse
+ * mesmo valor em `clientUserId` no payload do webhook `item/created`, o que
+ * deixa a gente associar o Item criado ao usuário sem precisar de mais nada.
  */
 export async function createConnectToken(clientUserId: string): Promise<string> {
   const apiKey = await getApiKey();
@@ -69,9 +69,51 @@ export async function createConnectToken(clientUserId: string): Promise<string> 
 }
 
 /**
- * TODO(pluggy): busca as transações de uma conta (accountId) retornada pelo
- * Item conectado. Usado tanto pelo webhook (ao receber `item/updated`)
- * quanto pela rota de polling de apoio.
+ * Busca um Item pelo id — usado no webhook `item/created` pra pegar o nome
+ * da instituição (`connector.name`) na hora de criar a `bank_connection`.
+ */
+export async function getItem(itemId: string): Promise<{ connector: { name: string } }> {
+  const apiKey = await getApiKey();
+
+  const response = await fetch(`${PLUGGY_API_BASE_URL}/items/${itemId}`, {
+    headers: { "X-API-KEY": apiKey },
+  });
+
+  if (!response.ok) {
+    throw new Error("Falha ao buscar o Item na Pluggy.");
+  }
+
+  return response.json() as Promise<{ connector: { name: string } }>;
+}
+
+/**
+ * Lista as contas (conta corrente, poupança, cartão...) de um Item — é o
+ * `accountId` de cada uma que `listTransactions` espera, não o `itemId`.
+ * Usado por `syncConnectionTransactions` antes de buscar transações.
+ */
+export async function getAccounts(itemId: string): Promise<{ id: string }[]> {
+  const apiKey = await getApiKey();
+
+  const response = await fetch(`${PLUGGY_API_BASE_URL}/accounts?itemId=${itemId}`, {
+    headers: { "X-API-KEY": apiKey },
+  });
+
+  if (!response.ok) {
+    throw new Error("Falha ao buscar as contas do Item na Pluggy.");
+  }
+
+  const data = (await response.json()) as { results: { id: string }[] };
+  return data.results;
+}
+
+/**
+ * Busca as transações de uma conta (accountId) retornada pelo Item
+ * conectado. Usado tanto pelo webhook (ao receber `item/updated`) quanto
+ * pela rota de polling de apoio.
+ *
+ * `GET /transactions` (v1) foi descontinuado pela Pluggy — devolve 410
+ * ENDPOINT_DEPRECATED. O substituto é `GET /v2/transactions`, mesmo formato
+ * de resposta (`{ results: [...] }`).
  */
 export async function listTransactions(accountId: string, options?: { from?: string }) {
   const apiKey = await getApiKey();
@@ -81,7 +123,7 @@ export async function listTransactions(accountId: string, options?: { from?: str
     params.set("from", options.from);
   }
 
-  const response = await fetch(`${PLUGGY_API_BASE_URL}/transactions?${params.toString()}`, {
+  const response = await fetch(`${PLUGGY_API_BASE_URL}/v2/transactions?${params.toString()}`, {
     headers: { "X-API-KEY": apiKey },
   });
 
@@ -93,20 +135,19 @@ export async function listTransactions(accountId: string, options?: { from?: str
 }
 
 /**
- * TODO(pluggy): confirmar o mecanismo exato de assinatura de webhook na
- * documentação oficial (header usado, algoritmo). Estrutura assumida aqui:
- * HMAC-SHA256 do corpo cru da requisição usando PLUGGY_WEBHOOK_SECRET,
- * enviado em um header (`X-Pluggy-Signature` ou similar).
+ * A Pluggy não assina o corpo do webhook (não existe HMAC nem header de
+ * assinatura — confirmado contra a documentação oficial). O mecanismo real é
+ * um `headers` customizado que você define na criação da assinatura do
+ * webhook (POST /webhooks, campo `headers`, "API Only" — não dá pra
+ * configurar pelo dashboard) e que a Pluggy ecoa em toda notificação. Aqui só
+ * comparamos esse valor com PLUGGY_WEBHOOK_SECRET.
  *
- * NUNCA processar um payload de webhook sem validar a assinatura primeiro —
- * é a única forma de saber que a requisição veio mesmo da Pluggy, já que a
- * rota do webhook é pública (não passa pelo `requireAuth`).
+ * NUNCA processar um payload de webhook sem essa checagem — é a única forma
+ * de saber que a requisição veio mesmo da Pluggy, já que a rota é pública
+ * (não passa pelo `requireAuth`).
  */
-export async function verifyWebhookSignature(
-  rawBody: Buffer,
-  signatureHeader: string | null,
-): Promise<boolean> {
-  if (!signatureHeader) return false;
+export async function verifyWebhookAuth(headerValue: string | null): Promise<boolean> {
+  if (!headerValue) return false;
 
   const secret = process.env.PLUGGY_WEBHOOK_SECRET;
   if (!secret) {
@@ -114,10 +155,8 @@ export async function verifyWebhookSignature(
   }
 
   const crypto = await import("node:crypto");
-  const expectedSignature = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-
-  const provided = Buffer.from(signatureHeader);
-  const expected = Buffer.from(expectedSignature);
+  const provided = Buffer.from(headerValue);
+  const expected = Buffer.from(secret);
 
   if (provided.length !== expected.length) {
     return false;

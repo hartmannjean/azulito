@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listTransactions } from "./pluggyClient.js";
+import { getAccounts, listTransactions } from "./pluggyClient.js";
 
 type PluggyTransaction = {
   id: string;
@@ -22,20 +22,27 @@ export async function syncConnectionTransactions(
   admin: SupabaseClient,
   connection: { id: string; user_id: string; pluggy_item_id: string },
 ): Promise<number> {
-  const result = (await listTransactions(connection.pluggy_item_id)) as {
-    results: PluggyTransaction[];
-  };
+  const accounts = await getAccounts(connection.pluggy_item_id);
 
-  const rows = result.results.map((tx) => ({
-    user_id: connection.user_id,
-    bank_connection_id: connection.id,
-    pluggy_transaction_id: tx.id,
-    description: tx.description,
-    amount: tx.amount,
-    currency_code: tx.currencyCode,
-    transaction_date: tx.date,
-    category: tx.category ?? null,
-  }));
+  const transactionsByAccount = await Promise.all(
+    accounts.map(
+      (account) =>
+        listTransactions(account.id) as Promise<{ results: PluggyTransaction[] }>,
+    ),
+  );
+
+  const rows = transactionsByAccount.flatMap((result) =>
+    result.results.map((tx) => ({
+      user_id: connection.user_id,
+      bank_connection_id: connection.id,
+      pluggy_transaction_id: tx.id,
+      description: tx.description,
+      amount: tx.amount,
+      currency_code: tx.currencyCode,
+      transaction_date: tx.date,
+      category: tx.category ?? null,
+    })),
+  );
 
   if (rows.length === 0) {
     return 0;

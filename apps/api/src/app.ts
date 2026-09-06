@@ -38,16 +38,7 @@ export function createApp() {
     }),
   );
 
-  app.use(
-    express.json({
-      limit: "100kb",
-      // Guarda o corpo cru para o webhook da Pluggy poder validar a
-      // assinatura HMAC (precisa dos bytes exatos, não do objeto já parseado).
-      verify: (req, _res, buf) => {
-        req.rawBody = buf;
-      },
-    }),
-  );
+  app.use(express.json({ limit: "100kb" }));
 
   app.use(rateLimitMiddleware);
 

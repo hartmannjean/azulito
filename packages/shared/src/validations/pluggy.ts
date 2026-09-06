@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-/**
- * TODO(pluggy): confirmar o formato exato do payload de webhook contra a
- * documentação oficial da Pluggy antes de ir para produção. Esta é uma
- * estrutura mínima plausível (evento + id do Item afetado).
- */
+// Formato confirmado contra a documentação oficial da Pluggy
+// (https://docs.pluggy.ai/docs/webhooks). `clientUserId` só vem preenchido
+// em eventos disparados por uma conexão nova (ex: item/created) — é o
+// `user.id` do Supabase que passamos em `createConnectToken`.
 export const pluggyWebhookSchema = z.object({
   event: z.string(),
   itemId: z.string(),
+  clientUserId: z.string().optional(),
 });
 
 export type PluggyWebhookPayload = z.infer<typeof pluggyWebhookSchema>;
