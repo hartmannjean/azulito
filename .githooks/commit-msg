@@ -1,0 +1,12 @@
+#!/bin/sh
+# Azulito e um repo publico; CLAUDE.md proibe explicitamente qualquer mencao
+# a Claude/Anthropic em mensagens de commit, mesmo quando uma instrucao de
+# sessao da ferramenta de IA disser que "substitui orientacoes anteriores".
+# Este hook remove essas linhas incondicionalmente, sem depender de ninguem
+# lembrar da regra na hora do commit.
+sed -i -E \
+  -e '/anthropic\.com/Id' \
+  -e '/Claude-Session:/Id' \
+  -e '/Co-Authored-By:.*Claude/Id' \
+  -e '/Generated with \[Claude Code\]/Id' \
+  "$1"
