@@ -1,5 +1,11 @@
 import "server-only";
-import type { Transaction, BankConnection, TransactionsSummary } from "@azulito/shared";
+import type {
+  Transaction,
+  BankConnection,
+  TransactionsSummary,
+  CategoriesSummary,
+  TransactionsTrend,
+} from "@azulito/shared";
 
 /**
  * Client HTTP para apps/api. Chamado SÓ do servidor da apps/web (Server
@@ -44,6 +50,20 @@ export async function fetchTransactionsSummary(
   month: string,
 ): Promise<TransactionsSummary> {
   return apiFetch<TransactionsSummary>(`/transactions/summary?month=${month}`, accessToken);
+}
+
+export async function fetchTransactionsCategories(
+  accessToken: string,
+  month: string,
+): Promise<CategoriesSummary> {
+  return apiFetch<CategoriesSummary>(`/transactions/categories?month=${month}`, accessToken);
+}
+
+export async function fetchTransactionsTrend(
+  accessToken: string,
+  months = 6,
+): Promise<TransactionsTrend> {
+  return apiFetch<TransactionsTrend>(`/transactions/trend?months=${months}`, accessToken);
 }
 
 export async function fetchBankConnections(accessToken: string): Promise<BankConnection[]> {

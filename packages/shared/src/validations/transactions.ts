@@ -18,9 +18,16 @@ export const listTransactionsQuerySchema = z.object({
 
 export type ListTransactionsQuery = z.infer<typeof listTransactionsQuerySchema>;
 
-/** Query params de GET /transactions/summary — o mês é obrigatório aqui. */
+/** Query params de GET /transactions/summary e /transactions/categories. */
 export const monthSummaryQuerySchema = z.object({
   month: monthSchema,
 });
 
 export type MonthSummaryQuery = z.infer<typeof monthSummaryQuerySchema>;
+
+/** Query params de GET /transactions/trend. */
+export const trendQuerySchema = z.object({
+  months: z.coerce.number().int().min(1).max(12).default(6),
+});
+
+export type TrendQuery = z.infer<typeof trendQuerySchema>;

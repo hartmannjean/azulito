@@ -26,3 +26,27 @@ export type TransactionsSummary = {
   expenses: number;
   balance: number;
 };
+
+/** Fatia de gasto por categoria dentro de um mês — GET /transactions/categories. */
+export type CategoryBreakdown = {
+  category: string;
+  total: number;
+  percentage: number;
+};
+
+export type CategoriesSummary = {
+  month: string;
+  categories: CategoryBreakdown[];
+};
+
+/** Um ponto da série histórica de receitas/despesas — GET /transactions/trend. */
+export type MonthlyTrendPoint = {
+  month: string;
+  income: number;
+  expenses: number;
+  balance: number;
+};
+
+export type TransactionsTrend = {
+  trend: MonthlyTrendPoint[];
+};

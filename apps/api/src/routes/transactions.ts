@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { listTransactionsQuerySchema, monthSummaryQuerySchema } from "@azulito/shared";
+import {
+  listTransactionsQuerySchema,
+  monthSummaryQuerySchema,
+  trendQuerySchema,
+} from "@azulito/shared";
 import { createUserScopedClient } from "../lib/supabaseForUser.js";
 
 export const transactionsRouter = Router();
@@ -51,6 +55,7 @@ transactionsRouter.get("/", async (req, res) => {
 
   const { data, error } = await query;
   if (error) {
+    console.error("Falha ao buscar transações:", error);
     return res.status(500).json({ error: "Falha ao buscar transações." });
   }
 
@@ -82,6 +87,7 @@ transactionsRouter.get("/summary", async (req, res) => {
     .lt("transaction_date", end);
 
   if (error) {
+    console.error("Falha ao calcular o resumo:", error);
     return res.status(500).json({ error: "Falha ao calcular o resumo." });
   }
 
@@ -102,4 +108,114 @@ transactionsRouter.get("/summary", async (req, res) => {
     expenses: Math.round(expenses * 100) / 100,
     balance: Math.round((income - expenses) * 100) / 100,
   });
+});
+
+/**
+ * GET /transactions/categories?month=AAAA-MM — despesas do mês agrupadas por
+ * categoria, ordenadas da maior pra menor, com o percentual sobre o total de
+ * despesas do mês.
+ */
+transactionsRouter.get("/categories", async (req, res) => {
+  const parsed = monthSummaryQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Parâmetros inválidos.", issues: parsed.error.flatten() });
+  }
+
+  const { month } = parsed.data;
+  const { start, end } = getMonthRange(month);
+  const supabase = createUserScopedClient(req.accessToken!);
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("category, amount")
+    .eq("user_id", req.userId!)
+    .gte("transaction_date", start)
+    .lt("transaction_date", end)
+    .lt("amount", 0);
+
+  if (error) {
+    console.error("Falha ao calcular categorias:", error);
+    return res.status(500).json({ error: "Falha ao calcular categorias." });
+  }
+
+  const totals = new Map<string, number>();
+  for (const row of data) {
+    const key = row.category ?? "Outros";
+    totals.set(key, (totals.get(key) ?? 0) + Math.abs(Number(row.amount)));
+  }
+
+  const totalExpenses = [...totals.values()].reduce((sum, value) => sum + value, 0);
+  const categories = [...totals.entries()]
+    .map(([category, total]) => ({
+      category,
+      total: Math.round(total * 100) / 100,
+      percentage: totalExpenses > 0 ? Math.round((total / totalExpenses) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  res.json({ month, categories });
+});
+
+/**
+ * GET /transactions/trend?months=6 — receitas/despesas/saldo dos últimos N
+ * meses (incluindo o atual), do mais antigo pro mais recente. Soma no
+ * servidor com uma única query no intervalo inteiro, em vez de uma query por
+ * mês.
+ */
+transactionsRouter.get("/trend", async (req, res) => {
+  const parsed = trendQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Parâmetros inválidos.", issues: parsed.error.flatten() });
+  }
+
+  const { months } = parsed.data;
+  const now = new Date();
+  const monthList: string[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getFullYear(), now.getMonth() - i, 1));
+    monthList.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+
+  const rangeStart = getMonthRange(monthList[0]!).start;
+  const rangeEnd = getMonthRange(monthList[monthList.length - 1]!).end;
+  const supabase = createUserScopedClient(req.accessToken!);
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("amount, transaction_date")
+    .eq("user_id", req.userId!)
+    .gte("transaction_date", rangeStart)
+    .lt("transaction_date", rangeEnd);
+
+  if (error) {
+    console.error("Falha ao calcular a tendência:", error);
+    return res.status(500).json({ error: "Falha ao calcular a tendência." });
+  }
+
+  const byMonth = new Map<string, { income: number; expenses: number }>();
+  for (const monthKey of monthList) {
+    byMonth.set(monthKey, { income: 0, expenses: 0 });
+  }
+  for (const row of data) {
+    const bucket = byMonth.get(row.transaction_date.slice(0, 7));
+    if (!bucket) continue;
+    const amount = Number(row.amount);
+    if (amount >= 0) {
+      bucket.income += amount;
+    } else {
+      bucket.expenses += Math.abs(amount);
+    }
+  }
+
+  const trend = monthList.map((monthKey) => {
+    const bucket = byMonth.get(monthKey)!;
+    return {
+      month: monthKey,
+      income: Math.round(bucket.income * 100) / 100,
+      expenses: Math.round(bucket.expenses * 100) / 100,
+      balance: Math.round((bucket.income - bucket.expenses) * 100) / 100,
+    };
+  });
+
+  res.json({ trend });
 });

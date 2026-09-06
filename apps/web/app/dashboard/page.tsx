@@ -1,11 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
-import { fetchBankConnections, fetchTransactions, fetchTransactionsSummary } from "@/lib/api-client";
+import {
+  fetchBankConnections,
+  fetchTransactions,
+  fetchTransactionsSummary,
+  fetchTransactionsCategories,
+  fetchTransactionsTrend,
+} from "@/lib/api-client";
 import { TransactionList } from "@/components/transaction-list";
 import { MonthSummary } from "@/components/month-summary";
+import { TrendChart } from "@/components/trend-chart";
+import { CategoryBreakdown } from "@/components/category-breakdown";
 import { ConnectBankButton } from "@/components/connect-bank-button";
-import { currentMonth } from "@/lib/format";
+import { currentMonth, shiftMonth } from "@/lib/format";
 import { logout } from "./actions";
-import type { Transaction, BankConnection, TransactionsSummary } from "@azulito/shared";
+import type {
+  Transaction,
+  BankConnection,
+  TransactionsSummary,
+  CategoriesSummary,
+  MonthlyTrendPoint,
+} from "@azulito/shared";
 
 export default async function DashboardPage({
   searchParams,
@@ -14,6 +28,7 @@ export default async function DashboardPage({
 }) {
   const { month: monthParam } = await searchParams;
   const month = monthParam ?? currentMonth();
+  const previousMonth = shiftMonth(month, -1);
 
   const supabase = await createClient();
   const {
@@ -29,15 +44,22 @@ export default async function DashboardPage({
   let transactions: Transaction[] = [];
   let connections: BankConnection[] = [];
   let summary: TransactionsSummary | null = null;
+  let previousSummary: TransactionsSummary | null = null;
+  let categories: CategoriesSummary | null = null;
+  let trend: MonthlyTrendPoint[] = [];
   let loadError = false;
 
   try {
-    [transactions, connections, summary] = await Promise.all([
+    [transactions, connections, summary, previousSummary, categories, { trend }] = await Promise.all([
       fetchTransactions(session.access_token, month),
       fetchBankConnections(session.access_token),
       fetchTransactionsSummary(session.access_token, month),
+      fetchTransactionsSummary(session.access_token, previousMonth),
+      fetchTransactionsCategories(session.access_token, month),
+      fetchTransactionsTrend(session.access_token, 6),
     ]);
-  } catch {
+  } catch (err) {
+    console.error("Falha ao carregar dashboard:", err);
     loadError = true;
   }
 
@@ -82,7 +104,13 @@ export default async function DashboardPage({
         </p>
       ) : (
         <>
-          {summary ? <MonthSummary summary={summary} /> : null}
+          {summary ? <MonthSummary summary={summary} previous={previousSummary} /> : null}
+
+          <div className="dashboard-grid">
+            <TrendChart trend={trend} />
+            {categories ? <CategoryBreakdown categories={categories.categories} /> : null}
+          </div>
+
           <section className="transactions-card">
             <h2 className="transactions-heading">Transações</h2>
             <TransactionList transactions={transactions} />

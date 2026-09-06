@@ -1,19 +1,45 @@
 import Link from "next/link";
 import type { TransactionsSummary } from "@azulito/shared";
-import { formatCurrency, formatMonthLabel, shiftMonth } from "@/lib/format";
+import { formatCurrency, formatMonthLabel, percentChange, shiftMonth } from "@/lib/format";
 
-export function MonthSummary({ summary }: { summary: TransactionsSummary }) {
-  const previous = shiftMonth(summary.month, -1);
-  const next = shiftMonth(summary.month, 1);
+function DeltaBadge({ value, invert = false }: { value: number | null; invert?: boolean }) {
+  if (value === null) {
+    return <span className="delta-badge neutral">novo</span>;
+  }
+  if (value === 0) {
+    return <span className="delta-badge neutral">= mês anterior</span>;
+  }
+  const isGood = invert ? value < 0 : value > 0;
+  const arrow = value > 0 ? "↑" : "↓";
+  return (
+    <span className={`delta-badge ${isGood ? "good" : "bad"}`}>
+      {arrow} {Math.abs(value)}% vs mês anterior
+    </span>
+  );
+}
+
+export function MonthSummary({
+  summary,
+  previous,
+}: {
+  summary: TransactionsSummary;
+  previous: TransactionsSummary | null;
+}) {
+  const previousMonth = shiftMonth(summary.month, -1);
+  const nextMonth = shiftMonth(summary.month, 1);
+
+  const incomeDelta = previous ? percentChange(summary.income, previous.income) : null;
+  const expensesDelta = previous ? percentChange(summary.expenses, previous.expenses) : null;
+  const balanceDelta = previous ? percentChange(summary.balance, previous.balance) : null;
 
   return (
     <section className="month-summary">
       <div className="month-nav">
-        <Link href={`/dashboard?month=${previous}`} className="month-nav-arrow" aria-label="Mês anterior">
+        <Link href={`/dashboard?month=${previousMonth}`} className="month-nav-arrow" aria-label="Mês anterior">
           ‹
         </Link>
         <h2>{formatMonthLabel(summary.month)}</h2>
-        <Link href={`/dashboard?month=${next}`} className="month-nav-arrow" aria-label="Próximo mês">
+        <Link href={`/dashboard?month=${nextMonth}`} className="month-nav-arrow" aria-label="Próximo mês">
           ›
         </Link>
       </div>
@@ -25,6 +51,7 @@ export function MonthSummary({ summary }: { summary: TransactionsSummary }) {
           <div>
             <span className="summary-label">Receitas</span>
             <span className="summary-value positive">{formatCurrency(summary.income)}</span>
+            <DeltaBadge value={incomeDelta} />
           </div>
         </div>
         <div className="summary-card">
@@ -34,6 +61,7 @@ export function MonthSummary({ summary }: { summary: TransactionsSummary }) {
           <div>
             <span className="summary-label">Despesas</span>
             <span className="summary-value negative">{formatCurrency(summary.expenses)}</span>
+            <DeltaBadge value={expensesDelta} invert />
           </div>
         </div>
         <div className="summary-card summary-card-balance">
@@ -45,6 +73,7 @@ export function MonthSummary({ summary }: { summary: TransactionsSummary }) {
             <span className={`summary-value ${summary.balance >= 0 ? "positive" : "negative"}`}>
               {formatCurrency(summary.balance)}
             </span>
+            <DeltaBadge value={balanceDelta} />
           </div>
         </div>
       </div>

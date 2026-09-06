@@ -112,7 +112,7 @@ body {
 /* === Dashboard === */
 
 .dashboard {
-  max-width: 720px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
 }
@@ -296,6 +296,169 @@ body {
   color: var(--positive);
 }
 
+.delta-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.delta-badge.good {
+  color: var(--positive);
+}
+
+.delta-badge.bad {
+  color: var(--danger);
+}
+
+.delta-badge.neutral {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* === Gráficos === */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: stretch;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+
+.chart-heading {
+  margin: 0 0 1.1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.trend-chart {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-height: 140px;
+}
+
+.trend-column {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trend-bars {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.28rem;
+}
+
+.trend-bar {
+  width: 0.6rem;
+  min-height: 3px;
+  border-radius: 4px 4px 2px 2px;
+  transition: height 0.2s ease;
+}
+
+.trend-bar.income {
+  background: var(--positive);
+}
+
+.trend-bar.expense {
+  background: var(--danger);
+}
+
+.trend-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1.1rem;
+  margin-top: 1rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
+.legend-dot.income {
+  background: var(--positive);
+}
+
+.legend-dot.expense {
+  background: var(--danger);
+}
+
+.category-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.category-bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.category-bar-label > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-bar-value {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.category-bar-track {
+  height: 0.45rem;
+  background: var(--surface-raised);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.category-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
 /* === Lista de transações === */
 
 .transactions-card {
@@ -410,6 +573,12 @@ body {
   color: var(--muted);
   text-align: center;
   padding: 3rem 1rem;
+}
+
+@media (max-width: 780px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 520px) {
