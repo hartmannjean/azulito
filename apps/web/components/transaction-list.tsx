@@ -3,32 +3,33 @@ import { formatCurrency, formatDate } from "@/lib/format";
 
 export function TransactionList({ transactions }: { transactions: Transaction[] }) {
   if (transactions.length === 0) {
-    return (
-      <p className="empty-state">
-        Nenhuma transação ainda. Conecte sua conta do Nubank para começar a
-        ver seus dados aqui.
-      </p>
-    );
+    return <p className="empty-state">Nenhuma transação neste mês.</p>;
   }
 
   return (
     <ul className="transaction-list">
-      {transactions.map((transaction) => (
-        <li key={transaction.id} className="transaction-item">
-          <div>
-            <div>{transaction.description}</div>
-            <div className="transaction-meta">
-              {formatDate(transaction.transaction_date)}
-              {transaction.category ? ` · ${transaction.category}` : ""}
+      {transactions.map((transaction) => {
+        const isNegative = transaction.amount < 0;
+        return (
+          <li key={transaction.id} className="transaction-item">
+            <span className={`transaction-avatar ${isNegative ? "negative" : "positive"}`} aria-hidden="true">
+              {transaction.description.charAt(0).toUpperCase()}
+            </span>
+            <div className="transaction-info">
+              <span className="transaction-description">{transaction.description}</span>
+              <span className="transaction-meta">
+                {formatDate(transaction.transaction_date)}
+                {transaction.category ? (
+                  <span className="transaction-category">{transaction.category}</span>
+                ) : null}
+              </span>
             </div>
-          </div>
-          <div
-            className={`transaction-amount ${transaction.amount < 0 ? "negative" : "positive"}`}
-          >
-            {formatCurrency(transaction.amount, transaction.currency_code)}
-          </div>
-        </li>
-      ))}
+            <span className={`transaction-amount ${isNegative ? "negative" : "positive"}`}>
+              {formatCurrency(transaction.amount, transaction.currency_code)}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

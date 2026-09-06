@@ -1,5 +1,5 @@
 import "server-only";
-import type { Transaction, BankConnection } from "@azulito/shared";
+import type { Transaction, BankConnection, TransactionsSummary } from "@azulito/shared";
 
 /**
  * Client HTTP para apps/api. Chamado SÓ do servidor da apps/web (Server
@@ -31,9 +31,19 @@ async function apiFetch<T>(path: string, accessToken: string, init?: RequestInit
   return response.json() as Promise<T>;
 }
 
-export async function fetchTransactions(accessToken: string): Promise<Transaction[]> {
-  const data = await apiFetch<{ transactions: Transaction[] }>("/transactions", accessToken);
+export async function fetchTransactions(accessToken: string, month: string): Promise<Transaction[]> {
+  const data = await apiFetch<{ transactions: Transaction[] }>(
+    `/transactions?month=${month}&limit=200`,
+    accessToken,
+  );
   return data.transactions;
+}
+
+export async function fetchTransactionsSummary(
+  accessToken: string,
+  month: string,
+): Promise<TransactionsSummary> {
+  return apiFetch<TransactionsSummary>(`/transactions/summary?month=${month}`, accessToken);
 }
 
 export async function fetchBankConnections(accessToken: string): Promise<BankConnection[]> {

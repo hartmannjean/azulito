@@ -18,3 +18,11 @@ export type BankConnection = {
   institution_name: string;
   status: "connected" | "updating" | "error" | "disconnected";
 };
+
+/** Resumo de receitas/despesas de um mês (`AAAA-MM`) — GET /transactions/summary. */
+export type TransactionsSummary = {
+  month: string;
+  income: number;
+  expenses: number;
+  balance: number;
+};

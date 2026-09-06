@@ -1,11 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
-import { fetchBankConnections, fetchTransactions } from "@/lib/api-client";
+import { fetchBankConnections, fetchTransactions, fetchTransactionsSummary } from "@/lib/api-client";
 import { TransactionList } from "@/components/transaction-list";
+import { MonthSummary } from "@/components/month-summary";
 import { ConnectBankButton } from "@/components/connect-bank-button";
+import { currentMonth } from "@/lib/format";
 import { logout } from "./actions";
-import type { Transaction, BankConnection } from "@azulito/shared";
+import type { Transaction, BankConnection, TransactionsSummary } from "@azulito/shared";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const { month: monthParam } = await searchParams;
+  const month = monthParam ?? currentMonth();
+
   const supabase = await createClient();
   const {
     data: { session },
@@ -19,21 +28,30 @@ export default async function DashboardPage() {
 
   let transactions: Transaction[] = [];
   let connections: BankConnection[] = [];
+  let summary: TransactionsSummary | null = null;
   let loadError = false;
 
   try {
-    [transactions, connections] = await Promise.all([
-      fetchTransactions(session.access_token),
+    [transactions, connections, summary] = await Promise.all([
+      fetchTransactions(session.access_token, month),
       fetchBankConnections(session.access_token),
+      fetchTransactionsSummary(session.access_token, month),
     ]);
   } catch {
     loadError = true;
   }
 
+  const activeConnection = connections[0];
+
   return (
     <main className="dashboard">
       <div className="dashboard-header">
-        <h1>Suas transações</h1>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            A
+          </span>
+          <span className="brand-name">Azulito</span>
+        </div>
         <form action={logout}>
           <button type="submit" className="button secondary">
             Sair
@@ -41,7 +59,21 @@ export default async function DashboardPage() {
         </form>
       </div>
 
-      <ConnectBankButton hasConnection={connections.length > 0} />
+      <div className="toolbar">
+        <div className="connection-status">
+          {activeConnection ? (
+            <>
+              <span className="connection-dot" aria-hidden="true" />
+              <span>
+                {activeConnection.institution_name} conectado
+              </span>
+            </>
+          ) : (
+            <span className="muted">Nenhuma conta conectada</span>
+          )}
+        </div>
+        <ConnectBankButton hasConnection={connections.length > 0} />
+      </div>
 
       {loadError ? (
         <p role="alert" className="form-error">
@@ -49,21 +81,14 @@ export default async function DashboardPage() {
           instantes.
         </p>
       ) : (
-        <TransactionList transactions={transactions} />
+        <>
+          {summary ? <MonthSummary summary={summary} /> : null}
+          <section className="transactions-card">
+            <h2 className="transactions-heading">Transações</h2>
+            <TransactionList transactions={transactions} />
+          </section>
+        </>
       )}
-
-      {connections.length > 0 ? (
-        <section>
-          <h2>Contas conectadas</h2>
-          <ul>
-            {connections.map((connection) => (
-              <li key={connection.id}>
-                {connection.institution_name} — {connection.status}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
     </main>
   );
 }
