@@ -11,6 +11,11 @@ import { MonthSummary } from "@/components/month-summary";
 import { TrendChart } from "@/components/trend-chart";
 import { CategoryBreakdown } from "@/components/category-breakdown";
 import { ConnectBankButton } from "@/components/connect-bank-button";
+import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 import { currentMonth, shiftMonth } from "@/lib/format";
 import { logout } from "./actions";
 import type {
@@ -29,6 +34,8 @@ export default async function DashboardPage({
   const { month: monthParam } = await searchParams;
   const month = monthParam ?? currentMonth();
   const previousMonth = shiftMonth(month, -1);
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   const supabase = await createClient();
   const {
@@ -64,56 +71,69 @@ export default async function DashboardPage({
   }
 
   const activeConnection = connections[0];
+  const firstName = session.user.email?.split("@")[0] ?? "";
 
   return (
     <main className="dashboard">
       <div className="dashboard-header">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            A
-          </span>
-          <span className="brand-name">Azulito</span>
+        <Logo />
+        <div className="header-actions">
+          <LanguageToggle
+            locale={locale}
+            switchToEnglishLabel={dict.common.switchToEnglish}
+            switchToPortugueseLabel={dict.common.switchToPortuguese}
+          />
+          <ThemeToggle label={dict.common.toggleTheme} />
+          <form action={logout}>
+            <button type="submit" className="button secondary">
+              {dict.dashboard.logout}
+            </button>
+          </form>
         </div>
-        <form action={logout}>
-          <button type="submit" className="button secondary">
-            Sair
-          </button>
-        </form>
       </div>
+
+      <p className="dashboard-greeting">{dict.dashboard.greeting(firstName)}</p>
 
       <div className="toolbar">
         <div className="connection-status">
           {activeConnection ? (
             <>
               <span className="connection-dot" aria-hidden="true" />
-              <span>
-                {activeConnection.institution_name} conectado
-              </span>
+              <span>{dict.dashboard.connected(activeConnection.institution_name)}</span>
             </>
           ) : (
-            <span className="muted">Nenhuma conta conectada</span>
+            <span className="muted">{dict.dashboard.noConnection}</span>
           )}
         </div>
-        <ConnectBankButton hasConnection={connections.length > 0} />
+        <ConnectBankButton
+          hasConnection={connections.length > 0}
+          connectLabel={dict.dashboard.connectButton}
+          reconnectLabel={dict.dashboard.reconnectButton}
+          connectingLabel={dict.dashboard.connecting}
+          errorLabel={dict.auth.errors.connectFailed}
+        />
       </div>
 
       {loadError ? (
         <p role="alert" className="form-error">
-          Não foi possível carregar seus dados agora. Tente novamente em
-          instantes.
+          {dict.dashboard.loadError}
         </p>
       ) : (
         <>
-          {summary ? <MonthSummary summary={summary} previous={previousSummary} /> : null}
+          {summary ? (
+            <MonthSummary summary={summary} previous={previousSummary} trend={trend} locale={locale} dict={dict} />
+          ) : null}
 
           <div className="dashboard-grid">
-            <TrendChart trend={trend} />
-            {categories ? <CategoryBreakdown categories={categories.categories} /> : null}
+            <TrendChart trend={trend} locale={locale} dict={dict} />
+            {categories ? (
+              <CategoryBreakdown categories={categories.categories} locale={locale} dict={dict.categories} />
+            ) : null}
           </div>
 
           <section className="transactions-card">
-            <h2 className="transactions-heading">Transações</h2>
-            <TransactionList transactions={transactions} />
+            <h2 className="transactions-heading">{dict.dashboard.transactionsHeading}</h2>
+            <TransactionList transactions={transactions} locale={locale} dict={dict.transactions} />
           </section>
         </>
       )}

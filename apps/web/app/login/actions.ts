@@ -12,18 +12,22 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema, type AuthActionState } from "@/lib/validations/auth";
 import { getClientIpFromHeaders } from "@/lib/request";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export async function login(
   _prevState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const dict = getDictionary(await getLocale());
+
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    return { error: "E-mail ou senha inválidos." };
+    return { error: dict.auth.errors.invalidCredentials };
   }
 
   const { email, password } = parsed.data;
@@ -36,13 +40,13 @@ export async function login(
     const ip = getClientIpFromHeaders(await headers());
     const ipLimit = await checkRateLimit(authIpRateLimiter, `login:${ip}`);
     if (!ipLimit.success) {
-      return { error: "Muitas tentativas. Aguarde um momento e tente novamente." };
+      return { error: dict.auth.errors.tooManyAttempts };
     }
 
     const lockout = await getLoginLockout(email);
     if (lockout.lockedOut) {
       const minutes = Math.ceil(lockout.retryAfterSeconds / 60);
-      return { error: `Muitas tentativas para este e-mail. Tente novamente em ${minutes} min.` };
+      return { error: dict.auth.errors.lockedOut(minutes) };
     }
   } catch (error) {
     console.error("rate limit indisponível, deixando login passar:", error);
@@ -60,7 +64,7 @@ export async function login(
     }
     // Mensagem genérica de propósito: não revela se o e-mail existe ou se
     // foi a senha que errou (evita enumeração de contas).
-    return { error: "E-mail ou senha inválidos." };
+    return { error: dict.auth.errors.invalidCredentials };
   }
 
   try {

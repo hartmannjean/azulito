@@ -1,12 +1,14 @@
-export function formatCurrency(amount: number, currencyCode = "BRL") {
-  return new Intl.NumberFormat("pt-BR", {
+import type { Locale } from "./i18n/locale";
+
+export function formatCurrency(amount: number, locale: Locale, currencyCode = "BRL") {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currencyCode,
   }).format(amount);
 }
 
-export function formatDate(dateIso: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(dateIso));
+export function formatDate(dateIso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(dateIso));
 }
 
 /** Mês atual no formato AAAA-MM, no fuso do servidor. */
@@ -15,11 +17,11 @@ export function currentMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/** AAAA-MM -> "setembro de 2026". Usa meio-dia UTC pra não cair no dia anterior por fuso. */
-export function formatMonthLabel(month: string): string {
+/** AAAA-MM -> "setembro de 2026" (ou "September 2026" em inglês). Usa meio-dia UTC pra não cair no dia anterior por fuso. */
+export function formatMonthLabel(month: string, locale: Locale): string {
   const [year, mon] = month.split("-").map(Number);
   const date = new Date(Date.UTC(year!, mon! - 1, 12));
-  const label = new Intl.DateTimeFormat("pt-BR", {
+  const label = new Intl.DateTimeFormat(locale, {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -35,10 +37,10 @@ export function shiftMonth(month: string, delta: number): string {
 }
 
 /** AAAA-MM -> "set" (abreviação de 3 letras, pra rótulo de eixo de gráfico). */
-export function formatMonthShort(month: string): string {
+export function formatMonthShort(month: string, locale: Locale): string {
   const [year, mon] = month.split("-").map(Number);
   const date = new Date(Date.UTC(year!, mon! - 1, 1));
-  return new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
+  return new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" })
     .format(date)
     .replace(".", "");
 }

@@ -6,11 +6,11 @@ import type { AuthActionState } from "@/lib/validations/auth";
 
 const initialState: AuthActionState = { error: null };
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ label, sendingLabel }: { label: string; sendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="button" disabled={pending}>
-      {pending ? "Enviando..." : label}
+      {pending ? sendingLabel : label}
     </button>
   );
 }
@@ -18,15 +18,21 @@ function SubmitButton({ label }: { label: string }) {
 export function AuthForm({
   action,
   submitLabel,
+  emailLabel,
+  passwordLabel,
+  sendingLabel,
 }: {
   action: (state: AuthActionState, formData: FormData) => Promise<AuthActionState>;
   submitLabel: string;
+  emailLabel: string;
+  passwordLabel: string;
+  sendingLabel: string;
 }) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className="auth-form">
-      <label htmlFor="email">E-mail</label>
+      <label htmlFor="email">{emailLabel}</label>
       <input
         id="email"
         name="email"
@@ -36,7 +42,7 @@ export function AuthForm({
         required
       />
 
-      <label htmlFor="password">Senha</label>
+      <label htmlFor="password">{passwordLabel}</label>
       <input
         id="password"
         name="password"
@@ -53,7 +59,7 @@ export function AuthForm({
         </p>
       ) : null}
 
-      <SubmitButton label={submitLabel} />
+      <SubmitButton label={submitLabel} sendingLabel={sendingLabel} />
     </form>
   );
 }

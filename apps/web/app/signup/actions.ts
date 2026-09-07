@@ -6,18 +6,22 @@ import { authIpRateLimiter, checkRateLimit } from "@azulito/shared";
 import { createClient } from "@/lib/supabase/server";
 import { signupSchema, type AuthActionState } from "@/lib/validations/auth";
 import { getClientIpFromHeaders } from "@/lib/request";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export async function signup(
   _prevState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const dict = getDictionary(await getLocale());
+
   const parsed = signupSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    return { error: "Use um e-mail válido e uma senha com pelo menos 8 caracteres." };
+    return { error: dict.auth.errors.invalidSignupInput };
   }
 
   const { email, password } = parsed.data;
@@ -28,7 +32,7 @@ export async function signup(
     const ip = getClientIpFromHeaders(await headers());
     const ipLimit = await checkRateLimit(authIpRateLimiter, `signup:${ip}`);
     if (!ipLimit.success) {
-      return { error: "Muitas tentativas. Aguarde um momento e tente novamente." };
+      return { error: dict.auth.errors.tooManyAttempts };
     }
   } catch (error) {
     console.error("rate limit indisponível, deixando cadastro passar:", error);
@@ -40,7 +44,7 @@ export async function signup(
   if (error) {
     console.error("falha ao criar conta no Supabase Auth:", error);
     // Mensagem genérica: não confirma nem nega se o e-mail já está cadastrado.
-    return { error: "Não foi possível criar a conta. Tente novamente." };
+    return { error: dict.auth.errors.signupFailed };
   }
 
   redirect("/login?signup=success");

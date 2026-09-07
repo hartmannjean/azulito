@@ -20,7 +20,19 @@ const PluggyConnect = dynamic(
  * aqui só disparamos um refresh pra Server Component reler o que o backend
  * já persistiu.
  */
-export function ConnectBankButton({ hasConnection }: { hasConnection: boolean }) {
+export function ConnectBankButton({
+  hasConnection,
+  connectLabel,
+  reconnectLabel,
+  connectingLabel,
+  errorLabel,
+}: {
+  hasConnection: boolean;
+  connectLabel: string;
+  reconnectLabel: string;
+  connectingLabel: string;
+  errorLabel: string;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [connectToken, setConnectToken] = useState<string | null>(null);
@@ -41,12 +53,10 @@ export function ConnectBankButton({ hasConnection }: { hasConnection: boolean })
   return (
     <div>
       <button type="button" className="button secondary" onClick={handleClick}>
-        {hasConnection ? "Reconectar Nubank" : "Conectar Nubank"}
+        {hasConnection ? reconnectLabel : connectLabel}
       </button>
-      {status === "loading" ? <p className="transaction-meta">Iniciando conexão...</p> : null}
-      {status === "error" ? (
-        <p className="form-error">Não foi possível iniciar a conexão. Tente novamente.</p>
-      ) : null}
+      {status === "loading" ? <p className="transaction-meta">{connectingLabel}</p> : null}
+      {status === "error" ? <p className="form-error">{errorLabel}</p> : null}
       {connectToken ? (
         <PluggyConnect
           connectToken={connectToken}

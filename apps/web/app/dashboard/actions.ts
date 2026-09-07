@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requestPluggyConnectToken } from "@/lib/api-client";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 export async function logout() {
   const supabase = await createClient();
@@ -17,19 +19,21 @@ export async function logout() {
  * trafegar até o browser para esta ação funcionar.
  */
 export async function requestConnectToken(): Promise<{ accessToken?: string; error?: string }> {
+  const dict = getDictionary(await getLocale());
+
   const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return { error: "Não autenticado." };
+    return { error: dict.auth.errors.notAuthenticated };
   }
 
   try {
     const accessToken = await requestPluggyConnectToken(session.access_token);
     return { accessToken };
   } catch {
-    return { error: "Falha ao iniciar conexão com a Pluggy." };
+    return { error: dict.auth.errors.connectFailed };
   }
 }
