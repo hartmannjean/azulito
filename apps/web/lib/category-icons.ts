@@ -18,10 +18,10 @@ const CATEGORY_ICONS: Array<[RegExp, string]> = [
   [/compra|vestu[áa]rio|roupa|loja|shopping|clothing|retail/i, "🛍️"],
   [/viagem|hotel|passagem a[ée]rea|travel|flight/i, "✈️"],
   [/investimento|aplica[çc][ãa]o|resgate|investment/i, "📈"],
+  [/fatura|cart[ãa]o de cr[ée]dito|credit card|bill\b/i, "💳"],
   [/empr[ée]stimo|financiamento|loan|financing|credit/i, "🏦"],
   [/imposto|taxa|tarifa banc[áa]ria|tax|fee\b/i, "🧾"],
   [/transfer[êe]ncia|pix|ted|doc\b|transfer/i, "🔁"],
-  [/fatura|cart[ãa]o de cr[ée]dito|bill\b/i, "💳"],
   [/servi[çc]o|service/i, "🔧"],
 ];
 

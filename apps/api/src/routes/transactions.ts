@@ -19,31 +19,70 @@ function getMonthRange(month: string): { start: string; end: string } {
   return { start, end };
 }
 
-const INVESTMENT_CATEGORY_PREFIX = "investment";
-// Rótulo em inglês de propósito: o backend sempre devolve a taxonomia da
-// Pluggy em inglês, e é o frontend (lib/i18n/category-names.ts) quem traduz
-// pra exibição — mesma convenção usada pras categorias que vêm da Pluggy.
-const CREDIT_CARD_BILL_CATEGORY = "Credit card bill";
+/**
+ * Categorias que nunca devem contar como receita/despesa real, verificado
+ * contra os dados de verdade do usuário (não só suposição sobre a
+ * taxonomia da Pluggy):
+ *
+ * - "investments": aplicar/resgatar (ex: RDB) é o próprio dinheiro da
+ *   pessoa mudando de lugar, não entra nem sai de verdade.
+ * - "same person transfer": transferência entre contas do próprio usuário,
+ *   mesma lógica de investimento.
+ * - "credit card payment": o pagamento da fatura já aparece DUAS vezes nos
+ *   dados — uma na conta corrente (categoria "Transfers", descrição
+ *   "Pagamento de fatura") e outra na própria conta do cartão (categoria
+ *   "Credit card payment", descrição "Pagamento recebido"), sempre com o
+ *   mesmo valor e a mesma data (confirmado nos 8 meses de histórico do
+ *   usuário) — cada uma é o mesmo evento visto pelas duas pontas da
+ *   transferência. Excluir esta categoria mantém só o lado da conta
+ *   corrente, sem contar a fatura duas vezes.
+ */
+const EXCLUDED_CATEGORIES = ["investments", "same person transfer", "credit card payment"];
 
-function isInvestmentCategory(category: string | null): boolean {
-  return !!category && category.toLowerCase().startsWith(INVESTMENT_CATEGORY_PREFIX);
+function isExcludedCategory(category: string | null): boolean {
+  if (!category) return false;
+  const normalized = category.toLowerCase();
+  return EXCLUDED_CATEGORIES.some((excluded) => normalized.startsWith(excluded));
+}
+
+/**
+ * Categorias cujo SINAL é confiável pra decidir receita vs despesa —
+ * "transfers" pode ser dinheiro entrando (Pix recebido de outra pessoa) ou
+ * saindo (Pix enviado, pagamento de fatura), então mantém o sinal original.
+ * Sem categoria (null) também fica no sinal original: não há informação pra
+ * decidir melhor.
+ *
+ * Todas as outras categorias (Groceries, Shopping, Gas stations, etc.) são
+ * SEMPRE despesa aqui, não importa o sinal gravado — verificado contra os
+ * dados reais do usuário: compras no débito aparecem corretamente negativas,
+ * mas as mesmas compras (mesmo estabelecimento, ex. "Supermercados Osana",
+ * "Posto de Combustiveis") em vários meses seguidos (fev–ago/2026) aparecem
+ * com valor POSITIVO — não são estornos (o volume e a recorrência não batem
+ * com isso), é a Pluggy/Nubank gravando o sinal de forma inconsistente pra
+ * parte das transações. Categoria já deixa claro que é gasto; usar o sinal
+ * bruto nesses casos inflava "receita" com compra de mercado e posto.
+ */
+const SIGN_AMBIGUOUS_CATEGORIES = ["transfers", "income"];
+
+function isSignAmbiguousCategory(category: string | null): boolean {
+  if (!category) return true;
+  const normalized = category.toLowerCase();
+  return SIGN_AMBIGUOUS_CATEGORIES.some((name) => normalized.startsWith(name));
 }
 
 type AdjustedRow = { amount: number; category: string | null; transaction_date: string };
 
 /**
- * Transações do período com dois ajustes em relação à tabela crua — sem eles
- * o resumo mensal fica inflado e a despesa do cartão cai no mês errado:
+ * Transações do período, com dois ajustes em relação à tabela crua — sem
+ * eles o resumo mensal conta dinheiro que não é receita/despesa real:
  *
- * - Movimentações de investimento (aplicar/resgatar) são excluídas: é o
- *   próprio dinheiro da pessoa mudando de lugar, não receita/despesa real.
- * - Compras de cartão já fechadas numa fatura (`pluggy_bill_id` setado por
- *   `pluggyClient.ts`/`pluggySync.ts`) são excluídas uma a uma e substituídas
- *   por UMA linha sintética por fatura, no valor total e na data de
- *   vencimento — o dinheiro só sai de verdade quando a fatura é paga, não
- *   quando cada compra foi feita. A lista de transações (GET /transactions)
- *   continua mostrando cada compra separada, sem esses ajustes — eles valem
- *   só pra soma agregada (summary/categories/trend).
+ * - Categorias de `EXCLUDED_CATEGORIES` são descartadas por completo.
+ * - Nas demais categorias (exceto as ambíguas), o sinal é normalizado pra
+ *   despesa — ver `SIGN_AMBIGUOUS_CATEGORIES` acima.
+ *
+ * A lista de transações (GET /transactions) não passa por nenhum desses
+ * ajustes — mostra tudo como veio da Pluggy, só a soma agregada
+ * (summary/categories/trend) é que precisa disso.
  */
 async function fetchAdjustedTransactions(
   supabase: ReturnType<typeof createUserScopedClient>,
@@ -51,42 +90,22 @@ async function fetchAdjustedTransactions(
   start: string,
   end: string,
 ): Promise<AdjustedRow[]> {
-  const [transactionsResult, billsResult] = await Promise.all([
-    supabase
-      .from("transactions")
-      .select("amount, category, transaction_date")
-      .eq("user_id", userId)
-      .gte("transaction_date", start)
-      .lt("transaction_date", end)
-      .is("pluggy_bill_id", null),
-    supabase
-      .from("credit_card_bills")
-      .select("total_amount, due_date")
-      .eq("user_id", userId)
-      .gte("due_date", start)
-      .lt("due_date", end),
-  ]);
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("amount, category, transaction_date")
+    .eq("user_id", userId)
+    .gte("transaction_date", start)
+    .lt("transaction_date", end);
 
-  if (transactionsResult.error) throw transactionsResult.error;
-  if (billsResult.error) throw billsResult.error;
+  if (error) throw error;
 
-  const rows: AdjustedRow[] = transactionsResult.data
-    .filter((row) => !isInvestmentCategory(row.category))
-    .map((row) => ({
-      amount: Number(row.amount),
-      category: row.category,
-      transaction_date: row.transaction_date,
-    }));
-
-  for (const bill of billsResult.data) {
-    rows.push({
-      amount: -Math.abs(Number(bill.total_amount)),
-      category: CREDIT_CARD_BILL_CATEGORY,
-      transaction_date: bill.due_date,
+  return data
+    .filter((row) => !isExcludedCategory(row.category))
+    .map((row) => {
+      const rawAmount = Number(row.amount);
+      const amount = isSignAmbiguousCategory(row.category) ? rawAmount : -Math.abs(rawAmount);
+      return { amount, category: row.category, transaction_date: row.transaction_date };
     });
-  }
-
-  return rows;
 }
 
 /**
