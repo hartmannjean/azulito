@@ -25,9 +25,7 @@ function getMonthRange(month: string): { start: string; end: string } {
  * taxonomia da Pluggy):
  *
  * - "investments": aplicar/resgatar (ex: RDB) é o próprio dinheiro da
- *   pessoa mudando de lugar, não entra nem sai de verdade.
- * - "same person transfer": transferência entre contas do próprio usuário,
- *   mesma lógica de investimento.
+ *   pessoa mudando de lugar DENTRO do Nubank, não entra nem sai da conta.
  * - "credit card payment": o pagamento da fatura já aparece DUAS vezes nos
  *   dados — uma na conta corrente (categoria "Transfers", descrição
  *   "Pagamento de fatura") e outra na própria conta do cartão (categoria
@@ -36,8 +34,14 @@ function getMonthRange(month: string): { start: string; end: string } {
  *   usuário) — cada uma é o mesmo evento visto pelas duas pontas da
  *   transferência. Excluir esta categoria mantém só o lado da conta
  *   corrente, sem contar a fatura duas vezes.
+ *
+ * "same person transfer" NÃO entra aqui (ver `SIGN_AMBIGUOUS_CATEGORIES`
+ * abaixo) — só o Nubank está conectado, e é assim que a Pluggy categoriza a
+ * transferência de um banco externo (ex: Banco do Brasil) de mesma
+ * titularidade pro Nubank. Pro usuário, esse dinheiro entrou na conta que o
+ * app acompanha — deve contar como receita, não ser descartado.
  */
-const EXCLUDED_CATEGORIES = ["investments", "same person transfer", "credit card payment"];
+const EXCLUDED_CATEGORIES = ["investments", "credit card payment"];
 
 function isExcludedCategory(category: string | null): boolean {
   if (!category) return false;
@@ -46,11 +50,15 @@ function isExcludedCategory(category: string | null): boolean {
 }
 
 /**
- * Categorias cujo SINAL é confiável pra decidir receita vs despesa —
- * "transfers" pode ser dinheiro entrando (Pix recebido de outra pessoa) ou
- * saindo (Pix enviado, pagamento de fatura), então mantém o sinal original.
- * Sem categoria (null) também fica no sinal original: não há informação pra
- * decidir melhor.
+ * Categorias cujo SINAL é confiável pra decidir receita vs despesa:
+ *
+ * - "transfers"/"same person transfer": dinheiro entrando (salário/Pix
+ *   recebido, transferência de outro banco do próprio usuário) ou saindo
+ *   (Pix enviado, transferência pra outro banco) — as duas direções são
+ *   reais pra quem só acompanha o Nubank, então mantém o sinal original.
+ * - "income": categoria já é receita por definição.
+ * - sem categoria (null): não há informação pra decidir melhor, mantém o
+ *   sinal original.
  *
  * Todas as outras categorias (Groceries, Shopping, Gas stations, etc.) são
  * SEMPRE despesa aqui, não importa o sinal gravado — verificado contra os
@@ -62,7 +70,7 @@ function isExcludedCategory(category: string | null): boolean {
  * parte das transações. Categoria já deixa claro que é gasto; usar o sinal
  * bruto nesses casos inflava "receita" com compra de mercado e posto.
  */
-const SIGN_AMBIGUOUS_CATEGORIES = ["transfers", "income"];
+const SIGN_AMBIGUOUS_CATEGORIES = ["transfers", "same person transfer", "income"];
 
 function isSignAmbiguousCategory(category: string | null): boolean {
   if (!category) return true;
