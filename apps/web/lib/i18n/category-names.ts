@@ -30,6 +30,9 @@ const PT_BR_CATEGORY_NAMES: Record<string, string> = {
   insurance: "Seguros",
   leisure: "Lazer",
   other: "Outros",
+  // Sintética, gerada pelo backend (apps/api/src/routes/transactions.ts) pra
+  // representar a fatura do cartão fechada — não vem da Pluggy.
+  "credit card bill": "Fatura do cartão",
 };
 
 export function translateCategory(category: string | null | undefined, locale: Locale): string | null {

@@ -86,12 +86,21 @@ export async function getItem(itemId: string): Promise<{ connector: { name: stri
   return response.json() as Promise<{ connector: { name: string } }>;
 }
 
+export type PluggyAccount = {
+  id: string;
+  // TODO(pluggy): confirmar contra a doc oficial atual — assumido "BANK" |
+  // "CREDIT" (convenção comum da Pluggy), usado só pra decidir se vale a
+  // pena buscar faturas (`getBills`) pra esta conta.
+  type?: string;
+};
+
 /**
  * Lista as contas (conta corrente, poupança, cartão...) de um Item — é o
- * `accountId` de cada uma que `listTransactions` espera, não o `itemId`.
- * Usado por `syncConnectionTransactions` antes de buscar transações.
+ * `accountId` de cada uma que `listTransactions`/`getBills` espera, não o
+ * `itemId`. Usado por `syncConnectionTransactions` antes de buscar
+ * transações e faturas.
  */
-export async function getAccounts(itemId: string): Promise<{ id: string }[]> {
+export async function getAccounts(itemId: string): Promise<PluggyAccount[]> {
   const apiKey = await getApiKey();
 
   const response = await fetch(`${PLUGGY_API_BASE_URL}/accounts?itemId=${itemId}`, {
@@ -102,7 +111,40 @@ export async function getAccounts(itemId: string): Promise<{ id: string }[]> {
     throw new Error("Falha ao buscar as contas do Item na Pluggy.");
   }
 
-  const data = (await response.json()) as { results: { id: string }[] };
+  const data = (await response.json()) as { results: PluggyAccount[] };
+  return data.results;
+}
+
+export type PluggyBill = {
+  id: string;
+  dueDate: string;
+  totalAmount: number;
+  totalAmountCurrencyCode?: string;
+};
+
+/**
+ * Faturas de uma conta de cartão de crédito (`type === "CREDIT"`). Cada
+ * fatura já vem com `dueDate`/`totalAmount` calculados pela própria Pluggy —
+ * é o que permite contar a fatura como despesa no mês certo sem o backend
+ * precisar saber o dia de fechamento do cartão (que muda com o tempo).
+ *
+ * TODO(pluggy): path/shape assumidos por convenção com os outros endpoints
+ * (`?accountId=`, `{ results: [...] }") — confirmar contra a doc oficial
+ * atual antes de depender disso em produção. Nem toda instituição retorna
+ * faturas (documentado como obrigatório só em Open Finance Regulado).
+ */
+export async function getBills(accountId: string): Promise<PluggyBill[]> {
+  const apiKey = await getApiKey();
+
+  const response = await fetch(`${PLUGGY_API_BASE_URL}/bills?accountId=${accountId}`, {
+    headers: { "X-API-KEY": apiKey },
+  });
+
+  if (!response.ok) {
+    throw new Error("Falha ao buscar as faturas da conta na Pluggy.");
+  }
+
+  const data = (await response.json()) as { results: PluggyBill[] };
   return data.results;
 }
 
