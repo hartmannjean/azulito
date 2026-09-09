@@ -19,7 +19,7 @@
     "lint": "npm run lint -w apps/api && npm run lint -w apps/web"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   },
   "overrides": {
     "postcss": "8.5.26"
