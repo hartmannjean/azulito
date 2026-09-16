@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@upstash/ratelimit": "2.0.8",
-    "@upstash/redis": "1.38.3",
-    "zod": "4.5.4"
+    "@upstash/redis": "1.38.4",
+    "zod": "4.6.4"
   },
   "devDependencies": {
     "typescript": "5.9.3"
