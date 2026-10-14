@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@upstash/ratelimit": "2.0.8",
-    "@upstash/redis": "1.38.3",
-    "zod": "4.5.4"
+    "@upstash/ratelimit": "2.2.0",
+    "@upstash/redis": "1.39.0",
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "typescript": "5.9.3"
