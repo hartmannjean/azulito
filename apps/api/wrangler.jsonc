@@ -4,6 +4,7 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "azulito-api.hartmanns.com.br", "custom_domain": true }],
   "observability": { "enabled": true },
   "triggers": { "crons": ["0 3 * * *"] },
   "d1_databases": [
@@ -15,8 +16,8 @@
     }
   ],
   "vars": {
-    "WEB_APP_URL": "https://REPLACE-WITH-WEB-URL",
-    "CF_ACCESS_TEAM_DOMAIN": "REPLACE.cloudflareaccess.com",
-    "CF_ACCESS_AUD": "REPLACE-WITH-ACCESS-AUD"
+    "WEB_APP_URL": "https://azulito.hartmanns.com.br",
+    "CF_ACCESS_TEAM_DOMAIN": "wild-night-aa2a.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "0a95046b1ea248cd5fffedc53a39de526e796643455ad894472eefe50a8d8485"
   }
 }
