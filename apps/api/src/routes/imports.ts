@@ -45,14 +45,22 @@ importsRouter.post(
 
     // Arquiva o arquivo ORIGINAL antes de gravar qualquer linha: se o R2
     // falhar, a importação falha inteira em vez de existir sem cópia. A chave
-    // começa pelo user_id (vindo do JWT), e o nome do arquivo do cliente só
-    // vai como metadado — nunca compõe o caminho.
-    const r2Key = `${userId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.ofx`;
+    // é <user_id>/<sha256 do conteúdo>.ofx — reimportar o MESMO arquivo cai na
+    // mesma chave e não gera outra cópia. O user_id vem do JWT e o nome do
+    // arquivo do cliente só vai como metadado, nunca compõe o caminho.
+    let r2Key: string;
     try {
-      await getOfxBucket().put(r2Key, body, {
-        httpMetadata: { contentType: "application/x-ofx" },
-        customMetadata: { fileName: fileName ?? "" },
-      });
+      const digest = await crypto.subtle.digest("SHA-256", body);
+      const hash = Buffer.from(digest).toString("hex");
+      r2Key = `${userId}/${hash}.ofx`;
+
+      const bucket = getOfxBucket();
+      if (!(await bucket.head(r2Key))) {
+        await bucket.put(r2Key, body, {
+          httpMetadata: { contentType: "application/x-ofx" },
+          customMetadata: { fileName: fileName ?? "" },
+        });
+      }
     } catch (error) {
       console.error("Falha ao arquivar OFX no R2:", error);
       return res.status(500).json({ error: "Falha ao gravar a importação." });
