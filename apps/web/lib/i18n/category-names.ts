@@ -65,6 +65,7 @@ const PT_BR_CATEGORY_NAMES: Record<string, string> = {
   electricity: "Energia elétrica",
   "credit card payment": "Pagamento da fatura",
   accomodation: "Hospedagem",
+  education: "Educação",
 };
 
 export function translateCategory(category: string | null | undefined, locale: Locale): string | null {

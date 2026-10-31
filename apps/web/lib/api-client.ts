@@ -5,6 +5,10 @@ import type {
   Transaction,
   Account,
   ImportResult,
+  TransactionsPage,
+  CategorizeResult,
+  BudgetsProgress,
+  RecurringSummary,
   TransactionsSummary,
   CategoriesSummary,
   TransactionsTrend,
@@ -101,4 +105,53 @@ export async function uploadOfx(
       "x-file-name": encodeURIComponent(fileName),
     },
   });
+}
+
+export async function fetchTransactionsPage(
+  accessJwt: string,
+  params: Record<string, string | number | undefined>,
+): Promise<TransactionsPage> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  return apiFetch<TransactionsPage>(`/transactions?${query.toString()}`, accessJwt);
+}
+
+const JSON_HEADERS = { "content-type": "application/json" };
+
+export async function updateTransactionCategory(
+  accessJwt: string,
+  id: string,
+  category: string,
+): Promise<void> {
+  await apiFetch(`/transactions/${encodeURIComponent(id)}`, accessJwt, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ category }),
+  });
+}
+
+export async function categorizePendingTransactions(accessJwt: string): Promise<CategorizeResult> {
+  return apiFetch<CategorizeResult>("/transactions/categorize", accessJwt, { method: "POST" });
+}
+
+export async function fetchBudgetsProgress(accessJwt: string, month: string): Promise<BudgetsProgress> {
+  return apiFetch<BudgetsProgress>(`/budgets/progress?month=${month}`, accessJwt);
+}
+
+export async function saveBudget(accessJwt: string, category: string, monthlyLimit: number): Promise<void> {
+  await apiFetch("/budgets", accessJwt, {
+    method: "PUT",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ category, monthly_limit: monthlyLimit }),
+  });
+}
+
+export async function deleteBudget(accessJwt: string, category: string): Promise<void> {
+  await apiFetch(`/budgets/${encodeURIComponent(category)}`, accessJwt, { method: "DELETE" });
+}
+
+export async function fetchRecurring(accessJwt: string): Promise<RecurringSummary> {
+  return apiFetch<RecurringSummary>("/recurring", accessJwt);
 }

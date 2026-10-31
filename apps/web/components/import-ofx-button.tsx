@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { importOfx, type ImportState } from "@/app/dashboard/actions";
+import { importOfx, type ImportState } from "@/app/(app)/actions";
 
 /**
  * O botão abre o seletor de arquivo e envia o formulário assim que um OFX é

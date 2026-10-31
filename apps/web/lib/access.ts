@@ -21,3 +21,10 @@ export async function getAccess(): Promise<VerifiedAccess | null> {
   );
   return identity && jwt ? { ...identity, jwt } : null;
 }
+
+/** Como `getAccess`, mas interrompe a renderização se não houver identidade válida. */
+export async function requireAccess(): Promise<VerifiedAccess> {
+  const access = await getAccess();
+  if (!access) throw new Error("Não autenticado.");
+  return access;
+}

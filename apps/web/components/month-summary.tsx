@@ -34,12 +34,14 @@ export function MonthSummary({
   trend = [],
   locale,
   dict,
+  basePath = "/dashboard",
 }: {
   summary: TransactionsSummary;
   previous: TransactionsSummary | null;
   trend?: MonthlyTrendPoint[];
   locale: Locale;
   dict: Dictionary;
+  basePath?: string;
 }) {
   const previousMonth = shiftMonth(summary.month, -1);
   const nextMonth = shiftMonth(summary.month, 1);
@@ -48,6 +50,7 @@ export function MonthSummary({
   const expensesDelta = previous ? percentChange(summary.expenses, previous.expenses) : null;
   const balanceDelta = previous ? percentChange(summary.balance, previous.balance) : null;
 
+  const savingsRate = summary.income > 0 ? Math.round((summary.balance / summary.income) * 1000) / 10 : null;
   const incomeTrend = trend.map((point) => point.income);
   const expensesTrend = trend.map((point) => point.expenses);
   const balanceTrend = trend.map((point) => point.balance);
@@ -56,7 +59,7 @@ export function MonthSummary({
     <section className="month-summary">
       <div className="month-nav">
         <Link
-          href={`/dashboard?month=${previousMonth}`}
+          href={`${basePath}?month=${previousMonth}`}
           className="month-nav-arrow"
           aria-label={dict.dashboard.previousMonth}
         >
@@ -64,7 +67,7 @@ export function MonthSummary({
         </Link>
         <h2>{formatMonthLabel(summary.month, locale)}</h2>
         <Link
-          href={`/dashboard?month=${nextMonth}`}
+          href={`${basePath}?month=${nextMonth}`}
           className="month-nav-arrow"
           aria-label={dict.dashboard.nextMonth}
         >
@@ -120,6 +123,22 @@ export function MonthSummary({
           <div className="summary-card-bottom">
             <DeltaBadge value={balanceDelta} dict={dict.summary} />
             <Sparkline data={balanceTrend} color={summary.balance >= 0 ? "var(--positive)" : "var(--danger)"} />
+          </div>
+        </div>
+        <div className="summary-card summary-card-savings">
+          <div className="summary-card-top">
+            <span className="summary-icon balance" aria-hidden="true">
+              %
+            </span>
+            <div>
+              <span className="summary-label">{dict.overview.savingsRate}</span>
+              <span className={`summary-value ${savingsRate !== null && savingsRate < 0 ? "negative" : "positive"}`}>
+                {savingsRate === null ? "—" : `${savingsRate.toLocaleString(locale)}%`}
+              </span>
+            </div>
+          </div>
+          <div className="summary-card-bottom">
+            <span className="delta-badge neutral">{savingsRate === null ? dict.overview.savingsRateEmpty : " "}</span>
           </div>
         </div>
       </div>
