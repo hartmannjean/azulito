@@ -8,24 +8,13 @@
  * própria apps/web, fora do escopo da CSP). Por isso `connect-src` fica
  * restrito a 'self'.
  *
- * O Pluggy Connect Widget (react-pluggy-connect) é a única coisa que o
- * browser carrega de um domínio de terceiro: ele roda inteiramente dentro de
- * um iframe em https://connect.pluggy.ai (biblioteca `zoid`, sem `<script>`
- * externo nem `unsafe-inline`) — por isso só precisa entrar em `frame-src`,
- * não em `script-src`.
- *
- * O `zoid` (biblioteca por trás do widget) posiciona o iframe escrevendo
- * direto no atributo `style="..."` de elementos no NOSSO documento (fora do
- * iframe cross-origin) — precisa de `style-src-attr 'unsafe-inline'`. Usamos
- * `style-src-elem` (não `style-src` genérico) para as tags `<style>`/`<link>`
- * continuarem exigindo o nonce: quando `style-src-elem` E `style-src-attr`
- * estão os dois presentes, `style-src` deixa de valer como fallback para
- * qualquer um dos dois — misturar `style-src` com `style-src-attr` depende
- * de regra de fallback que nem todo navegador aplica do jeito esperado.
+ * `style-src-elem` (não `style-src` genérico) mantém as tags `<style>`/`<link>`
+ * exigindo o nonce, enquanto `style-src-attr 'unsafe-inline'` permite os
+ * atributos `style="..."` que o React renderiza (barras de gráfico, etc.) —
+ * quando os dois estão presentes, `style-src` deixa de valer como fallback
+ * para qualquer um deles.
  */
 export function buildCsp(nonce: string): string {
-  const pluggyConnectOrigin = "https://connect.pluggy.ai";
-
   const directives = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
@@ -34,7 +23,7 @@ export function buildCsp(nonce: string): string {
     `img-src 'self' blob: data:`,
     `font-src 'self'`,
     `connect-src 'self'`,
-    `frame-src ${pluggyConnectOrigin}`,
+    `frame-src 'none'`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

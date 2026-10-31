@@ -6,6 +6,7 @@ declare module "cloudflare:node" {
 
 interface D1Result<T = Record<string, unknown>> {
   results: T[];
+  meta: { changes: number };
 }
 
 interface D1PreparedStatement {
@@ -17,7 +18,7 @@ interface D1PreparedStatement {
 
 interface D1Database {
   prepare(query: string): D1PreparedStatement;
-  batch(statements: D1PreparedStatement[]): Promise<unknown[]>;
+  batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
 }
 
 declare module "cloudflare:workers" {

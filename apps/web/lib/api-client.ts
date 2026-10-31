@@ -3,7 +3,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { ACCESS_JWT_HEADER } from "@azulito/shared";
 import type {
   Transaction,
-  BankConnection,
+  Account,
+  ImportResult,
   TransactionsSummary,
   CategoriesSummary,
   TransactionsTrend,
@@ -82,17 +83,22 @@ export async function fetchTransactionsTrend(
   return apiFetch<TransactionsTrend>(`/transactions/trend?months=${months}`, accessJwt);
 }
 
-export async function fetchBankConnections(accessJwt: string): Promise<BankConnection[]> {
-  const data = await apiFetch<{ connections: BankConnection[] }>(
-    "/bank-connections",
-    accessJwt,
-  );
-  return data.connections;
+export async function fetchAccounts(accessJwt: string): Promise<Account[]> {
+  const data = await apiFetch<{ accounts: Account[] }>("/accounts", accessJwt);
+  return data.accounts;
 }
 
-export async function requestPluggyConnectToken(accessJwt: string): Promise<string> {
-  const data = await apiFetch<{ accessToken: string }>("/pluggy/connect-token", accessJwt, {
+export async function uploadOfx(
+  accessJwt: string,
+  file: ArrayBuffer,
+  fileName: string,
+): Promise<ImportResult> {
+  return apiFetch<ImportResult>("/imports", accessJwt, {
     method: "POST",
+    body: file,
+    headers: {
+      "content-type": "application/octet-stream",
+      "x-file-name": encodeURIComponent(fileName),
+    },
   });
-  return data.accessToken;
 }

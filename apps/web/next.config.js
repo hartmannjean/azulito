@@ -4,6 +4,8 @@ const nextConfig = {
   // projeto já tem seu próprio CLAUDE.md (gitignored, gerenciado à parte) —
   // desligado para não conflitar nem poluir o repo público.
   agentRules: false,
+  // Upload de OFX (até 5 MB) passa por uma Server Action; o padrão do Next é 1 MB.
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
   // A CSP é montada por request no middleware (precisa de um nonce único por
   // request) — ver middleware.ts e lib/csp.ts. Os headers abaixo não
   // dependem de nonce, então ficam aqui, aplicados a toda resposta.

@@ -1,6 +1,6 @@
 /**
  * Tipos compartilhados entre apps/web e apps/api — o contrato dos dados que
- * trafegam pela API. Mudar a forma de `Transaction`/`BankConnection` aqui
+ * trafegam pela API. Mudar a forma de `Transaction`/`Account` aqui
  * obriga os dois lados a serem atualizados juntos, o que é o objetivo: evita
  * o front e o back divergirem silenciosamente sobre o formato dos dados.
  */
@@ -13,10 +13,18 @@ export type Transaction = {
   category: string | null;
 };
 
-export type BankConnection = {
+export type Account = {
   id: string;
   institution_name: string;
-  status: "connected" | "updating" | "error" | "disconnected";
+  kind: "checking" | "credit_card";
+  last_import_at: string | null;
+};
+
+/** Resultado de POST /imports. */
+export type ImportResult = {
+  accounts: number;
+  imported: number;
+  duplicates: number;
 };
 
 /** Resumo de receitas/despesas de um mês (`AAAA-MM`) — GET /transactions/summary. */

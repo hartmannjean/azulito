@@ -6,7 +6,6 @@
   "compatibility_flags": ["nodejs_compat"],
   "routes": [{ "pattern": "azulito-api.hartmanns.com.br", "custom_domain": true }],
   "observability": { "enabled": true },
-  "triggers": { "crons": ["0 3 * * *"] },
   "d1_databases": [
     {
       "binding": "DB",

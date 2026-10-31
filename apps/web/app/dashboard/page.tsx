@@ -1,6 +1,6 @@
 import { getAccess } from "@/lib/access";
 import {
-  fetchBankConnections,
+  fetchAccounts,
   fetchTransactions,
   fetchTransactionsSummary,
   fetchTransactionsCategories,
@@ -10,7 +10,7 @@ import { TransactionList } from "@/components/transaction-list";
 import { MonthSummary } from "@/components/month-summary";
 import { TrendChart } from "@/components/trend-chart";
 import { CategoryBreakdown } from "@/components/category-breakdown";
-import { ConnectBankButton } from "@/components/connect-bank-button";
+import { ImportOfxButton } from "@/components/import-ofx-button";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -19,7 +19,7 @@ import { getDictionary } from "@/lib/i18n/dictionary";
 import { currentMonth, shiftMonth } from "@/lib/format";
 import type {
   Transaction,
-  BankConnection,
+  Account,
   TransactionsSummary,
   CategoriesSummary,
   MonthlyTrendPoint,
@@ -44,7 +44,7 @@ export default async function DashboardPage({
   }
 
   let transactions: Transaction[] = [];
-  let connections: BankConnection[] = [];
+  let accounts: Account[] = [];
   let summary: TransactionsSummary | null = null;
   let previousSummary: TransactionsSummary | null = null;
   let categories: CategoriesSummary | null = null;
@@ -52,9 +52,9 @@ export default async function DashboardPage({
   let loadError = false;
 
   try {
-    [transactions, connections, summary, previousSummary, categories, { trend }] = await Promise.all([
+    [transactions, accounts, summary, previousSummary, categories, { trend }] = await Promise.all([
       fetchTransactions(access.jwt, month),
-      fetchBankConnections(access.jwt),
+      fetchAccounts(access.jwt),
       fetchTransactionsSummary(access.jwt, month),
       fetchTransactionsSummary(access.jwt, previousMonth),
       fetchTransactionsCategories(access.jwt, month),
@@ -65,7 +65,6 @@ export default async function DashboardPage({
     loadError = true;
   }
 
-  const activeConnection = connections[0];
   const firstName = access.email?.split("@")[0] ?? "";
 
   return (
@@ -89,21 +88,18 @@ export default async function DashboardPage({
 
       <div className="toolbar">
         <div className="connection-status">
-          {activeConnection ? (
+          {accounts.length > 0 ? (
             <>
               <span className="connection-dot" aria-hidden="true" />
-              <span>{dict.dashboard.connected(activeConnection.institution_name)}</span>
+              <span>{dict.dashboard.accountsImported(accounts.length)}</span>
             </>
           ) : (
-            <span className="muted">{dict.dashboard.noConnection}</span>
+            <span className="muted">{dict.dashboard.noAccounts}</span>
           )}
         </div>
-        <ConnectBankButton
-          hasConnection={connections.length > 0}
-          connectLabel={dict.dashboard.connectButton}
-          reconnectLabel={dict.dashboard.reconnectButton}
-          connectingLabel={dict.dashboard.connecting}
-          errorLabel={dict.auth.errors.connectFailed}
+        <ImportOfxButton
+          importLabel={dict.dashboard.importButton}
+          importingLabel={dict.dashboard.importing}
         />
       </div>
 

@@ -19,78 +19,14 @@ function getMonthRange(month: string): { start: string; end: string } {
   return { start, end };
 }
 
-/**
- * Categorias que nunca devem contar como receita/despesa real, verificado
- * contra os dados de verdade do usuário (não só suposição sobre a
- * taxonomia da Pluggy):
- *
- * - "investments": aplicar/resgatar (ex: RDB) é o próprio dinheiro da
- *   pessoa mudando de lugar DENTRO do Nubank, não entra nem sai da conta.
- * - "credit card payment": o pagamento da fatura já aparece DUAS vezes nos
- *   dados — uma na conta corrente (categoria "Transfers", descrição
- *   "Pagamento de fatura") e outra na própria conta do cartão (categoria
- *   "Credit card payment", descrição "Pagamento recebido"), sempre com o
- *   mesmo valor e a mesma data (confirmado nos 8 meses de histórico do
- *   usuário) — cada uma é o mesmo evento visto pelas duas pontas da
- *   transferência. Excluir esta categoria mantém só o lado da conta
- *   corrente, sem contar a fatura duas vezes.
- *
- * "same person transfer" NÃO entra aqui (ver `SIGN_AMBIGUOUS_CATEGORIES`
- * abaixo) — só o Nubank está conectado, e é assim que a Pluggy categoriza a
- * transferência de um banco externo (ex: Banco do Brasil) de mesma
- * titularidade pro Nubank. Pro usuário, esse dinheiro entrou na conta que o
- * app acompanha — deve contar como receita, não ser descartado.
- */
-const EXCLUDED_CATEGORIES = ["investments", "credit card payment"];
-
-function isExcludedCategory(category: string | null): boolean {
-  if (!category) return false;
-  const normalized = category.toLowerCase();
-  return EXCLUDED_CATEGORIES.some((excluded) => normalized.startsWith(excluded));
-}
-
-/**
- * Categorias cujo SINAL é confiável pra decidir receita vs despesa:
- *
- * - "transfers"/"same person transfer": dinheiro entrando (salário/Pix
- *   recebido, transferência de outro banco do próprio usuário) ou saindo
- *   (Pix enviado, transferência pra outro banco) — as duas direções são
- *   reais pra quem só acompanha o Nubank, então mantém o sinal original.
- * - "income": categoria já é receita por definição.
- * - sem categoria (null): não há informação pra decidir melhor, mantém o
- *   sinal original.
- *
- * Todas as outras categorias (Groceries, Shopping, Gas stations, etc.) são
- * SEMPRE despesa aqui, não importa o sinal gravado — verificado contra os
- * dados reais do usuário: compras no débito aparecem corretamente negativas,
- * mas as mesmas compras (mesmo estabelecimento, ex. "Supermercados Osana",
- * "Posto de Combustiveis") em vários meses seguidos (fev–ago/2026) aparecem
- * com valor POSITIVO — não são estornos (o volume e a recorrência não batem
- * com isso), é a Pluggy/Nubank gravando o sinal de forma inconsistente pra
- * parte das transações. Categoria já deixa claro que é gasto; usar o sinal
- * bruto nesses casos inflava "receita" com compra de mercado e posto.
- */
-const SIGN_AMBIGUOUS_CATEGORIES = ["transfers", "same person transfer", "income"];
-
-function isSignAmbiguousCategory(category: string | null): boolean {
-  if (!category) return true;
-  const normalized = category.toLowerCase();
-  return SIGN_AMBIGUOUS_CATEGORIES.some((name) => normalized.startsWith(name));
-}
-
 type AdjustedRow = { amount: number; category: string | null; transaction_date: string };
 
 /**
- * Transações do período, com dois ajustes em relação à tabela crua — sem
- * eles o resumo mensal conta dinheiro que não é receita/despesa real:
- *
- * - Categorias de `EXCLUDED_CATEGORIES` são descartadas por completo.
- * - Nas demais categorias (exceto as ambíguas), o sinal é normalizado pra
- *   despesa — ver `SIGN_AMBIGUOUS_CATEGORIES` acima.
- *
- * A lista de transações (GET /transactions) não passa por nenhum desses
- * ajustes — mostra tudo como veio da Pluggy, só a soma agregada
- * (summary/categories/trend) é que precisa disso.
+ * Transações do período que contam como receita/despesa real: o OFX tem sinal
+ * confiável (TRNAMT), e o que não é fluxo de caixa (pagamento de fatura,
+ * aplicação/resgate) já vem marcado como `excluded` na importação (ver
+ * lib/classify.ts). A lista (GET /transactions) mostra tudo; só a soma
+ * agregada (summary/categories/trend) desconsidera as excluídas.
  */
 async function fetchAdjustedTransactions(
   userId: string,
@@ -100,18 +36,16 @@ async function fetchAdjustedTransactions(
   const { results } = await getDb()
     .prepare(
       `select amount, category, transaction_date from transactions
-       where user_id = ? and transaction_date >= ? and transaction_date < ?`,
+       where user_id = ? and excluded = 0 and transaction_date >= ? and transaction_date < ?`,
     )
     .bind(userId, start, end)
     .all<{ amount: number; category: string | null; transaction_date: string }>();
 
-  return results
-    .filter((row) => !isExcludedCategory(row.category))
-    .map((row) => {
-      const rawAmount = Number(row.amount);
-      const amount = isSignAmbiguousCategory(row.category) ? rawAmount : -Math.abs(rawAmount);
-      return { amount, category: row.category, transaction_date: row.transaction_date };
-    });
+  return results.map((row) => ({
+    amount: Number(row.amount),
+    category: row.category,
+    transaction_date: row.transaction_date,
+  }));
 }
 
 /**

@@ -5,10 +5,8 @@ import helmet from "helmet";
 import { requireAuth } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/rateLimit.js";
 import { transactionsRouter } from "./routes/transactions.js";
-import { bankConnectionsRouter } from "./routes/bankConnections.js";
-import { pluggyConnectTokenRouter } from "./routes/pluggy/connectToken.js";
-import { pluggyWebhookRouter } from "./routes/pluggy/webhook.js";
-import { pluggySyncRouter } from "./routes/pluggy/sync.js";
+import { accountsRouter } from "./routes/accounts.js";
+import { importsRouter } from "./routes/imports.js";
 
 export function createApp() {
   const app = express();
@@ -43,16 +41,11 @@ export function createApp() {
 
   app.use(rateLimitMiddleware);
 
-  // Público por natureza — autenticado por assinatura/CRON_SECRET dentro da
-  // própria rota, não por sessão de usuário. Ver comentários nos handlers.
-  app.use("/pluggy/webhook", pluggyWebhookRouter);
-  app.use("/pluggy/sync", pluggySyncRouter);
-
   // Daqui pra baixo, tudo passa pelo middleware CENTRAL de auth. Nenhuma
   // rota reimplementa checagem de sessão por conta própria.
-  app.use("/pluggy/connect-token", requireAuth, pluggyConnectTokenRouter);
   app.use("/transactions", requireAuth, transactionsRouter);
-  app.use("/bank-connections", requireAuth, bankConnectionsRouter);
+  app.use("/accounts", requireAuth, accountsRouter);
+  app.use("/imports", requireAuth, importsRouter);
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
