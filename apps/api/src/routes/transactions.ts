@@ -3,8 +3,11 @@ import {
   listTransactionsQuerySchema,
   monthSummaryQuerySchema,
   trendQuerySchema,
+  updateCategorySchema,
+  isCategory,
 } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
+import { categorizePending } from "../lib/categorizer.js";
 
 export const transactionsRouter = Router();
 
@@ -49,9 +52,9 @@ async function fetchAdjustedTransactions(
 }
 
 /**
- * GET /transactions — lista as transações do usuário autenticado.
- * Montada com `requireAuth` em src/app.ts; aqui já podemos confiar em
- * `req.userId`.
+ * GET /transactions — lista paginada e filtrável das transações do usuário
+ * autenticado (busca, conta, categoria, tipo, mês, ordenação). Montada com
+ * `requireAuth` em src/app.ts; aqui já podemos confiar em `req.userId`.
  */
 transactionsRouter.get("/", async (req, res) => {
   const parsed = listTransactionsQuerySchema.safeParse(req.query);
@@ -59,43 +62,135 @@ transactionsRouter.get("/", async (req, res) => {
     return res.status(400).json({ error: "Parâmetros inválidos.", issues: parsed.error.flatten() });
   }
 
-  const { limit, cursor, category, month } = parsed.data;
+  const { limit, offset, category, month, q, account_id, type, sort, order } = parsed.data;
 
   // Sem RLS no D1: o filtro por user_id (vindo do JWT, nunca do cliente) é a
-  // única barreira de isolamento entre usuários.
-  const conditions = ["user_id = ?"];
+  // única barreira de isolamento entre usuários. Todo valor do cliente entra
+  // como parâmetro (?), nunca concatenado; colunas de ordenação vêm de uma
+  // lista fixa.
+  const conditions = ["t.user_id = ?"];
   const params: unknown[] = [req.userId!];
 
   if (month) {
     const { start, end } = getMonthRange(month);
-    conditions.push("transaction_date >= ?", "transaction_date < ?");
+    conditions.push("t.transaction_date >= ?", "t.transaction_date < ?");
     params.push(start, end);
   }
-  if (cursor) {
-    conditions.push("transaction_date < ?");
-    params.push(cursor);
-  }
-  if (category) {
-    conditions.push("category = ?");
+  if (category === "__none__") {
+    conditions.push("t.category is null");
+  } else if (category) {
+    conditions.push("t.category = ?");
     params.push(category);
   }
-  params.push(limit);
+  if (account_id) {
+    conditions.push("t.account_id = ?");
+    params.push(account_id);
+  }
+  if (type === "income") conditions.push("t.amount > 0");
+  if (type === "expense") conditions.push("t.amount < 0");
+  if (q) {
+    conditions.push("t.description like ? escape '!'");
+    params.push(`%${q.replace(/[!%_]/g, "!$&")}%`);
+  }
+
+  const where = conditions.join(" and ");
+  const direction = order === "asc" ? "asc" : "desc";
+  const orderBy =
+    sort === "amount"
+      ? `t.amount ${direction}, t.transaction_date desc`
+      : `t.transaction_date ${direction}, t.id`;
 
   try {
-    const { results } = await getDb()
-      .prepare(
-        `select id, description, amount, currency_code, transaction_date, category
-         from transactions
-         where ${conditions.join(" and ")}
-         order by transaction_date desc
-         limit ?`,
-      )
-      .bind(...params)
-      .all();
-    res.json({ transactions: results });
+    const db = getDb();
+    const [page, count] = await Promise.all([
+      db
+        .prepare(
+          `select t.id, t.description, t.amount, t.currency_code, t.transaction_date, t.category,
+                  t.category_source, t.excluded, t.account_id,
+                  a.institution_name, a.kind as account_kind
+           from transactions t join accounts a on a.id = t.account_id
+           where ${where}
+           order by ${orderBy}
+           limit ? offset ?`,
+        )
+        .bind(...params, limit, offset)
+        .all<{ excluded: number }>(),
+      db
+        .prepare(`select count(*) as n from transactions t where ${where}`)
+        .bind(...params)
+        .first<{ n: number }>(),
+    ]);
+
+    res.json({
+      transactions: page.results.map((row) => ({ ...row, excluded: row.excluded === 1 })),
+      total: count?.n ?? 0,
+    });
   } catch (error) {
     console.error("Falha ao buscar transações:", error);
     res.status(500).json({ error: "Falha ao buscar transações." });
+  }
+});
+
+/**
+ * PATCH /transactions/:id — corrige a categoria. Vira uma regra por
+ * estabelecimento (`merchant_rules`) e é aplicada às OUTRAS transações do
+ * mesmo lugar que não foram definidas à mão pelo usuário.
+ */
+transactionsRouter.patch("/:id", async (req, res) => {
+  const parsed = updateCategorySchema.safeParse(req.body);
+  if (!parsed.success || !isCategory(parsed.data.category)) {
+    return res.status(400).json({ error: "Categoria inválida." });
+  }
+  const { category } = parsed.data;
+  const userId = req.userId!;
+  const db = getDb();
+
+  try {
+    const row = await db
+      .prepare("select merchant_key from transactions where id = ? and user_id = ?")
+      .bind(req.params.id, userId)
+      .first<{ merchant_key: string | null }>();
+    if (!row) return res.status(404).json({ error: "Transação não encontrada." });
+
+    await db
+      .prepare("update transactions set category = ?, category_source = 'user' where id = ? and user_id = ?")
+      .bind(category, req.params.id, userId)
+      .run();
+
+    let updated = 1;
+    if (row.merchant_key) {
+      await db
+        .prepare(
+          `insert into merchant_rules (user_id, merchant_key, category) values (?, ?, ?)
+           on conflict (user_id, merchant_key) do update set category = excluded.category`,
+        )
+        .bind(userId, row.merchant_key, category)
+        .run();
+      const others = await db
+        .prepare(
+          `update transactions set category = ?, category_source = 'rule'
+           where user_id = ? and merchant_key = ? and id != ?
+             and (category_source is null or category_source != 'user')`,
+        )
+        .bind(category, userId, row.merchant_key, req.params.id)
+        .run();
+      updated += others.meta.changes;
+    }
+
+    res.json({ updated });
+  } catch (error) {
+    console.error("Falha ao atualizar categoria:", error);
+    res.status(500).json({ error: "Falha ao atualizar categoria." });
+  }
+});
+
+/** POST /transactions/categorize — categoriza (regras + IA) o que está sem categoria. */
+transactionsRouter.post("/categorize", async (req, res) => {
+  try {
+    res.json(await categorizePending(req.userId!));
+  } catch (error) {
+    console.error("Falha ao categorizar:", error);
+    res.status(500).json({ error: "Falha ao categorizar." });
   }
 });
 

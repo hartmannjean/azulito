@@ -13,7 +13,7 @@ interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   all<T = Record<string, unknown>>(): Promise<D1Result<T>>;
   first<T = Record<string, unknown>>(): Promise<T | null>;
-  run(): Promise<unknown>;
+  run(): Promise<D1Result>;
 }
 
 interface D1Database {
@@ -37,5 +37,6 @@ declare module "cloudflare:workers" {
   export const env: {
     DB: D1Database;
     OFX_BUCKET: R2Bucket;
+    AI: { run(model: string, input: unknown): Promise<unknown> };
   };
 }

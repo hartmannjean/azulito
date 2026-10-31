@@ -25,10 +25,3 @@ export function isExcludedFromTotals(
   return amount > 0 && CARD_PAYMENT_RECEIVED.test(description);
 }
 
-/**
- * Gancho para a categorização por IA (Workers AI), ainda não implementada:
- * devolve null e o dashboard agrupa em "Outros".
- */
-export function categorize(_description: string): string | null {
-  return null;
-}

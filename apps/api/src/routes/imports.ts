@@ -1,7 +1,9 @@
 import express, { Router } from "express";
 import { getDb, getOfxBucket } from "../lib/db.js";
 import { decodeOfx, parseOfx, OfxParseError } from "../lib/ofx.js";
-import { categorize, isExcludedFromTotals } from "../lib/classify.js";
+import { isExcludedFromTotals } from "../lib/classify.js";
+import { merchantKey } from "../lib/merchant.js";
+import { categorizePending } from "../lib/categorizer.js";
 
 export const importsRouter = Router();
 
@@ -96,7 +98,7 @@ importsRouter.post(
           db
             .prepare(
               `insert into transactions
-                 (user_id, account_id, fitid, description, amount, currency_code, transaction_date, category, excluded)
+                 (user_id, account_id, fitid, description, amount, currency_code, transaction_date, merchant_key, excluded)
                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
                on conflict (account_id, fitid) do nothing`,
             )
@@ -108,7 +110,7 @@ importsRouter.post(
               tx.amount,
               statement.currency,
               tx.date,
-              categorize(tx.description),
+              merchantKey(tx.description),
               isExcludedFromTotals(statement.kind, tx.description, tx.amount) ? 1 : 0,
             ),
         );
@@ -131,7 +133,16 @@ importsRouter.post(
           .run();
       }
 
-      res.json({ accounts: statements.length, imported, duplicates });
+      // Categoriza (regras + IA) o que acabou de entrar. Melhor esforço: a
+      // importação já foi gravada, então uma falha aqui não a desfaz.
+      let remaining = 0;
+      try {
+        remaining = (await categorizePending(userId)).remaining;
+      } catch (error) {
+        console.error("Falha ao categorizar após importar:", error);
+      }
+
+      res.json({ accounts: statements.length, imported, duplicates, uncategorized: remaining });
     } catch (error) {
       console.error("Falha ao gravar importação:", error);
       res.status(500).json({ error: "Falha ao gravar a importação." });

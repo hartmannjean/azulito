@@ -7,6 +7,8 @@ import { rateLimitMiddleware } from "./middleware/rateLimit.js";
 import { transactionsRouter } from "./routes/transactions.js";
 import { accountsRouter } from "./routes/accounts.js";
 import { importsRouter } from "./routes/imports.js";
+import { budgetsRouter } from "./routes/budgets.js";
+import { recurringRouter } from "./routes/recurring.js";
 
 export function createApp() {
   const app = express();
@@ -27,7 +29,7 @@ export function createApp() {
   app.use(
     cors({
       origin: process.env.WEB_APP_URL,
-      methods: ["GET", "POST", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       // Sem `credentials: true` de propósito: autenticação aqui é por Bearer
       // token no header Authorization, nunca por cookie. Não há cookie de
@@ -46,6 +48,8 @@ export function createApp() {
   app.use("/transactions", requireAuth, transactionsRouter);
   app.use("/accounts", requireAuth, accountsRouter);
   app.use("/imports", requireAuth, importsRouter);
+  app.use("/budgets", requireAuth, budgetsRouter);
+  app.use("/recurring", requireAuth, recurringRouter);
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
