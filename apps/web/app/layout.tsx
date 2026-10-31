@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { Plus_Jakarta_Sans } from "next/font/google";
@@ -19,8 +19,20 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Azulito",
     description: dict.common.appDescription,
+    icons: {
+      icon: [
+        { url: "/favicon.ico" },
+        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: "#073BBD",
+};
 
 // Script inline pra aplicar o tema salvo ANTES do primeiro paint (evita
 // flash de tema errado). Precisa do nonce da CSP (gerado por request em
@@ -36,6 +48,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={locale} className={jakarta.variable} suppressHydrationWarning>
       <head>
+        {/* O app fica atrás do Cloudflare Access: sem `use-credentials`, o pedido do
+            manifesto vai sem cookie e é redirecionado para o login. */}
+        <link rel="manifest" href="/site.webmanifest" crossOrigin="use-credentials" />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>{children}</body>
