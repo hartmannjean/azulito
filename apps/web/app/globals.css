@@ -1,50 +1,61 @@
+/*
+ * Paleta inspirada na identidade da Nubank: roxo #820AD1 como cor de marca.
+ * `--accent` é a cor usada em TEXTO/realces (precisa de contraste no fundo do
+ * tema); `--accent-strong` é o roxo sólido de botões e da sidebar.
+ */
 :root {
   color-scheme: dark;
-  --bg: #0a161f;
-  --surface: #102431;
-  --surface-raised: #15303f;
-  --border: #1d3646;
-  --text: #eef6f5;
-  --muted: #90a8ae;
-  --accent: #2dd4bf;
-  --accent-soft: rgba(45, 212, 191, 0.14);
-  --danger: #ff7a59;
-  --danger-soft: rgba(255, 122, 89, 0.15);
-  --positive: #2dd4bf;
-  --positive-soft: rgba(45, 212, 191, 0.14);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 28px -14px rgba(0, 0, 0, 0.55);
-  --blob-1: rgba(45, 212, 191, 0.22);
-  --blob-2: rgba(255, 122, 89, 0.16);
-  --blob-3: rgba(45, 212, 191, 0.1);
-  --dot-grid: rgba(238, 246, 245, 0.06);
-  --logo-grad-a: #2dd4bf;
-  --logo-grad-b: #ff7a59;
+  --bg: #0e0517;
+  --surface: #1a0c2a;
+  --surface-raised: #26123d;
+  --border: #38205a;
+  --text: #f6effc;
+  --muted: #ac9cc2;
+  --accent: #c08cf5;
+  --accent-strong: #820ad1;
+  --accent-soft: rgba(192, 140, 245, 0.16);
+  --danger: #ff6b7d;
+  --danger-soft: rgba(255, 107, 125, 0.15);
+  --positive: #3ddc97;
+  --positive-soft: rgba(61, 220, 151, 0.14);
+  --warn: #f5c26b;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 14px 30px -18px rgba(0, 0, 0, 0.7);
+  --blob-1: rgba(130, 10, 209, 0.28);
+  --blob-2: rgba(226, 85, 247, 0.12);
+  --blob-3: rgba(130, 10, 209, 0.14);
+  --dot-grid: rgba(246, 239, 252, 0.05);
+  --logo-grad-a: #9b2ae8;
+  --logo-grad-b: #e255f7;
+  --sidebar-bg: linear-gradient(185deg, #34115a 0%, #1d0a36 100%);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f3f8f7;
+  --bg: #f3eff8;
   --surface: #ffffff;
-  --surface-raised: #edf6f5;
-  --border: #dbe8e6;
-  --text: #0e2027;
-  --muted: #5c757a;
-  --accent: #0f9c8d;
-  --accent-soft: rgba(15, 156, 141, 0.1);
-  --danger: #e0603f;
-  --danger-soft: rgba(224, 96, 63, 0.1);
-  --positive: #0f9c8d;
-  --positive-soft: rgba(15, 156, 141, 0.1);
-  --shadow-card: 0 1px 2px rgba(14, 32, 39, 0.05), 0 10px 24px -14px rgba(14, 32, 39, 0.18);
-  --blob-1: rgba(15, 156, 141, 0.14);
-  --blob-2: rgba(224, 96, 63, 0.12);
-  --blob-3: rgba(15, 156, 141, 0.08);
-  --dot-grid: rgba(14, 32, 39, 0.05);
-  --logo-grad-a: #0f9c8d;
-  --logo-grad-b: #e0603f;
+  --surface-raised: #f6f0fc;
+  --border: #e6ddf0;
+  --text: #1b1030;
+  --muted: #6a5e7c;
+  --accent: #820ad1;
+  --accent-strong: #820ad1;
+  --accent-soft: rgba(130, 10, 209, 0.09);
+  --danger: #d92d43;
+  --danger-soft: rgba(217, 45, 67, 0.1);
+  --positive: #0c9a62;
+  --positive-soft: rgba(12, 154, 98, 0.1);
+  --warn: #c9871a;
+  --shadow-card: 0 1px 2px rgba(60, 20, 100, 0.06), 0 12px 28px -16px rgba(60, 20, 100, 0.22);
+  --blob-1: rgba(130, 10, 209, 0.12);
+  --blob-2: rgba(226, 85, 247, 0.08);
+  --blob-3: rgba(130, 10, 209, 0.06);
+  --dot-grid: rgba(60, 20, 100, 0.05);
+  --logo-grad-a: #820ad1;
+  --logo-grad-b: #c43be0;
+  --sidebar-bg: linear-gradient(185deg, #8f13e3 0%, #6a07b3 100%);
 }
 
 * {
@@ -1613,4 +1624,198 @@ a.button {
   .summary-cards.two {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ==========================================================================
+   Tema Nubank — refinamentos (vêm por último para sobrescrever o resto)
+   ========================================================================== */
+
+.button {
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.sidebar {
+  background: var(--sidebar-bg);
+  border-right: none;
+  color: #fff;
+  --logo-grad-a: rgba(255, 255, 255, 0.3);
+  --logo-grad-b: rgba(255, 255, 255, 0.12);
+  box-shadow: 8px 0 30px -18px rgba(60, 10, 110, 0.55);
+}
+
+.sidebar .brand-name {
+  color: #fff;
+}
+
+.side-nav-link {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.side-nav-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.side-nav-link.active {
+  background: #fff;
+  color: #820ad1;
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-footer {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-user {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.sidebar .theme-toggle,
+.sidebar .button.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.sidebar .theme-toggle:hover,
+.sidebar .button.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Cabeçalho de página */
+
+.page-title {
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-size: 0.95rem;
+}
+
+/* Cards */
+
+.chart-card,
+.summary-card,
+.filter-bar,
+.toolbar {
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.chart-heading {
+  color: var(--text);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+}
+
+.summary-card {
+  padding: 1.35rem 1.25rem 1.15rem;
+}
+
+.summary-card::before {
+  background: linear-gradient(90deg, var(--accent-strong), #e255f7);
+  opacity: 0.9;
+}
+
+.summary-card-savings::before {
+  background: linear-gradient(90deg, var(--accent-strong), #e255f7);
+}
+
+.summary-icon.balance {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.summary-value {
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+}
+
+/* Destaque (aviso, links, filtros) */
+
+.banner {
+  background: linear-gradient(95deg, rgba(130, 10, 209, 0.14), rgba(226, 85, 247, 0.1));
+  border: 1px solid rgba(130, 10, 209, 0.35);
+  border-radius: var(--radius-md);
+}
+
+.card-link {
+  color: var(--accent);
+}
+
+.progress-track {
+  background: var(--accent-soft);
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, #820ad1, #c43be0);
+}
+
+.progress-fill.warn {
+  background: var(--warn);
+}
+
+.progress-fill.over {
+  background: var(--danger);
+}
+
+.month-nav-arrow:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tx-table th {
+  background: var(--surface-raised);
+}
+
+.tx-table tbody tr:hover {
+  background: var(--accent-soft);
+}
+
+.filter-bar input:focus,
+.filter-bar select:focus,
+.stack-form input:focus,
+.stack-form select:focus,
+.category-select:focus {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 1px;
+}
+
+.chip.source-ai {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.chip.source-rule {
+  background: rgba(201, 135, 26, 0.16);
+  color: var(--warn);
+}
+
+.chip.status-warn {
+  background: rgba(201, 135, 26, 0.16);
+  color: var(--warn);
+}
+
+.connection-dot {
+  background: var(--positive);
+}
+
+.transaction-avatar.positive {
+  background: var(--positive-soft);
+}
+
+.transaction-avatar.negative {
+  background: var(--danger-soft);
+}
+
+.skeleton {
+  background: var(--surface-raised);
 }

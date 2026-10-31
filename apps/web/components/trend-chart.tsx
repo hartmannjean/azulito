@@ -3,8 +3,8 @@ import { formatCurrency, formatMonthShort } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
-const WIDTH = 480;
-const HEIGHT = 200;
+const WIDTH = 900;
+const HEIGHT = 250;
 const PADDING_X = 8;
 const PADDING_Y = 12;
 

@@ -6,12 +6,12 @@ import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
 const COLORS = [
-  "#2dd4bf",
+  "#820ad1",
+  "#c43be0",
   "#ff7a59",
   "#f5c26b",
   "#5b8fa8",
-  "#8fd6c1",
-  "#c97b63",
+  "#3ddc97",
 ];
 
 export function CategoryBreakdown({
