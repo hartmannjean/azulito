@@ -50,7 +50,7 @@ importsRouter.post(
     // arquivo do cliente só vai como metadado, nunca compõe o caminho.
     let r2Key: string;
     try {
-      const digest = await crypto.subtle.digest("SHA-256", body);
+      const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(body));
       const hash = Buffer.from(digest).toString("hex");
       r2Key = `${userId}/${hash}.ofx`;
 
