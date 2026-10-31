@@ -1,10 +1,8 @@
 import { fetchAccounts } from "@/lib/api-client";
 import { requireAccess } from "@/lib/access";
-import { ImportOfxButton } from "@/components/import-ofx-button";
-import { CategorizeButton } from "@/components/categorize-button";
+import { AccountsView } from "@/components/accounts-view";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
-import { formatDate } from "@/lib/format";
 import type { Account } from "@azulito/shared";
 
 export default async function AccountsPage() {
@@ -21,63 +19,5 @@ export default async function AccountsPage() {
     loadError = true;
   }
 
-  return (
-    <main className="page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{dict.nav.accounts}</h1>
-        </div>
-      </header>
-
-      <div className="grid-two">
-        <section className="chart-card">
-          <h2 className="chart-heading">{dict.accountsPage.importHeading}</h2>
-          <p className="muted-cell block">{dict.accountsPage.importHelp}</p>
-          <ImportOfxButton
-            importLabel={dict.dashboard.importButton}
-            importingLabel={dict.dashboard.importing}
-          />
-        </section>
-
-        <section className="chart-card">
-          <h2 className="chart-heading">{dict.accountsPage.aiHeading}</h2>
-          <p className="muted-cell block">{dict.accountsPage.aiHelp}</p>
-          <CategorizeButton
-            label={dict.accountsPage.aiButton}
-            runningLabel={dict.accountsPage.aiRunning}
-          />
-        </section>
-      </div>
-
-      <section className="chart-card">
-        <h2 className="chart-heading">{dict.accountsPage.accountsHeading}</h2>
-        {loadError ? (
-          <p role="alert" className="form-error">
-            {dict.dashboard.loadError}
-          </p>
-        ) : accounts.length === 0 ? (
-          <p className="empty-state">{dict.accountsPage.empty}</p>
-        ) : (
-          <ul className="account-list">
-            {accounts.map((account) => (
-              <li key={account.id} className="account-item">
-                <span className="account-icon" aria-hidden="true">
-                  {account.kind === "credit_card" ? "💳" : "🏦"}
-                </span>
-                <div className="account-info">
-                  <strong>{account.institution_name}</strong>
-                  <span className="muted-cell">{dict.accountsPage.kind[account.kind]}</span>
-                </div>
-                <span className="muted-cell">
-                  {account.last_import_at
-                    ? dict.accountsPage.lastImport(formatDate(account.last_import_at, locale))
-                    : dict.accountsPage.neverImported}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </main>
-  );
+  return <AccountsView accounts={accounts} locale={locale} dict={dict} loadError={loadError} />;
 }

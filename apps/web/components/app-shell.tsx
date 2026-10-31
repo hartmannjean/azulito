@@ -12,18 +12,21 @@ export function AppShell({
   locale,
   dict,
   children,
+  demo = false,
 }: {
   email: string | null;
   locale: Locale;
   dict: Dictionary;
   children: ReactNode;
+  demo?: boolean;
 }) {
+  const base = demo ? "/demo" : "";
   const items: NavItem[] = [
-    { href: "/dashboard", label: dict.nav.overview, icon: "▦" },
-    { href: "/transactions", label: dict.nav.transactions, icon: "☰" },
-    { href: "/budgets", label: dict.nav.budgets, icon: "◔" },
-    { href: "/recurring", label: dict.nav.recurring, icon: "↻" },
-    { href: "/accounts", label: dict.nav.accounts, icon: "⇪" },
+    { href: demo ? "/demo" : "/dashboard", label: dict.nav.overview, icon: "▦", exact: demo },
+    { href: `${base}/transactions`, label: dict.nav.transactions, icon: "☰" },
+    { href: `${base}/budgets`, label: dict.nav.budgets, icon: "◔" },
+    { href: `${base}/recurring`, label: dict.nav.recurring, icon: "↻" },
+    { href: `${base}/accounts`, label: dict.nav.accounts, icon: "⇪" },
   ];
 
   return (
@@ -34,7 +37,8 @@ export function AppShell({
         </div>
         <SidebarNav items={items} />
         <div className="sidebar-footer">
-          {email ? <span className="sidebar-user">{email}</span> : null}
+          {demo ? <span className="sidebar-user">{dict.demo.badge}</span> : null}
+          {!demo && email ? <span className="sidebar-user">{email}</span> : null}
           <div className="sidebar-actions">
             <LanguageToggle
               locale={locale}
@@ -42,9 +46,15 @@ export function AppShell({
               switchToPortugueseLabel={dict.common.switchToPortuguese}
             />
             <ThemeToggle label={dict.common.toggleTheme} />
-            <a href="/cdn-cgi/access/logout" className="button secondary small">
-              {dict.dashboard.logout}
-            </a>
+            {demo ? (
+              <a href="/dashboard" className="button secondary small">
+                {dict.landing.login}
+              </a>
+            ) : (
+              <a href="/cdn-cgi/access/logout" className="button secondary small">
+                {dict.dashboard.logout}
+              </a>
+            )}
           </div>
         </div>
       </aside>

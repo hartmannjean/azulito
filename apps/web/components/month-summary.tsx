@@ -35,6 +35,7 @@ export function MonthSummary({
   locale,
   dict,
   basePath = "/dashboard",
+  navigable = true,
 }: {
   summary: TransactionsSummary;
   previous: TransactionsSummary | null;
@@ -42,6 +43,7 @@ export function MonthSummary({
   locale: Locale;
   dict: Dictionary;
   basePath?: string;
+  navigable?: boolean;
 }) {
   const previousMonth = shiftMonth(summary.month, -1);
   const nextMonth = shiftMonth(summary.month, 1);
@@ -60,7 +62,7 @@ export function MonthSummary({
       <div className="month-nav">
         <Link
           href={`${basePath}?month=${previousMonth}`}
-          className="month-nav-arrow"
+          className={`month-nav-arrow${navigable ? "" : " disabled"}`}
           aria-label={dict.dashboard.previousMonth}
         >
           ‹
@@ -68,7 +70,7 @@ export function MonthSummary({
         <h2>{formatMonthLabel(summary.month, locale)}</h2>
         <Link
           href={`${basePath}?month=${nextMonth}`}
-          className="month-nav-arrow"
+          className={`month-nav-arrow${navigable ? "" : " disabled"}`}
           aria-label={dict.dashboard.nextMonth}
         >
           ›

@@ -12,10 +12,12 @@ export function TransactionTable({
   transactions,
   locale,
   dict,
+  readOnly = false,
 }: {
   transactions: Transaction[];
   locale: Locale;
   dict: Dictionary["txPage"];
+  readOnly?: boolean;
 }) {
   if (transactions.length === 0) {
     return <p className="empty-state">{dict.empty}</p>;
@@ -50,14 +52,22 @@ export function TransactionTable({
               </td>
               <td className="nowrap muted-cell">{tx.institution_name}</td>
               <td>
-                <CategorySelect
-                  transactionId={tx.id}
-                  current={tx.category}
-                  options={options}
-                  uncategorizedLabel={dict.uncategorized}
-                  errorLabel={dict.categoryError}
-                />
-                {tx.category_source ? (
+                {readOnly ? (
+                  <span className="category-static">
+                    {tx.category
+                      ? `${getCategoryIcon(tx.category) ?? ""} ${translateCategory(tx.category, locale) ?? tx.category}`.trim()
+                      : dict.uncategorized}
+                  </span>
+                ) : (
+                  <CategorySelect
+                    transactionId={tx.id}
+                    current={tx.category}
+                    options={options}
+                    uncategorizedLabel={dict.uncategorized}
+                    errorLabel={dict.categoryError}
+                  />
+                )}
+                {!readOnly && tx.category_source ? (
                   <span className={`chip source-${tx.category_source}`}>{sourceLabel[tx.category_source]}</span>
                 ) : null}
               </td>

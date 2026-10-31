@@ -40,11 +40,14 @@ export function DashboardView({
   data,
   locale,
   dict,
+  demo = false,
 }: {
   data: DashboardData;
   locale: Locale;
   dict: Dictionary;
+  demo?: boolean;
 }) {
+  const base = demo ? "/demo" : "";
   const { accounts, summary, previousSummary, categories, trend, budgets, recurring, recent, uncategorized } = data;
 
   return (
@@ -54,10 +57,16 @@ export function DashboardView({
           <h1 className="page-title">{dict.nav.overview}</h1>
           <p className="page-subtitle">{dict.dashboard.greeting(data.firstName)}</p>
         </div>
-        <ImportOfxButton
-          importLabel={dict.dashboard.importButton}
-          importingLabel={dict.dashboard.importing}
-        />
+        {demo ? (
+          <button type="button" className="button secondary" disabled title={dict.demo.disabledHint}>
+            {dict.dashboard.importButton}
+          </button>
+        ) : (
+          <ImportOfxButton
+            importLabel={dict.dashboard.importButton}
+            importingLabel={dict.dashboard.importing}
+          />
+        )}
       </header>
 
       {data.loadError ? (
@@ -68,7 +77,7 @@ export function DashboardView({
         <p className="empty-state">{dict.overview.emptyState}</p>
       ) : (
         <>
-          {uncategorized > 0 ? (
+          {!demo && uncategorized > 0 ? (
             <div className="banner">
               <span>{dict.overview.uncategorizedAlert(uncategorized)}</span>
               <CategorizeButton
@@ -80,7 +89,15 @@ export function DashboardView({
           ) : null}
 
           {summary ? (
-            <MonthSummary summary={summary} previous={previousSummary} trend={trend} locale={locale} dict={dict} />
+            <MonthSummary
+              summary={summary}
+              previous={previousSummary}
+              trend={trend}
+              locale={locale}
+              dict={dict}
+              basePath={demo ? "/demo" : "/dashboard"}
+              navigable={!demo}
+            />
           ) : null}
 
           <div className="grid-main">
@@ -115,7 +132,7 @@ export function DashboardView({
               ) : (
                 <p className="empty-state compact">{dict.overview.budgetsEmpty}</p>
               )}
-              <Link href="/budgets" className="card-link">
+              <Link href={`${base}/budgets`} className="card-link">
                 {dict.overview.budgetsCta} →
               </Link>
             </section>
@@ -139,7 +156,7 @@ export function DashboardView({
               ) : (
                 <p className="empty-state compact">{dict.overview.recurringEmpty}</p>
               )}
-              <Link href="/recurring" className="card-link">
+              <Link href={`${base}/recurring`} className="card-link">
                 {dict.nav.recurring} →
               </Link>
             </section>
@@ -147,7 +164,7 @@ export function DashboardView({
             <section className="chart-card">
               <h2 className="chart-heading">{dict.overview.recentHeading}</h2>
               <TransactionList transactions={recent} locale={locale} dict={dict.transactions} />
-              <Link href={`/transactions?month=${data.month}`} className="card-link">
+              <Link href={`${base}/transactions?month=${data.month}`} className="card-link">
                 {dict.overview.viewAll} →
               </Link>
             </section>

@@ -189,4 +189,27 @@ export const en: typeof ptBR = {
       `${done} categorized, ${left} still uncategorized.`,
     aiFailed: "Could not categorize right now.",
   },
+  landing: {
+    login: "Log in",
+    demo: "View demo",
+    heroTitle: "Your personal finances, made simple",
+    heroSubtitle:
+      "Import the OFX statement from your bank and track income, expenses, budgets and recurring charges, with AI categorization.",
+    previewIncome: "Income",
+    previewExpenses: "Expenses",
+    previewBalance: "Balance",
+    featuresHeading: "What you can do",
+    features: [
+      { icon: "⇪", title: "Import your statement", text: "Upload the OFX for your account and card. Re-uploading a file never duplicates transactions." },
+      { icon: "✦", title: "AI categorization", text: "Transactions are categorized automatically, and every fix you make becomes a rule." },
+      { icon: "◔", title: "Budget per category", text: "Set monthly limits and see how much you have spent, with warnings before you go over." },
+      { icon: "↻", title: "Recurring charges", text: "Spot subscriptions and fixed bills and know what is still due this month." },
+    ],
+    privacy: "Login-protected access. Your data stays in your own account, with no bank integration.",
+  },
+  demo: {
+    badge: "Demo mode",
+    banner: "You are viewing the demo: fictional data, no AI, and nothing is saved.",
+    disabledHint: "Not available in the demo.",
+  },
 };

@@ -188,4 +188,27 @@ export const ptBR = {
       `${done} categorizadas, ${left} ainda sem categoria.`,
     aiFailed: "Não foi possível categorizar agora.",
   },
+  landing: {
+    login: "Entrar",
+    demo: "Ver demonstração",
+    heroTitle: "Seu controle financeiro, sem complicação",
+    heroSubtitle:
+      "Importe o extrato OFX do seu banco e acompanhe receitas, despesas, orçamentos e gastos recorrentes, com categorização por IA.",
+    previewIncome: "Receitas",
+    previewExpenses: "Despesas",
+    previewBalance: "Saldo",
+    featuresHeading: "O que você consegue fazer",
+    features: [
+      { icon: "⇪", title: "Importe seu extrato", text: "Envie o OFX da conta e do cartão. Reenviar um arquivo nunca duplica transações." },
+      { icon: "✦", title: "Categorização por IA", text: "As transações são categorizadas automaticamente, e cada correção sua vira uma regra." },
+      { icon: "◔", title: "Orçamento por categoria", text: "Defina limites mensais e veja o quanto já gastou, com alertas antes de estourar." },
+      { icon: "↻", title: "Gastos recorrentes", text: "Descubra assinaturas e contas fixas e saiba o que ainda vai cair neste mês." },
+    ],
+    privacy: "Acesso protegido por login. Seus dados ficam na sua própria conta, sem integração com o banco.",
+  },
+  demo: {
+    badge: "Modo demonstração",
+    banner: "Você está na demonstração: dados fictícios, sem IA e nada é salvo.",
+    disabledHint: "Indisponível na demonstração.",
+  },
 };
