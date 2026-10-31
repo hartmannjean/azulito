@@ -1,5 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAccounts, listTransactions } from "./pluggyClient.js";
+import { getDb } from "./db.js";
 
 type PluggyTransaction = {
   id: string;
@@ -10,6 +10,9 @@ type PluggyTransaction = {
   category?: string;
 };
 
+// O D1 aceita lotes de statements; fatiamos para ficar longe dos limites.
+const BATCH_SIZE = 50;
+
 /**
  * TODO(pluggy): formato de retorno de `listTransactions` assumido aqui
  * (`{ results: [...] }`) — confirmar contra a doc oficial da Pluggy.
@@ -19,7 +22,6 @@ type PluggyTransaction = {
  * mesma forma e com a mesma chave de idempotência.
  */
 export async function syncConnectionTransactions(
-  admin: SupabaseClient,
   connection: { id: string; user_id: string; pluggy_item_id: string },
 ): Promise<number> {
   const accounts = await getAccounts(connection.pluggy_item_id);
@@ -31,33 +33,44 @@ export async function syncConnectionTransactions(
     ),
   );
 
-  const rows = transactionsByAccount.flatMap((result) =>
-    result.results.map((tx) => ({
-      user_id: connection.user_id,
-      bank_connection_id: connection.id,
-      pluggy_transaction_id: tx.id,
-      description: tx.description,
-      amount: tx.amount,
-      currency_code: tx.currencyCode,
-      transaction_date: tx.date,
-      category: tx.category ?? null,
-    })),
-  );
+  const transactions = transactionsByAccount.flatMap((result) => result.results);
 
-  if (rows.length === 0) {
+  if (transactions.length === 0) {
     return 0;
   }
 
   // Upsert por pluggy_transaction_id: idempotente entre webhook e polling,
   // uma mesma transação nunca é duplicada mesmo se os dois caminhos
   // processarem o mesmo dado.
-  const { error } = await admin
-    .from("transactions")
-    .upsert(rows, { onConflict: "pluggy_transaction_id" });
+  const db = getDb();
+  const statements = transactions.map((tx) =>
+    db
+      .prepare(
+        `insert into transactions
+           (user_id, bank_connection_id, pluggy_transaction_id, description, amount, currency_code, transaction_date, category)
+         values (?, ?, ?, ?, ?, ?, ?, ?)
+         on conflict (pluggy_transaction_id) do update set
+           description = excluded.description,
+           amount = excluded.amount,
+           currency_code = excluded.currency_code,
+           transaction_date = excluded.transaction_date,
+           category = excluded.category`,
+      )
+      .bind(
+        connection.user_id,
+        connection.id,
+        tx.id,
+        tx.description,
+        tx.amount,
+        tx.currencyCode,
+        tx.date,
+        tx.category ?? null,
+      ),
+  );
 
-  if (error) {
-    throw error;
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    await db.batch(statements.slice(i, i + BATCH_SIZE));
   }
 
-  return rows.length;
+  return transactions.length;
 }

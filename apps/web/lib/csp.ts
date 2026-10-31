@@ -6,8 +6,7 @@
  * O browser NUNCA fala diretamente com apps/api neste app — toda chamada de
  * dados passa por Server Components/Server Actions (rodam no servidor da
  * própria apps/web, fora do escopo da CSP). Por isso `connect-src` fica
- * restrito a 'self' + Supabase (usado pela metade "browser" do client SSR,
- * hoje inerte, mas parte do padrão oficial).
+ * restrito a 'self'.
  *
  * O Pluggy Connect Widget (react-pluggy-connect) é a única coisa que o
  * browser carrega de um domínio de terceiro: ele roda inteiramente dentro de
@@ -24,8 +23,7 @@
  * qualquer um dos dois — misturar `style-src` com `style-src-attr` depende
  * de regra de fallback que nem todo navegador aplica do jeito esperado.
  */
-export function buildCsp(nonce: string, supabaseUrl: string | undefined): string {
-  const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : "";
+export function buildCsp(nonce: string): string {
   const pluggyConnectOrigin = "https://connect.pluggy.ai";
 
   const directives = [
@@ -35,7 +33,7 @@ export function buildCsp(nonce: string, supabaseUrl: string | undefined): string
     `style-src-attr 'unsafe-inline'`,
     `img-src 'self' blob: data:`,
     `font-src 'self'`,
-    `connect-src 'self' ${supabaseOrigin}`.trim(),
+    `connect-src 'self'`,
     `frame-src ${pluggyConnectOrigin}`,
     `object-src 'none'`,
     `base-uri 'self'`,

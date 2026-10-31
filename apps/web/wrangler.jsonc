@@ -9,7 +9,12 @@
     "binding": "ASSETS"
   },
   "services": [
-    { "binding": "WORKER_SELF_REFERENCE", "service": "azulito-web" }
+    { "binding": "WORKER_SELF_REFERENCE", "service": "azulito-web" },
+    { "binding": "API", "service": "azulito-api" }
   ],
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "vars": {
+    "CF_ACCESS_TEAM_DOMAIN": "REPLACE.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "REPLACE-WITH-ACCESS-AUD"
+  }
 }

@@ -4,7 +4,7 @@ import {
   monthSummaryQuerySchema,
   trendQuerySchema,
 } from "@azulito/shared";
-import { createUserScopedClient } from "../lib/supabaseForUser.js";
+import { getDb } from "../lib/db.js";
 
 export const transactionsRouter = Router();
 
@@ -93,21 +93,19 @@ type AdjustedRow = { amount: number; category: string | null; transaction_date: 
  * (summary/categories/trend) é que precisa disso.
  */
 async function fetchAdjustedTransactions(
-  supabase: ReturnType<typeof createUserScopedClient>,
   userId: string,
   start: string,
   end: string,
 ): Promise<AdjustedRow[]> {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("amount, category, transaction_date")
-    .eq("user_id", userId)
-    .gte("transaction_date", start)
-    .lt("transaction_date", end);
+  const { results } = await getDb()
+    .prepare(
+      `select amount, category, transaction_date from transactions
+       where user_id = ? and transaction_date >= ? and transaction_date < ?`,
+    )
+    .bind(userId, start, end)
+    .all<{ amount: number; category: string | null; transaction_date: string }>();
 
-  if (error) throw error;
-
-  return data
+  return results
     .filter((row) => !isExcludedCategory(row.category))
     .map((row) => {
       const rawAmount = Number(row.amount);
@@ -119,7 +117,7 @@ async function fetchAdjustedTransactions(
 /**
  * GET /transactions — lista as transações do usuário autenticado.
  * Montada com `requireAuth` em src/app.ts; aqui já podemos confiar em
- * `req.userId`/`req.accessToken`.
+ * `req.userId`.
  */
 transactionsRouter.get("/", async (req, res) => {
   const parsed = listTransactionsQuerySchema.safeParse(req.query);
@@ -128,41 +126,48 @@ transactionsRouter.get("/", async (req, res) => {
   }
 
   const { limit, cursor, category, month } = parsed.data;
-  const supabase = createUserScopedClient(req.accessToken!);
 
-  let query = supabase
-    .from("transactions")
-    // RLS (via createUserScopedClient) já restringe a linhas do próprio
-    // usuário; o filtro abaixo é defesa em profundidade, não a única barreira.
-    .select("id, description, amount, currency_code, transaction_date, category")
-    .eq("user_id", req.userId!)
-    .order("transaction_date", { ascending: false })
-    .limit(limit);
+  // Sem RLS no D1: o filtro por user_id (vindo do JWT, nunca do cliente) é a
+  // única barreira de isolamento entre usuários.
+  const conditions = ["user_id = ?"];
+  const params: unknown[] = [req.userId!];
 
   if (month) {
     const { start, end } = getMonthRange(month);
-    query = query.gte("transaction_date", start).lt("transaction_date", end);
+    conditions.push("transaction_date >= ?", "transaction_date < ?");
+    params.push(start, end);
   }
   if (cursor) {
-    query = query.lt("transaction_date", cursor);
+    conditions.push("transaction_date < ?");
+    params.push(cursor);
   }
   if (category) {
-    query = query.eq("category", category);
+    conditions.push("category = ?");
+    params.push(category);
   }
+  params.push(limit);
 
-  const { data, error } = await query;
-  if (error) {
+  try {
+    const { results } = await getDb()
+      .prepare(
+        `select id, description, amount, currency_code, transaction_date, category
+         from transactions
+         where ${conditions.join(" and ")}
+         order by transaction_date desc
+         limit ?`,
+      )
+      .bind(...params)
+      .all();
+    res.json({ transactions: results });
+  } catch (error) {
     console.error("Falha ao buscar transações:", error);
-    return res.status(500).json({ error: "Falha ao buscar transações." });
+    res.status(500).json({ error: "Falha ao buscar transações." });
   }
-
-  res.json({ transactions: data });
 });
 
 /**
  * GET /transactions/summary?month=AAAA-MM — total de receitas/despesas do
- * mês. Soma no servidor em vez de pedir pro PostgREST agregar: evita
- * depender de sintaxe de agregação que pode não estar habilitada, e o
+ * mês. Soma no servidor em vez de agregar no SQL: o
  * volume de transações de um único mês de uma pessoa nunca é grande o
  * bastante pra isso pesar.
  */
@@ -174,11 +179,10 @@ transactionsRouter.get("/summary", async (req, res) => {
 
   const { month } = parsed.data;
   const { start, end } = getMonthRange(month);
-  const supabase = createUserScopedClient(req.accessToken!);
 
   let rows: AdjustedRow[];
   try {
-    rows = await fetchAdjustedTransactions(supabase, req.userId!, start, end);
+    rows = await fetchAdjustedTransactions(req.userId!, start, end);
   } catch (error) {
     console.error("Falha ao calcular o resumo:", error);
     return res.status(500).json({ error: "Falha ao calcular o resumo." });
@@ -215,11 +219,10 @@ transactionsRouter.get("/categories", async (req, res) => {
 
   const { month } = parsed.data;
   const { start, end } = getMonthRange(month);
-  const supabase = createUserScopedClient(req.accessToken!);
 
   let rows: AdjustedRow[];
   try {
-    rows = await fetchAdjustedTransactions(supabase, req.userId!, start, end);
+    rows = await fetchAdjustedTransactions(req.userId!, start, end);
   } catch (error) {
     console.error("Falha ao calcular categorias:", error);
     return res.status(500).json({ error: "Falha ao calcular categorias." });
@@ -266,11 +269,10 @@ transactionsRouter.get("/trend", async (req, res) => {
 
   const rangeStart = getMonthRange(monthList[0]!).start;
   const rangeEnd = getMonthRange(monthList[monthList.length - 1]!).end;
-  const supabase = createUserScopedClient(req.accessToken!);
 
   let rows: AdjustedRow[];
   try {
-    rows = await fetchAdjustedTransactions(supabase, req.userId!, rangeStart, rangeEnd);
+    rows = await fetchAdjustedTransactions(req.userId!, rangeStart, rangeEnd);
   } catch (error) {
     console.error("Falha ao calcular a tendência:", error);
     return res.status(500).json({ error: "Falha ao calcular a tendência." });

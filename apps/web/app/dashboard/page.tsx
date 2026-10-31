@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getAccess } from "@/lib/access";
 import {
   fetchBankConnections,
   fetchTransactions,
@@ -17,7 +17,6 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { currentMonth, shiftMonth } from "@/lib/format";
-import { logout } from "./actions";
 import type {
   Transaction,
   BankConnection,
@@ -37,14 +36,10 @@ export default async function DashboardPage({
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // Middleware garante que existe sessão aqui; checagem abaixo é defesa em
-  // profundidade e satisfaz o TypeScript.
-  if (!session) {
+  // O Cloudflare Access barra quem não está logado antes de chegar aqui; a
+  // verificação abaixo é defesa em profundidade (acesso que contorne o Access).
+  const access = await getAccess();
+  if (!access) {
     return null;
   }
 
@@ -58,12 +53,12 @@ export default async function DashboardPage({
 
   try {
     [transactions, connections, summary, previousSummary, categories, { trend }] = await Promise.all([
-      fetchTransactions(session.access_token, month),
-      fetchBankConnections(session.access_token),
-      fetchTransactionsSummary(session.access_token, month),
-      fetchTransactionsSummary(session.access_token, previousMonth),
-      fetchTransactionsCategories(session.access_token, month),
-      fetchTransactionsTrend(session.access_token, 6),
+      fetchTransactions(access.jwt, month),
+      fetchBankConnections(access.jwt),
+      fetchTransactionsSummary(access.jwt, month),
+      fetchTransactionsSummary(access.jwt, previousMonth),
+      fetchTransactionsCategories(access.jwt, month),
+      fetchTransactionsTrend(access.jwt, 6),
     ]);
   } catch (err) {
     console.error("Falha ao carregar dashboard:", err);
@@ -71,7 +66,7 @@ export default async function DashboardPage({
   }
 
   const activeConnection = connections[0];
-  const firstName = session.user.email?.split("@")[0] ?? "";
+  const firstName = access.email?.split("@")[0] ?? "";
 
   return (
     <main className="dashboard">
@@ -84,11 +79,9 @@ export default async function DashboardPage({
             switchToPortugueseLabel={dict.common.switchToPortuguese}
           />
           <ThemeToggle label={dict.common.toggleTheme} />
-          <form action={logout}>
-            <button type="submit" className="button secondary">
-              {dict.dashboard.logout}
-            </button>
-          </form>
+          <a href="/cdn-cgi/access/logout" className="button secondary">
+            {dict.dashboard.logout}
+          </a>
         </div>
       </div>
 

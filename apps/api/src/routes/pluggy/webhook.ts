@@ -2,7 +2,7 @@ import { Router } from "express";
 import { pluggyWebhookSchema } from "@azulito/shared";
 import { getItem, verifyWebhookAuth } from "../../lib/pluggyClient.js";
 import { syncConnectionTransactions } from "../../lib/pluggySync.js";
-import { createAdminClient } from "../../lib/supabaseAdmin.js";
+import { getDb } from "../../lib/db.js";
 
 export const pluggyWebhookRouter = Router();
 
@@ -31,7 +31,7 @@ pluggyWebhookRouter.post("/", async (req, res) => {
 
   const { event, itemId, clientUserId } = parsed.data;
 
-  const admin = createAdminClient();
+  const db = getDb();
 
   // item/created: primeira vez que este Item aparece — ainda não existe
   // bank_connection pra ele, então criamos aqui em vez de procurar uma.
@@ -45,16 +45,17 @@ pluggyWebhookRouter.post("/", async (req, res) => {
       // Upsert por pluggy_item_id: a Pluggy re-tenta a entrega em qualquer
       // resposta não-2xx, então uma segunda entrega do mesmo item/created
       // não pode virar erro de unique constraint.
-      const { error } = await admin.from("bank_connections").upsert(
-        {
-          user_id: clientUserId,
-          pluggy_item_id: itemId,
-          institution_name: item.connector.name,
-          status: "connected",
-        },
-        { onConflict: "pluggy_item_id" },
-      );
-      if (error) throw error;
+      await db
+        .prepare(
+          `insert into bank_connections (user_id, pluggy_item_id, institution_name, status)
+           values (?, ?, ?, 'connected')
+           on conflict (pluggy_item_id) do update set
+             user_id = excluded.user_id,
+             institution_name = excluded.institution_name,
+             status = 'connected'`,
+        )
+        .bind(clientUserId, itemId, item.connector.name)
+        .run();
     } catch (err) {
       console.error("Falha ao processar webhook item/created:", err);
       return res.status(500).json({ error: "Falha ao processar webhook." });
@@ -69,20 +70,25 @@ pluggyWebhookRouter.post("/", async (req, res) => {
     return res.json({ received: true });
   }
 
-  const { data: connection, error: connectionError } = await admin
-    .from("bank_connections")
-    .select("id, user_id, pluggy_item_id")
-    .eq("pluggy_item_id", itemId)
-    .maybeSingle();
+  let connection: { id: string; user_id: string; pluggy_item_id: string } | null = null;
+  try {
+    connection = await db
+      .prepare("select id, user_id, pluggy_item_id from bank_connections where pluggy_item_id = ?")
+      .bind(itemId)
+      .first<{ id: string; user_id: string; pluggy_item_id: string }>();
+  } catch (error) {
+    console.error("Falha ao buscar conexão do webhook:", error);
+    return res.status(500).json({ error: "Falha ao processar webhook." });
+  }
 
-  if (connectionError || !connection) {
+  if (!connection) {
     // Item desconhecido por aqui: não é um erro nosso, só não há o que
     // sincronizar (ex: webhook de teste, ou conexão já removida).
     return res.json({ received: true });
   }
 
   try {
-    await syncConnectionTransactions(admin, connection);
+    await syncConnectionTransactions(connection);
   } catch (err) {
     // Resposta genérica: não expor detalhes internos, mas sinalizar falha
     // para a Pluggy poder re-tentar a entrega do webhook.

@@ -25,7 +25,7 @@ export function createApp() {
   const app = express();
 
   app.disable("x-powered-by");
-  // Necessário atrás do proxy da Vercel: sem isso, `req.ip` e
+  // Necessário atrás da borda da Cloudflare: sem isso, `req.ip` e
   // `x-forwarded-for` não são confiáveis para rate limiting.
   app.set("trust proxy", 1);
 

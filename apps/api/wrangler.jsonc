@@ -6,5 +6,17 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "triggers": { "crons": ["0 3 * * *"] },
-  "vars": { "WEB_APP_URL": "https://REPLACE-WITH-WEB-URL" }
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "azulito",
+      "database_id": "0389f933-0cb4-441f-9a43-847d687b350c",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "WEB_APP_URL": "https://REPLACE-WITH-WEB-URL",
+    "CF_ACCESS_TEAM_DOMAIN": "REPLACE.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "REPLACE-WITH-ACCESS-AUD"
+  }
 }

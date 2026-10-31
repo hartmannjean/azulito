@@ -4,7 +4,7 @@ import { getClientIp } from "../lib/request.js";
 
 /**
  * Rate limit por IP aplicado a toda rota da API (montado em src/app.ts antes
- * das rotas). Vercel serverless é stateless entre invocações — por isso o
+ * das rotas). Workers são stateless entre invocações — por isso o
  * limitador guarda o contador no Upstash Redis (compartilhado via
  * `@azulito/shared`), não em memória do processo.
  *
