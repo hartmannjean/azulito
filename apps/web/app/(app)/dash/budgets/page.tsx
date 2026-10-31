@@ -30,7 +30,7 @@ export default async function BudgetsPage({
     <BudgetsView
       progress={progress}
       month={month}
-      basePath="/budgets"
+      basePath="/dash/budgets"
       locale={locale}
       dict={dict}
       loadError={loadError}

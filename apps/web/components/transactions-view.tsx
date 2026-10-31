@@ -35,7 +35,7 @@ export function TransactionsView({
   accounts: Account[];
   search: TransactionsSearch;
   page: number;
-  /** "/transactions" ou "/demo/transactions". */
+  /** "/dash/transactions" ou "/demo/transactions". */
   basePath: string;
   locale: Locale;
   dict: Dictionary;

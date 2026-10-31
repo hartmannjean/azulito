@@ -21,7 +21,7 @@ export function BudgetsView({
 }: {
   progress: BudgetsProgress | null;
   month: string;
-  /** "/budgets" ou "/demo/budgets". */
+  /** "/dash/budgets" ou "/demo/budgets". */
   basePath: string;
   locale: Locale;
   dict: Dictionary;

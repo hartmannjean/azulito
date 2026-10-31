@@ -34,7 +34,7 @@ export function MonthSummary({
   trend = [],
   locale,
   dict,
-  basePath = "/dashboard",
+  basePath = "/dash",
   navigable = true,
 }: {
   summary: TransactionsSummary;

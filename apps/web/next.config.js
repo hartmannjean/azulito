@@ -9,6 +9,16 @@ const nextConfig = {
   // A CSP é montada por request no middleware (precisa de um nonce único por
   // request) — ver middleware.ts e lib/csp.ts. Os headers abaixo não
   // dependem de nonce, então ficam aqui, aplicados a toda resposta.
+  // Endereços antigos (antes de as rotas privadas irem para /dash).
+  async redirects() {
+    return [
+      { source: "/dashboard", destination: "/dash", permanent: false },
+      { source: "/transactions", destination: "/dash/transactions", permanent: false },
+      { source: "/budgets", destination: "/dash/budgets", permanent: false },
+      { source: "/recurring", destination: "/dash/recurring", permanent: false },
+      { source: "/accounts", destination: "/dash/accounts", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

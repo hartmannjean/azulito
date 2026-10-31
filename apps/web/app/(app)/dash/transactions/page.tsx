@@ -66,7 +66,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       accounts={accounts}
       search={search}
       page={page}
-      basePath="/transactions"
+      basePath="/dash/transactions"
       locale={locale}
       dict={dict}
       loadError={loadError}

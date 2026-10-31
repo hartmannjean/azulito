@@ -9,7 +9,7 @@ import { getDictionary } from "@/lib/i18n/dictionary";
 /**
  * Página inicial PÚBLICA (fora do Cloudflare Access). Os cards de exemplo
  * usam os dados fictícios da demonstração — nada aqui lê dados reais.
- * "Entrar" aponta para /dashboard, que o Access protege e redireciona para o
+ * "Entrar" aponta para /dash, que o Access protege e redireciona para o
  * login; é um <a> comum (não <Link>) para não disparar prefetch de uma rota
  * protegida.
  */
@@ -29,7 +29,7 @@ export default async function LandingPage() {
             switchToPortugueseLabel={dict.common.switchToPortuguese}
           />
           <ThemeToggle label={dict.common.toggleTheme} />
-          <a href="/dashboard" className="button small">
+          <a href="/dash" className="button small">
             {dict.landing.login}
           </a>
         </div>
@@ -41,7 +41,7 @@ export default async function LandingPage() {
             <h1>{dict.landing.heroTitle}</h1>
             <p>{dict.landing.heroSubtitle}</p>
             <div className="landing-cta">
-              <a href="/dashboard" className="button">
+              <a href="/dash" className="button">
                 {dict.landing.login}
               </a>
               <a href="/demo" className="button secondary">

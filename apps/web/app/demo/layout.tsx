@@ -16,7 +16,7 @@ export default async function DemoLayout({ children }: { children: ReactNode }) 
     <AppShell email={null} locale={locale} dict={dict} demo>
       <div className="demo-banner" role="note">
         <span>{dict.demo.banner}</span>
-        <a href="/dashboard" className="button small">
+        <a href="/dash" className="button small">
           {dict.landing.login}
         </a>
       </div>

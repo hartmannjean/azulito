@@ -20,9 +20,9 @@ export function AppShell({
   children: ReactNode;
   demo?: boolean;
 }) {
-  const base = demo ? "/demo" : "";
+  const base = demo ? "/demo" : "/dash";
   const items: NavItem[] = [
-    { href: demo ? "/demo" : "/dashboard", label: dict.nav.overview, icon: "▦", exact: demo },
+    { href: base, label: dict.nav.overview, icon: "▦", exact: true },
     { href: `${base}/transactions`, label: dict.nav.transactions, icon: "☰" },
     { href: `${base}/budgets`, label: dict.nav.budgets, icon: "◔" },
     { href: `${base}/recurring`, label: dict.nav.recurring, icon: "↻" },
@@ -47,7 +47,7 @@ export function AppShell({
             />
             <ThemeToggle label={dict.common.toggleTheme} />
             {demo ? (
-              <a href="/dashboard" className="button secondary small">
+              <a href="/dash" className="button secondary small">
                 {dict.landing.login}
               </a>
             ) : (

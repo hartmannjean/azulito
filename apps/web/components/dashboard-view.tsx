@@ -47,7 +47,7 @@ export function DashboardView({
   dict: Dictionary;
   demo?: boolean;
 }) {
-  const base = demo ? "/demo" : "";
+  const base = demo ? "/demo" : "/dash";
   const { accounts, summary, previousSummary, categories, trend, budgets, recurring, recent, uncategorized } = data;
 
   return (
@@ -95,7 +95,7 @@ export function DashboardView({
               trend={trend}
               locale={locale}
               dict={dict}
-              basePath={demo ? "/demo" : "/dashboard"}
+              basePath={base}
               navigable={!demo}
             />
           ) : null}
