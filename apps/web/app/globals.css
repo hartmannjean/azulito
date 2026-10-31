@@ -1,19 +1,19 @@
 /*
- * Paleta inspirada na identidade da Nubank: roxo #820AD1 como cor de marca.
- * `--accent` é a cor usada em TEXTO/realces (precisa de contraste no fundo do
- * tema); `--accent-strong` é o roxo sólido de botões e da sidebar.
+ * Paleta em azul escuro (a mesma família do ícone, #073BBD). `--accent` é a cor
+ * usada em TEXTO/realces (precisa de contraste no fundo do tema);
+ * `--accent-strong` é o azul sólido de botões e destaques.
  */
 :root {
   color-scheme: dark;
-  --bg: #0e0517;
-  --surface: #1a0c2a;
-  --surface-raised: #26123d;
-  --border: #38205a;
-  --text: #f6effc;
-  --muted: #ac9cc2;
-  --accent: #c08cf5;
-  --accent-strong: #820ad1;
-  --accent-soft: rgba(192, 140, 245, 0.16);
+  --bg: #050b1e;
+  --surface: #0b1530;
+  --surface-raised: #13214a;
+  --border: #223566;
+  --text: #eef3ff;
+  --muted: #94a5cc;
+  --accent: #7fa8ff;
+  --accent-strong: #2a5fe0;
+  --accent-soft: rgba(127, 168, 255, 0.16);
   --danger: #ff6b7d;
   --danger-soft: rgba(255, 107, 125, 0.15);
   --positive: #3ddc97;
@@ -23,39 +23,39 @@
   --radius-md: 14px;
   --radius-lg: 20px;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 14px 30px -18px rgba(0, 0, 0, 0.7);
-  --blob-1: rgba(130, 10, 209, 0.28);
-  --blob-2: rgba(226, 85, 247, 0.12);
-  --blob-3: rgba(130, 10, 209, 0.14);
-  --dot-grid: rgba(246, 239, 252, 0.05);
-  --logo-grad-a: #9b2ae8;
-  --logo-grad-b: #e255f7;
-  --sidebar-bg: linear-gradient(185deg, #34115a 0%, #1d0a36 100%);
+  --blob-1: rgba(7, 59, 189, 0.32);
+  --blob-2: rgba(45, 140, 255, 0.14);
+  --blob-3: rgba(7, 59, 189, 0.16);
+  --dot-grid: rgba(238, 243, 255, 0.05);
+  --logo-grad-a: #2d6bff;
+  --logo-grad-b: #38bdf8;
+  --sidebar-bg: linear-gradient(185deg, #0f2260 0%, #070f33 100%);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f3eff8;
+  --bg: #eef2fa;
   --surface: #ffffff;
-  --surface-raised: #f6f0fc;
-  --border: #e6ddf0;
-  --text: #1b1030;
-  --muted: #6a5e7c;
-  --accent: #820ad1;
-  --accent-strong: #820ad1;
-  --accent-soft: rgba(130, 10, 209, 0.09);
+  --surface-raised: #edf2fc;
+  --border: #dbe3f3;
+  --text: #0b1b3a;
+  --muted: #586a8d;
+  --accent: #073bbd;
+  --accent-strong: #073bbd;
+  --accent-soft: rgba(7, 59, 189, 0.08);
   --danger: #d92d43;
   --danger-soft: rgba(217, 45, 67, 0.1);
   --positive: #0c9a62;
   --positive-soft: rgba(12, 154, 98, 0.1);
   --warn: #c9871a;
-  --shadow-card: 0 1px 2px rgba(60, 20, 100, 0.06), 0 12px 28px -16px rgba(60, 20, 100, 0.22);
-  --blob-1: rgba(130, 10, 209, 0.12);
-  --blob-2: rgba(226, 85, 247, 0.08);
-  --blob-3: rgba(130, 10, 209, 0.06);
-  --dot-grid: rgba(60, 20, 100, 0.05);
-  --logo-grad-a: #820ad1;
-  --logo-grad-b: #c43be0;
-  --sidebar-bg: linear-gradient(185deg, #8f13e3 0%, #6a07b3 100%);
+  --shadow-card: 0 1px 2px rgba(10, 30, 90, 0.06), 0 12px 28px -16px rgba(10, 30, 90, 0.24);
+  --blob-1: rgba(7, 59, 189, 0.1);
+  --blob-2: rgba(45, 140, 255, 0.08);
+  --blob-3: rgba(7, 59, 189, 0.05);
+  --dot-grid: rgba(10, 30, 90, 0.05);
+  --logo-grad-a: #073bbd;
+  --logo-grad-b: #2d8cff;
+  --sidebar-bg: linear-gradient(185deg, #0a3bc2 0%, #061e66 100%);
 }
 
 * {
@@ -1647,7 +1647,7 @@ a.button {
   color: #fff;
   --logo-grad-a: rgba(255, 255, 255, 0.3);
   --logo-grad-b: rgba(255, 255, 255, 0.12);
-  box-shadow: 8px 0 30px -18px rgba(60, 10, 110, 0.55);
+  box-shadow: 8px 0 30px -18px rgba(5, 20, 80, 0.55);
 }
 
 .sidebar .brand-name {
@@ -1665,7 +1665,7 @@ a.button {
 
 .side-nav-link.active {
   background: #fff;
-  color: #820ad1;
+  color: #073bbd;
   box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.5);
 }
 
@@ -1721,12 +1721,12 @@ a.button {
 }
 
 .summary-card::before {
-  background: linear-gradient(90deg, var(--accent-strong), #e255f7);
+  background: linear-gradient(90deg, var(--accent-strong), #38bdf8);
   opacity: 0.9;
 }
 
 .summary-card-savings::before {
-  background: linear-gradient(90deg, var(--accent-strong), #e255f7);
+  background: linear-gradient(90deg, var(--accent-strong), #38bdf8);
 }
 
 .summary-icon.balance {
@@ -1742,8 +1742,8 @@ a.button {
 /* Destaque (aviso, links, filtros) */
 
 .banner {
-  background: linear-gradient(95deg, rgba(130, 10, 209, 0.14), rgba(226, 85, 247, 0.1));
-  border: 1px solid rgba(130, 10, 209, 0.35);
+  background: linear-gradient(95deg, rgba(7, 59, 189, 0.14), rgba(56, 189, 248, 0.1));
+  border: 1px solid rgba(7, 59, 189, 0.35);
   border-radius: var(--radius-md);
 }
 
@@ -1756,7 +1756,7 @@ a.button {
 }
 
 .progress-fill {
-  background: linear-gradient(90deg, #820ad1, #c43be0);
+  background: linear-gradient(90deg, #073bbd, #2d8cff);
 }
 
 .progress-fill.warn {
@@ -1969,7 +1969,7 @@ a.button {
 .demo-banner .button {
   margin-top: 0;
   background: #fff;
-  color: #820ad1;
+  color: #073bbd;
 }
 
 .category-static {

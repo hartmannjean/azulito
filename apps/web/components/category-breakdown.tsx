@@ -6,8 +6,8 @@ import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
 const COLORS = [
-  "#820ad1",
-  "#c43be0",
+  "#2a5fe0",
+  "#38bdf8",
   "#ff7a59",
   "#f5c26b",
   "#5b8fa8",
