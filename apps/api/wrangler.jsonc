@@ -14,6 +14,7 @@
       "migrations_dir": "migrations"
     }
   ],
+  "r2_buckets": [{ "binding": "OFX_BUCKET", "bucket_name": "azulito-ofx" }],
   "vars": {
     "WEB_APP_URL": "https://azulito.hartmanns.com.br",
     "CF_ACCESS_TEAM_DOMAIN": "wild-night-aa2a.cloudflareaccess.com",

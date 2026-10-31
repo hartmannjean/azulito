@@ -8,3 +8,8 @@ import { env } from "cloudflare:workers";
 export function getDb(): D1Database {
   return env.DB;
 }
+
+/** Bucket R2 com os arquivos OFX originais (chave: <user_id>/<data>/<uuid>.ofx). */
+export function getOfxBucket(): R2Bucket {
+  return env.OFX_BUCKET;
+}

@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { getDb } from "../lib/db.js";
+import { getDb, getOfxBucket } from "../lib/db.js";
 import { decodeOfx, parseOfx, OfxParseError } from "../lib/ofx.js";
 import { categorize, isExcludedFromTotals } from "../lib/classify.js";
 
@@ -41,8 +41,24 @@ importsRouter.post(
       return res.status(400).json({ error: "Arquivo OFX inválido." });
     }
 
-    const db = getDb();
     const userId = req.userId!;
+
+    // Arquiva o arquivo ORIGINAL antes de gravar qualquer linha: se o R2
+    // falhar, a importação falha inteira em vez de existir sem cópia. A chave
+    // começa pelo user_id (vindo do JWT), e o nome do arquivo do cliente só
+    // vai como metadado — nunca compõe o caminho.
+    const r2Key = `${userId}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.ofx`;
+    try {
+      await getOfxBucket().put(r2Key, body, {
+        httpMetadata: { contentType: "application/x-ofx" },
+        customMetadata: { fileName: fileName ?? "" },
+      });
+    } catch (error) {
+      console.error("Falha ao arquivar OFX no R2:", error);
+      return res.status(500).json({ error: "Falha ao gravar a importação." });
+    }
+
+    const db = getDb();
 
     try {
       let imported = 0;
@@ -101,9 +117,9 @@ importsRouter.post(
 
         await db
           .prepare(
-            "insert into imports (user_id, account_id, file_name, imported, duplicates) values (?, ?, ?, ?, ?)",
+            "insert into imports (user_id, account_id, file_name, r2_key, imported, duplicates) values (?, ?, ?, ?, ?, ?)",
           )
-          .bind(userId, account.id, fileName, inserted, skipped)
+          .bind(userId, account.id, fileName, r2Key, inserted, skipped)
           .run();
       }
 

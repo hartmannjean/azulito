@@ -21,8 +21,20 @@ interface D1Database {
   batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
 }
 
+interface R2Bucket {
+  put(
+    key: string,
+    value: ArrayBuffer | ArrayBufferView,
+    options?: {
+      httpMetadata?: { contentType?: string };
+      customMetadata?: Record<string, string>;
+    },
+  ): Promise<unknown>;
+}
+
 declare module "cloudflare:workers" {
   export const env: {
     DB: D1Database;
+    OFX_BUCKET: R2Bucket;
   };
 }
