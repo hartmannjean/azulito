@@ -9,7 +9,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:worker": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@azulito/shared": "0.1.0",
@@ -27,6 +29,7 @@
     "eslint": "9.39.5",
     "tsx": "4.23.13",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.69.0"
+    "typescript-eslint": "8.69.0",
+    "wrangler": "4.156.0"
   }
 }

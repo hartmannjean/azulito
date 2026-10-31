@@ -1,0 +1,4 @@
+# Copie para .dev.vars (gitignored) para `npm run preview`. Em produção, as
+# variáveis NEXT_PUBLIC_* entram no BUILD (ver .env.production) e as demais
+# são secrets do Worker: `wrangler secret put <NOME>`.
+NEXTJS_ENV=development
