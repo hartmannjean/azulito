@@ -65,6 +65,7 @@ export function TransactionTable({
                   </span>
                 ) : (
                   <CategorySelect
+                    key={`${tx.id}:${tx.category ?? ""}`}
                     transactionId={tx.id}
                     current={tx.category}
                     options={options}
@@ -81,6 +82,7 @@ export function TransactionTable({
                   <span className="muted-cell">{formatMonthLabel(tx.effective_month, locale)}</span>
                 ) : (
                   <ReferenceMonthSelect
+                    key={`${tx.id}:${tx.reference_month ?? ""}:${tx.effective_month}`}
                     transactionId={tx.id}
                     effectiveMonth={tx.effective_month}
                     referenceMonth={tx.reference_month}

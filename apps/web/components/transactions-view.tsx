@@ -72,7 +72,7 @@ export function TransactionsView({
         </div>
       </header>
 
-      <AutoSubmitForm basePath={basePath} className="filter-bar">
+      <AutoSubmitForm basePath={basePath} className="filter-bar" clearLabel={dict.txPage.clear}>
         <input
           type="search"
           name="q"
@@ -126,9 +126,6 @@ export function TransactionsView({
           <input type="checkbox" name="excluded" value="1" defaultChecked={search.excluded ?? false} />
           {dict.txPage.showExcluded}
         </label>
-        <Link href={basePath} className="button secondary small">
-          {dict.txPage.clear}
-        </Link>
       </AutoSubmitForm>
 
       {loadError ? (

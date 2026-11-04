@@ -14,10 +14,13 @@ const SEARCH_DEBOUNCE_MS = 400;
 export function AutoSubmitForm({
   basePath,
   className,
+  clearLabel,
   children,
 }: {
   basePath: string;
   className?: string;
+  /** Texto do botão que limpa todos os filtros. */
+  clearLabel: string;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -54,6 +57,23 @@ export function AutoSubmitForm({
       }}
     >
       {children}
+      {/* Os campos são não controlados: só navegar para a URL limpa deixaria os valores antigos na tela. */}
+      <button
+        type="button"
+        className="button secondary small"
+        onClick={(event) => {
+          const form = event.currentTarget.form;
+          if (!form) return;
+          if (timer.current) clearTimeout(timer.current);
+          for (const element of Array.from(form.elements)) {
+            if (element instanceof HTMLInputElement && element.type === "checkbox") element.checked = false;
+            else if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) element.value = "";
+          }
+          router.push(basePath);
+        }}
+      >
+        {clearLabel}
+      </button>
     </form>
   );
 }

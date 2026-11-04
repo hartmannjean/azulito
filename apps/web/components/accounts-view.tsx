@@ -85,6 +85,7 @@ export function AccountsView({
                     ) : null}
                     {demo ? null : (
                       <CardCycleForm
+                        key={`${account.id}:${account.closing_day}:${account.due_day}`}
                         accountId={account.id}
                         closingDay={account.closing_day}
                         dueDay={account.due_day}
