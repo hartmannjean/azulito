@@ -19,6 +19,7 @@ import type {
   AuditResult,
   ImportLogEntry,
   ImportDetails,
+  ForecastResponse,
 } from "@azulito/shared";
 
 /**
@@ -278,4 +279,27 @@ export async function fetchImports(accessJwt: string): Promise<ImportLogEntry[]>
 
 export async function fetchImportDetails(accessJwt: string, id: string): Promise<ImportDetails> {
   return apiFetch<ImportDetails>(`/imports/${encodeURIComponent(id)}`, accessJwt);
+}
+
+export async function fetchForecast(accessJwt: string): Promise<ForecastResponse> {
+  return apiFetch<ForecastResponse>("/forecast", accessJwt);
+}
+
+export async function createScheduledItem(
+  accessJwt: string,
+  item: { kind: "expense" | "income"; description: string; amount: number; due_date: string; category: string | null },
+): Promise<void> {
+  await apiFetch("/scheduled", accessJwt, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(item) });
+}
+
+export async function setScheduledPaid(accessJwt: string, id: string, paid: boolean): Promise<void> {
+  await apiFetch(`/scheduled/${encodeURIComponent(id)}`, accessJwt, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ paid }),
+  });
+}
+
+export async function deleteScheduledItem(accessJwt: string, id: string): Promise<void> {
+  await apiFetch(`/scheduled/${encodeURIComponent(id)}`, accessJwt, { method: "DELETE" });
 }

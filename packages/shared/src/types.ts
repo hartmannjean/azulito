@@ -272,3 +272,57 @@ export type ImportDetails = {
   }>;
   truncated: boolean;
 };
+
+/** Conta a pagar ou a receber cadastrada (GET /forecast → items). */
+export type ScheduledItem = {
+  id: string;
+  kind: "expense" | "income";
+  description: string;
+  amount: number;
+  due_date: string;
+  category: string | null;
+  /** Marcada como paga à mão. */
+  paid: boolean;
+  /**
+   * pending: ainda a pagar/receber; paid: marcada à mão; matched: o app achou
+   * o pagamento nas transações importadas (mesmo valor, perto do vencimento).
+   */
+  status: "pending" | "paid" | "matched";
+  /** Pendente e já vencida. */
+  overdue: boolean;
+};
+
+export type ForecastMonth = {
+  month: string;
+  income: {
+    received: number;
+    /** Entradas cadastradas ainda não recebidas. */
+    scheduled: number;
+    /** Entradas recorrentes (ex.: salário) que ainda não caíram. */
+    recurring: number;
+    /** received + scheduled + recurring. */
+    projected: number;
+    /** Média dos últimos meses completos (referência). */
+    average: number;
+  };
+  expenses: {
+    /** Já lançado no mês (inclui a fatura do cartão que vence nele). */
+    realized: number;
+    /** Boletos e contas cadastrados ainda não pagos. */
+    scheduled: number;
+    /** Recorrentes da conta corrente que ainda não foram cobradas. */
+    recurring: number;
+    /** O que já é certo: realized + scheduled + recurring. */
+    committed: number;
+    /** Estimativa do mês: o maior entre o comprometido e a média histórica (cartão aberto também). */
+    projected: number;
+    average: number;
+  };
+  /** Receita prevista − despesa prevista. */
+  balance: number;
+};
+
+export type ForecastResponse = {
+  months: ForecastMonth[];
+  items: ScheduledItem[];
+};

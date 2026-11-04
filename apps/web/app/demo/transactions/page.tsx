@@ -3,7 +3,7 @@ import {
   TRANSACTIONS_PAGE_SIZE,
   type TransactionsSearch,
 } from "@/components/transactions-view";
-import { getDemoData } from "@/lib/demo-data";
+import { getDemoData, getDemoForecast } from "@/lib/demo-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
@@ -71,6 +71,8 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
       locale={locale}
       dict={dict}
       readOnly
+      forecast={getDemoForecast()}
+      today={new Date().toISOString().slice(0, 10)}
     />
   );
 }

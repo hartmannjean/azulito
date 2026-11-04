@@ -23,7 +23,20 @@ export type UndoOp =
   | { op: "card_cycle"; account_id: string; closing_day: number | null; due_day: number | null }
   | { op: "snapshot"; month: string; balance: number | null }
   | { op: "insight"; kind?: string; content: string | null; created_at: string | null }
-  | { op: "rename_category"; from: string; to: string };
+  | { op: "rename_category"; from: string; to: string }
+  | { op: "scheduled_delete"; id: string }
+  | {
+      op: "scheduled_upsert";
+      item: {
+        id: string;
+        kind: string;
+        description: string;
+        amount: number;
+        due_date: string;
+        category: string | null;
+        paid: number;
+      };
+    };
 
 export type ActionKind =
   | "category_set"
@@ -38,6 +51,9 @@ export type ActionKind =
   | "savings_remove"
   | "insight"
   | "category_rename"
+  | "scheduled_create"
+  | "scheduled_paid"
+  | "scheduled_delete"
   | "ai_budget"
   | "ai_recurring"
   | "ai_audit"
@@ -136,6 +152,30 @@ function statementsFor(userId: string, op: UndoOp): D1PreparedStatement[] {
                  on conflict (user_id, month) do update set balance = excluded.balance`,
               )
               .bind(userId, op.month, op.balance),
+      ];
+    case "scheduled_delete":
+      return [db.prepare("delete from scheduled_items where id = ? and user_id = ?").bind(op.id, userId)];
+    case "scheduled_upsert":
+      return [
+        db
+          .prepare(
+            `insert into scheduled_items (id, user_id, kind, description, amount, due_date, category, paid)
+             values (?, ?, ?, ?, ?, ?, ?, ?)
+             on conflict (id) do update set
+               kind = excluded.kind, description = excluded.description, amount = excluded.amount,
+               due_date = excluded.due_date, category = excluded.category, paid = excluded.paid
+             where scheduled_items.user_id = excluded.user_id`,
+          )
+          .bind(
+            op.item.id,
+            userId,
+            op.item.kind,
+            op.item.description,
+            op.item.amount,
+            op.item.due_date,
+            op.item.category,
+            op.item.paid,
+          ),
       ];
     case "rename_category":
       return renameCategoryStatements(userId, op.from, op.to);

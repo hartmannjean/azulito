@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { TransactionTable } from "@/components/transaction-table";
 import { AutoSubmitForm } from "@/components/auto-submit-form";
+import { ForecastSection } from "@/components/forecast-section";
 import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 import { formatCurrency } from "@/lib/format";
-import type { Account, Transaction, TransactionsPage } from "@azulito/shared";
+import type { Account, ForecastResponse, Transaction, TransactionsPage } from "@azulito/shared";
 
 export const TRANSACTIONS_PAGE_SIZE = 50;
 
@@ -33,7 +34,13 @@ export function TransactionsView({
   dict,
   loadError = false,
   readOnly = false,
+  forecast = null,
+  today = "",
 }: {
+  /** Previsão e contas a pagar (opcional: some se a api falhar). */
+  forecast?: ForecastResponse | null;
+  /** AAAA-MM-DD, vencimento padrão do formulário de contas. */
+  today?: string;
   transactions: Transaction[];
   total: number;
   totals: TransactionsPage["totals"];
@@ -71,6 +78,17 @@ export function TransactionsView({
           <p className="page-subtitle">{dict.txPage.total(total)}</p>
         </div>
       </header>
+
+      {forecast ? (
+        <ForecastSection
+          forecast={forecast}
+          customCategories={customCategories}
+          today={today}
+          locale={locale}
+          dict={dict}
+          demo={readOnly}
+        />
+      ) : null}
 
       <AutoSubmitForm basePath={basePath} className="filter-bar" clearLabel={dict.txPage.clear}>
         <input

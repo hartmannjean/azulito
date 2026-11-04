@@ -7,7 +7,13 @@ import type {
   Transaction,
   TransactionsSummary,
 } from "@azulito/shared";
-import { buildSavingsOverview, type ImportLogEntry, type SavingsOverview } from "@azulito/shared";
+import {
+  buildForecast,
+  buildSavingsOverview,
+  type ForecastResponse,
+  type ImportLogEntry,
+  type SavingsOverview,
+} from "@azulito/shared";
 import { shiftMonth } from "@/lib/format";
 
 /**
@@ -279,4 +285,35 @@ export function getDemoImports(now: Date = new Date()): ImportLogEntry[] {
     { id: "demo-imp-2", file_name: "fatura_cartao_demo.ofx", imported: 44, duplicates: 0, created_at: day(9), institution_name: "Banco Demo", account_kind: "credit_card", has_file: true },
     { id: "demo-imp-1", file_name: "extrato_conta_anterior.ofx", imported: 27, duplicates: 0, created_at: day(33), institution_name: "Banco Demo", account_kind: "checking", has_file: true },
   ];
+}
+
+/** Previsão FICTÍCIA da demonstração (mesmo cálculo do app real). */
+export function getDemoForecast(now: Date = new Date()): ForecastResponse {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const today = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
+  const current = today.slice(0, 7);
+  const at = (delta: number) => shiftMonth(current, delta);
+  const history = [-3, -2, -1].flatMap((delta) => [
+    { month: at(delta), kind: "checking" as const, spent: 3300 + delta * 40, income: 11000 },
+    { month: at(delta), kind: "credit_card" as const, spent: 3000 - delta * 60, income: 0 },
+  ]);
+
+  return buildForecast({
+    today,
+    spend: [
+      ...history,
+      { month: current, kind: "checking", spent: 820, income: 1800 },
+      { month: current, kind: "credit_card", spent: 2900, income: 0 },
+      { month: at(1), kind: "credit_card", spent: 410, income: 0 },
+    ],
+    scheduled: [
+      { id: "demo-s1", kind: "expense", description: "Boleto do condomínio", amount: 650, due_date: `${current}-28`, category: "Housing", paid: false },
+      { id: "demo-s2", kind: "expense", description: "Boleto da escola", amount: 480, due_date: `${at(1)}-05`, category: "Education", paid: false },
+      { id: "demo-s3", kind: "income", description: "Projeto freelance", amount: 1800, due_date: `${at(1)}-18`, category: "Income", paid: false },
+    ],
+    transactions: [],
+    recurringExpenses: [{ amount: 2400, charged_this_month: false, account_kind: "checking" }],
+    recurringIncomes: [{ amount: 9500, charged_this_month: false, account_kind: "checking" }],
+    cards: [{ closing_day: 2, due_day: 9 }],
+  });
 }

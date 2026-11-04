@@ -46,6 +46,17 @@ export function describeAction(entry: ActionLogEntry, locale: Locale, dict: Dict
       const month = monthOrNull(m.month);
       return k.savings_remove(month ? formatMonthLabel(month, locale) : "");
     }
+    case "scheduled_create":
+      return k.scheduled_create(
+        text(m.kind, 10),
+        text(m.description, 60),
+        formatCurrency(num(m.amount), locale),
+        text(m.due_date, 10),
+      );
+    case "scheduled_paid":
+      return k.scheduled_paid(text(m.description, 60), m.paid === true);
+    case "scheduled_delete":
+      return k.scheduled_delete(text(m.description, 60));
     case "category_rename":
       return k.category_rename(text(m.from, 40), text(m.to, 40));
     case "ai_budget":

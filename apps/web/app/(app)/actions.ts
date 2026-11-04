@@ -21,6 +21,9 @@ import {
   requestRecurringInsight,
   requestAudit,
   fetchImportDetails,
+  createScheduledItem,
+  setScheduledPaid,
+  deleteScheduledItem,
 } from "@/lib/api-client";
 import type { ImportDetails } from "@azulito/shared";
 import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
@@ -365,5 +368,63 @@ export async function loadImportDetailsAction(id: string): Promise<ImportDetails
   } catch (error) {
     console.error("Falha ao abrir a importação:", error);
     return null;
+  }
+}
+
+export type ScheduledState = { error?: string; saved?: boolean };
+
+/** Cadastra um boleto a pagar ou uma entrada prevista. */
+export async function createScheduledAction(_prev: ScheduledState, formData: FormData): Promise<ScheduledState> {
+  const dict = getDictionary(await getLocale());
+  const access = await getAccess();
+  if (!access) return { error: dict.auth.errors.notAuthenticated };
+
+  const kind = String(formData.get("kind") ?? "");
+  const description = String(formData.get("description") ?? "").trim();
+  const amount = parseMoney(String(formData.get("amount") ?? ""));
+  const dueDate = String(formData.get("due_date") ?? "");
+  const category = String(formData.get("category") ?? "");
+  if (
+    (kind !== "expense" && kind !== "income") ||
+    description.length === 0 ||
+    description.length > 80 ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    amount > 10_000_000 ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) ||
+    (category !== "" && !isCategoryValue(category))
+  ) {
+    return { error: dict.forecast.invalid };
+  }
+
+  try {
+    await createScheduledItem(access.jwt, { kind, description, amount, due_date: dueDate, category: category || null });
+    revalidatePath("/", "layout");
+    return { saved: true };
+  } catch (error) {
+    console.error("Falha ao cadastrar o lançamento:", error);
+    return { error: dict.forecast.failed };
+  }
+}
+
+export async function markScheduledPaidAction(id: string, paid: boolean): Promise<void> {
+  const access = await getAccess();
+  if (!access || !/^[0-9a-f]{32}$/.test(id)) return;
+  try {
+    await setScheduledPaid(access.jwt, id, paid);
+    revalidatePath("/", "layout");
+  } catch (error) {
+    console.error("Falha ao marcar o lançamento:", error);
+  }
+}
+
+export async function removeScheduledAction(id: string): Promise<void> {
+  const access = await getAccess();
+  if (!access || !/^[0-9a-f]{32}$/.test(id)) return;
+  try {
+    await deleteScheduledItem(access.jwt, id);
+    revalidatePath("/", "layout");
+  } catch (error) {
+    console.error("Falha ao remover o lançamento:", error);
   }
 }

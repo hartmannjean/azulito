@@ -1678,8 +1678,10 @@ a.button {
 
 .bar-chart,
 .line-chart {
+  display: block;
   width: 100%;
   height: auto;
+  max-height: 300px;
 }
 
 .chart-axis {
@@ -1836,6 +1838,87 @@ a.button {
 
 .import-body {
   margin-top: 0.75rem;
+}
+
+/* Previsão */
+
+.forecast {
+  display: grid;
+  gap: 1rem;
+}
+
+.forecast-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+}
+
+.forecast-card dl {
+  margin: 0.25rem 0 0.4rem;
+}
+
+.forecast-month {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.forecast-sub {
+  margin: 0.9rem 0 0.2rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.forecast-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.18rem 0;
+  font-size: 0.9rem;
+}
+
+.forecast-line dt {
+  color: var(--muted);
+}
+
+.forecast-line dd {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.forecast-line.strong {
+  border-top: 1px solid var(--border);
+  margin-top: 0.2rem;
+  padding-top: 0.4rem;
+  font-weight: 700;
+}
+
+.forecast-line.strong dt {
+  color: var(--text);
+}
+
+.forecast-balance {
+  margin: 0.9rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+}
+
+.scheduled-row.done {
+  opacity: 0.6;
+}
+
+.scheduled-form {
+  margin-top: 0.5rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* Responsivo */

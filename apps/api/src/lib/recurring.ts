@@ -15,6 +15,7 @@ export type RecurringRow = {
   category: string | null;
   amount: number;
   transaction_date: string;
+  account_kind: "checking" | "credit_card";
 };
 
 export type RecurringDetected = {
@@ -26,6 +27,7 @@ export type RecurringDetected = {
   months_seen: number;
   last_date: string;
   charged_this_month: boolean;
+  account_kind: "checking" | "credit_card";
 };
 
 function median(values: number[]): number {
@@ -34,16 +36,21 @@ function median(values: number[]): number {
   return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
-export async function loadRecurringRows(userId: string, now: Date): Promise<RecurringRow[]> {
+export async function loadRecurringRows(
+  userId: string,
+  now: Date,
+  direction: "expense" | "income" = "expense",
+): Promise<RecurringRow[]> {
   const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - LOOKBACK_MONTHS, 1))
     .toISOString()
     .slice(0, 10);
   const { results } = await getDb()
     .prepare(
-      `select merchant_key, description, category, amount, transaction_date
-       from transactions
-       where user_id = ? and excluded = 0 and amount < 0 and transaction_date >= ?
-       order by transaction_date`,
+      `select t.merchant_key, t.description, t.category, t.amount, t.transaction_date, a.kind as account_kind
+       from transactions t join accounts a on a.id = t.account_id
+       where t.user_id = ? and t.excluded = 0 and t.amount ${direction === "expense" ? "<" : ">"} 0
+         and t.transaction_date >= ?
+       order by t.transaction_date`,
     )
     .bind(userId, since)
     .all<RecurringRow>();
@@ -71,7 +78,7 @@ export function detectRecurring(rows: RecurringRow[], now: Date): RecurringDetec
     const months = new Set(group.map((row) => row.transaction_date.slice(0, 7)));
     if (months.size < MIN_MONTHS) continue;
 
-    const amounts = group.map((row) => -row.amount);
+    const amounts = group.map((row) => Math.abs(row.amount));
     const typical = median(amounts);
     const similar = amounts.filter((a) => Math.abs(a - typical) <= typical * AMOUNT_TOLERANCE);
     if (similar.length < MIN_MONTHS) continue;
@@ -84,11 +91,12 @@ export function detectRecurring(rows: RecurringRow[], now: Date): RecurringDetec
       merchant: last.description,
       category: last.category,
       amount: round2(typical),
-      first_amount: round2(-group[0]!.amount),
-      last_amount: round2(-last.amount),
+      first_amount: round2(Math.abs(group[0]!.amount)),
+      last_amount: round2(Math.abs(last.amount)),
       months_seen: months.size,
       last_date: last.transaction_date,
       charged_this_month: months.has(currentMonth),
+      account_kind: last.account_kind,
     });
   }
   return items.sort((a, b) => b.amount - a.amount);
