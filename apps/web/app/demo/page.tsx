@@ -1,5 +1,5 @@
 import { DashboardView, type DashboardData } from "@/components/dashboard-view";
-import { getDemoCardComparison, getDemoData } from "@/lib/demo-data";
+import { getDemoAudit, getDemoCardComparison, getDemoData } from "@/lib/demo-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
@@ -21,6 +21,7 @@ export default async function DemoPage() {
     recent: demo.transactions.filter((tx) => !tx.excluded).slice(0, 8),
     uncategorized: demo.uncategorized,
     cardComparison: getDemoCardComparison(),
+    audit: getDemoAudit(),
     loadError: false,
   };
 

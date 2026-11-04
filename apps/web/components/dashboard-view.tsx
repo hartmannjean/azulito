@@ -120,15 +120,14 @@ export function DashboardView({
 
           <BalanceChart trend={trend} locale={locale} dict={dict} />
 
-          {demo ? null : (
-            <AuditCard
-              audit={data.audit ?? null}
-              month={data.month}
-              transactionsPath={`${base}/transactions`}
-              locale={locale}
-              dict={dict}
-            />
-          )}
+          <AuditCard
+            audit={data.audit ?? null}
+            month={data.month}
+            transactionsPath={`${base}/transactions`}
+            locale={locale}
+            dict={dict}
+            demo={demo}
+          />
 
           <div className="grid-three">
             <section className="chart-card">

@@ -23,14 +23,16 @@ export function AppShell({
   const base = demo ? "/demo" : "/dash";
   const short = dict.nav.short;
   const items: NavItem[] = [
-    { href: base, label: dict.nav.overview, short: short.overview, icon: "▦", exact: true },
-    { href: `${base}/transactions`, label: dict.nav.transactions, short: short.transactions, icon: "☰" },
-    { href: `${base}/budgets`, label: dict.nav.budgets, short: short.budgets, icon: "◔" },
-    { href: `${base}/categories`, label: dict.nav.categories, short: short.categories, icon: "#" },
-    { href: `${base}/savings`, label: dict.nav.savings, short: short.savings, icon: "◈" },
-    { href: `${base}/recurring`, label: dict.nav.recurring, short: short.recurring, icon: "↻" },
-    { href: `${base}/accounts`, label: dict.nav.accounts, short: short.accounts, icon: "⇪" },
-    ...(demo ? [] : [{ href: `${base}/history`, label: dict.nav.history, short: short.history, icon: "↶" }]),
+    { href: base, label: dict.nav.overview, short: short.overview, icon: "home", exact: true },
+    { href: `${base}/transactions`, label: dict.nav.transactions, short: short.transactions, icon: "list" },
+    { href: `${base}/budgets`, label: dict.nav.budgets, short: short.budgets, icon: "target" },
+    { href: `${base}/savings`, label: dict.nav.savings, short: short.savings, icon: "piggy" },
+    { href: `${base}/categories`, label: dict.nav.categories, short: short.categories, icon: "tag", secondary: true },
+    { href: `${base}/recurring`, label: dict.nav.recurring, short: short.recurring, icon: "repeat", secondary: true },
+    { href: `${base}/accounts`, label: dict.nav.accounts, short: short.accounts, icon: "wallet", secondary: true },
+    ...(demo
+      ? []
+      : [{ href: `${base}/history`, label: dict.nav.history, short: short.history, icon: "history" as const, secondary: true }]),
   ];
 
   return (
@@ -42,7 +44,7 @@ export function AppShell({
         <div className="sidebar-brand">
           <Logo />
         </div>
-        <SidebarNav items={items} label={dict.nav.label} />
+        <SidebarNav items={items} label={dict.nav.label} moreLabel={dict.nav.more} />
         <div className="sidebar-footer">
           {demo ? <span className="sidebar-user">{dict.demo.badge}</span> : null}
           {!demo && email ? <span className="sidebar-user">{email}</span> : null}

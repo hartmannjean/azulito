@@ -100,6 +100,7 @@ export const ptBR = {
     accounts: "Contas e importação",
     history: "Histórico",
     label: "Principal",
+    more: "Mais",
     short: {
       overview: "Início",
       transactions: "Extrato",

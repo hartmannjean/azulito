@@ -20,9 +20,12 @@ export type SuggestionCardData = {
 export function BudgetSuggestionCard({
   data,
   labels,
+  disabled = false,
 }: {
   data: SuggestionCardData;
   labels: { accept: string; dismiss: string };
+  /** Demonstração: os botões ficam desligados (nada é gravado). */
+  disabled?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -38,7 +41,7 @@ export function BudgetSuggestionCard({
         <button
           type="button"
           className="button small"
-          disabled={pending}
+          disabled={pending || disabled}
           onClick={() => startTransition(() => acceptBudgetSuggestionAction(data.category, data.limit))}
         >
           {labels.accept}
@@ -46,7 +49,7 @@ export function BudgetSuggestionCard({
         <button
           type="button"
           className="button secondary small"
-          disabled={pending}
+          disabled={pending || disabled}
           onClick={() => startTransition(() => dismissBudgetSuggestionAction(data.category))}
         >
           {labels.dismiss}

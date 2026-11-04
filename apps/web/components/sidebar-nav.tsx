@@ -2,34 +2,206 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 
-export type NavItem = { href: string; label: string; short: string; icon: string; exact?: boolean };
+export type NavIcon =
+  | "home"
+  | "list"
+  | "target"
+  | "tag"
+  | "piggy"
+  | "repeat"
+  | "wallet"
+  | "history";
 
-/** Menu lateral; o item da rota atual recebe `aria-current` e destaque. */
-export function SidebarNav({ items, label }: { items: NavItem[]; label: string }) {
+export type NavItem = {
+  href: string;
+  label: string;
+  short: string;
+  icon: NavIcon;
+  exact?: boolean;
+  /** No celular vai para a folha "Mais" em vez da barra inferior. */
+  secondary?: boolean;
+};
+
+const ICONS: Record<NavIcon | "more", ReactNode> = {
+  home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
+  list: (
+    <>
+      <path d="M8 6h12M8 12h12M8 18h12" />
+      <circle cx="4" cy="6" r="1" />
+      <circle cx="4" cy="12" r="1" />
+      <circle cx="4" cy="18" r="1" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" />
+      <circle cx="8" cy="8" r="1.4" />
+    </>
+  ),
+  piggy: (
+    <>
+      <path d="M5 11a7 6 0 0 1 12.5-3.6L21 7v4l-1.5 1.2L19 16h-3v-1.5H9V16H6l-.5-3.5A4 4 0 0 1 5 11z" />
+      <circle cx="15" cy="10" r=".6" />
+    </>
+  ),
+  repeat: (
+    <>
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11V9a3 3 0 0 1 3-3h15" />
+      <path d="M7 22l-4-4 4-4" />
+      <path d="M21 13v2a3 3 0 0 1-3 3H3" />
+    </>
+  ),
+  wallet: (
+    <>
+      <path d="M3 7a2 2 0 0 1 2-2h13v4" />
+      <path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z" />
+      <circle cx="16.5" cy="14.5" r="1" />
+    </>
+  ),
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="19" cy="12" r="1.2" />
+    </>
+  ),
+};
+
+function Icon({ name }: { name: NavIcon | "more" }) {
+  return (
+    <svg
+      className="nav-svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {ICONS[name]}
+    </svg>
+  );
+}
+
+/**
+ * Menu do app. No desktop é a lista da sidebar; no celular vira uma barra
+ * inferior flutuante (itens principais) + folha "Mais" com os demais.
+ */
+export function SidebarNav({
+  items,
+  label,
+  moreLabel,
+}: {
+  items: NavItem[];
+  label: string;
+  moreLabel: string;
+}) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const isActive = (item: NavItem) =>
+    item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+  const secondary = items.filter((i) => i.secondary);
+  const moreActive = secondary.some(isActive);
 
   return (
     <nav className="side-nav" aria-label={label}>
       {items.map((item) => {
-        const active = item.exact
-          ? pathname === item.href
-          : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = isActive(item);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`side-nav-link${active ? " active" : ""}`}
+            className={`side-nav-link${active ? " active" : ""}${item.secondary ? " is-secondary" : ""}`}
             aria-current={active ? "page" : undefined}
+            onClick={() => setOpen(false)}
           >
             <span className="side-nav-icon" aria-hidden="true">
-              {item.icon}
+              <Icon name={item.icon} />
             </span>
             <span className="side-nav-label">{item.label}</span>
             <span className="side-nav-short">{item.short}</span>
           </Link>
         );
       })}
+
+      {secondary.length > 0 ? (
+        <>
+          <button
+            type="button"
+            className={`side-nav-link nav-more-btn${moreActive || open ? " active" : ""}`}
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            onClick={() => setOpen((v) => !v)}
+          >
+            <span className="side-nav-icon" aria-hidden="true">
+              <Icon name="more" />
+            </span>
+            <span className="side-nav-short">{moreLabel}</span>
+          </button>
+
+          {open ? (
+            <div className="nav-sheet-root">
+              <button
+                type="button"
+                className="nav-sheet-backdrop"
+                aria-label={moreLabel}
+                onClick={() => setOpen(false)}
+              />
+              <div className="nav-sheet" role="dialog" aria-label={moreLabel}>
+                <span className="nav-sheet-handle" aria-hidden="true" />
+                <div className="nav-sheet-grid">
+                  {secondary.map((item) => {
+                    const active = isActive(item);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`nav-sheet-item${active ? " active" : ""}`}
+                        aria-current={active ? "page" : undefined}
+                        onClick={() => setOpen(false)}
+                      >
+                        <span className="nav-sheet-icon" aria-hidden="true">
+                          <Icon name={item.icon} />
+                        </span>
+                        <span>{item.short}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </nav>
   );
 }

@@ -1,5 +1,8 @@
 import type {
   Account,
+  AuditItem,
+  AuditResult,
+  BudgetSuggestions,
   BudgetsProgress,
   CategoriesSummary,
   MonthlyTrendPoint,
@@ -352,4 +355,45 @@ export function getDemoCardComparison(now: Date = new Date()): CardComparison {
     { date: `${current}-02`, amount: -215.97, description: "Loja Exemplo - Parcela 3/10", category: "Shopping" },
   ].filter((row) => row.date <= today);
   return buildCardComparison({ today, dataUntil: today, rows });
+}
+
+/** Revisão do mês pela IA FICTÍCIA da demonstração (nada é gerado nem gravado). */
+export function getDemoAudit(now: Date = new Date()): AuditResult {
+  const data = getDemoData(now);
+  const find = (description: string) => data.transactions.find((tx) => tx.description === description);
+  const toItem = (description: string, reason: string): AuditItem[] => {
+    const tx = find(description);
+    return tx ? [{ id: tx.id, date: tx.transaction_date, description: tx.description, amount: tx.amount, reason }] : [];
+  };
+
+  return {
+    month: data.month,
+    income: data.summary.income,
+    expenses: data.summary.expenses,
+    balance: data.summary.balance,
+    verdict:
+      "Exemplo fictício: os números do mês fazem sentido. A receita vem do salário e de um freelance, e as maiores despesas são moradia e mercado. Vale conferir uma compra sem categoria e uma transferência para uma pessoa.",
+    findings: [
+      {
+        type: "uncategorized",
+        title: "Compra sem categoria",
+        detail: "Esta compra ainda não tem categoria e por isso aparece em “Outros” nos gráficos.",
+        items: toItem("Compra sem identificação", "Sem categoria definida"),
+      },
+    ],
+    ai_items: toItem("Pix enviado - Carlos Lima", "Transferência para pessoa física: confirme se não é uma despesa que merece categoria própria."),
+    created_at: now.toISOString(),
+  };
+}
+
+/** Sugestões de orçamento FICTÍCIAS da demonstração. */
+export function getDemoBudgetSuggestions(now: Date = new Date()): BudgetSuggestions {
+  return {
+    suggestions: [
+      { category: "Groceries", current: 800, suggested: 900, average: 880, reason: "Você costuma gastar perto de R$ 880 por mês em mercado; o limite atual fica apertado." },
+      { category: "Food delivery", current: 100, suggested: 160, average: 150, reason: "O delivery passa do limite todo mês; um valor mais realista evita o alerta constante." },
+      { category: "Transportation", current: null, suggested: 120, average: 95, reason: "Ainda não há orçamento para transporte por aplicativo, que se repete todo mês." },
+    ],
+    created_at: now.toISOString(),
+  };
 }

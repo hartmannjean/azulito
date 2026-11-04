@@ -101,6 +101,7 @@ export const en: typeof ptBR = {
     accounts: "Accounts & import",
     history: "History",
     label: "Main",
+    more: "More",
     short: {
       overview: "Home",
       transactions: "Activity",

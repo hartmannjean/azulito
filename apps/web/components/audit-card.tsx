@@ -16,7 +16,9 @@ export function AuditCard({
   transactionsPath,
   locale,
   dict,
+  demo = false,
 }: {
+  demo?: boolean;
   audit: AuditResult | null;
   month: string;
   /** "/dash/transactions": cada item abre a lista já filtrada pela descrição. */
@@ -82,13 +84,19 @@ export function AuditCard({
         <p className="muted-cell block">{t.none}</p>
       )}
 
-      <AiButton
-        kind="audit"
-        month={month}
-        label={audit ? t.refresh(formatMonthLabel(month, locale)) : t.button(formatMonthLabel(month, locale))}
-        runningLabel={t.running}
-        errorLabel={t.failed}
-      />
+      {demo ? (
+        <button type="button" className="button" disabled title={dict.demo.disabledHint}>
+          {t.refresh(formatMonthLabel(month, locale))}
+        </button>
+      ) : (
+        <AiButton
+          kind="audit"
+          month={month}
+          label={audit ? t.refresh(formatMonthLabel(month, locale)) : t.button(formatMonthLabel(month, locale))}
+          runningLabel={t.running}
+          errorLabel={t.failed}
+        />
+      )}
     </section>
   );
 }

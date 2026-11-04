@@ -35,10 +35,15 @@ export function BudgetsView({
   loadError?: boolean;
   demo?: boolean;
 }) {
-  const options = buildCategoryOptions(locale, customCategories, { includeIncome: false });
+  const options = buildCategoryOptions(locale, customCategories, {
+    includeIncome: false,
+  });
 
   const transactionsPath = basePath.replace(/\/budgets$/, "/transactions");
-  const total = progress && progress.totalLimit > 0 ? (progress.totalSpent / progress.totalLimit) * 100 : 0;
+  const total =
+    progress && progress.totalLimit > 0
+      ? (progress.totalSpent / progress.totalLimit) * 100
+      : 0;
 
   return (
     <main className="page">
@@ -73,39 +78,61 @@ export function BudgetsView({
       ) : (
         <div className="grid-side">
           <div className="stack">
-            {demo ? null : (
-              <section className="chart-card">
-                <h2 className="chart-heading">{dict.budgetAi.heading}</h2>
-                <p className="muted-cell block">{dict.budgetAi.help}</p>
-                {suggestions && suggestions.suggestions.length > 0 ? (
-                  <div className="suggestion-list">
-                    {suggestions.suggestions.map((suggestion) => {
-                      const name = `${getCategoryIcon(suggestion.category) ?? ""} ${translateCategory(suggestion.category, locale) ?? suggestion.category}`.trim();
-                      return (
-                        <BudgetSuggestionCard
-                          key={suggestion.category}
-                          data={{
-                            category: suggestion.category,
-                            limit: suggestion.suggested,
-                            title: name,
-                            change:
-                              suggestion.current === null
-                                ? dict.budgetAi.create(formatCurrency(suggestion.suggested, locale))
-                                : dict.budgetAi.change(
-                                    formatCurrency(suggestion.current, locale),
-                                    formatCurrency(suggestion.suggested, locale),
-                                  ),
-                            reason: suggestion.reason,
-                            average: dict.budgetAi.average(formatCurrency(suggestion.average, locale)),
-                          }}
-                          labels={{ accept: dict.budgetAi.accept, dismiss: dict.budgetAi.dismiss }}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="muted-cell block">{suggestions?.created_at ? dict.budgetAi.empty : dict.budgetAi.none}</p>
-                )}
+            <section className="chart-card">
+              <h2 className="chart-heading">{dict.budgetAi.heading}</h2>
+              <p className="muted-cell block">{dict.budgetAi.help}</p>
+              {suggestions && suggestions.suggestions.length > 0 ? (
+                <div className="suggestion-list">
+                  {suggestions.suggestions.map((suggestion) => {
+                    const name =
+                      `${getCategoryIcon(suggestion.category) ?? ""} ${translateCategory(suggestion.category, locale) ?? suggestion.category}`.trim();
+                    return (
+                      <BudgetSuggestionCard
+                        key={suggestion.category}
+                        data={{
+                          category: suggestion.category,
+                          limit: suggestion.suggested,
+                          title: name,
+                          change:
+                            suggestion.current === null
+                              ? dict.budgetAi.create(
+                                  formatCurrency(suggestion.suggested, locale),
+                                )
+                              : dict.budgetAi.change(
+                                  formatCurrency(suggestion.current, locale),
+                                  formatCurrency(suggestion.suggested, locale),
+                                ),
+                          reason: suggestion.reason,
+                          average: dict.budgetAi.average(
+                            formatCurrency(suggestion.average, locale),
+                          ),
+                        }}
+                        labels={{
+                          accept: dict.budgetAi.accept,
+                          dismiss: dict.budgetAi.dismiss,
+                        }}
+                        disabled={demo}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="muted-cell block">
+                  {suggestions?.created_at
+                    ? dict.budgetAi.empty
+                    : dict.budgetAi.none}
+                </p>
+              )}
+              {demo ? (
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled
+                  title={dict.demo.disabledHint}
+                >
+                  {dict.budgetAi.button}
+                </button>
+              ) : (
                 <AiButton
                   kind="budget"
                   label={dict.budgetAi.button}
@@ -113,11 +140,13 @@ export function BudgetsView({
                   errorLabel={dict.budgetAi.failed}
                   className="button secondary"
                 />
-              </section>
-            )}
+              )}
+            </section>
             {progress.budgets.length > 0 ? (
               <section className="chart-card">
-                <h2 className="chart-heading">{dict.budgetsPage.totalHeading}</h2>
+                <h2 className="chart-heading">
+                  {dict.budgetsPage.totalHeading}
+                </h2>
                 <p className="card-highlight">
                   {dict.budgetsPage.spent(
                     formatCurrency(progress.totalSpent, locale),
@@ -138,13 +167,22 @@ export function BudgetsView({
             ) : (
               <div className="budget-grid">
                 {progress.budgets.map((budget) => {
-                  const state = budget.percentage >= 100 ? "over" : budget.percentage >= 80 ? "warn" : "ok";
+                  const state =
+                    budget.percentage >= 100
+                      ? "over"
+                      : budget.percentage >= 80
+                        ? "warn"
+                        : "ok";
                   const diff = Math.abs(budget.limit - budget.spent);
                   return (
-                    <section key={budget.category} className={`chart-card budget-card ${state}`}>
+                    <section
+                      key={budget.category}
+                      className={`chart-card budget-card ${state}`}
+                    >
                       <div className="budget-card-top">
                         <h3>
-                          {getCategoryIcon(budget.category)} {translateCategory(budget.category, locale)}
+                          {getCategoryIcon(budget.category)}{" "}
+                          {translateCategory(budget.category, locale)}
                         </h3>
                         <span className={`chip status-${state}`}>
                           {state === "over"
@@ -163,17 +201,26 @@ export function BudgetsView({
                       <div className="progress-track large">
                         <div
                           className={`progress-fill ${state === "ok" ? "" : state}`}
-                          style={{ width: `${Math.min(100, budget.percentage)}%` }}
+                          style={{
+                            width: `${Math.min(100, budget.percentage)}%`,
+                          }}
                         />
                       </div>
                       <div className="budget-card-bottom">
                         <span className="muted-cell">
                           {budget.spent > budget.limit
-                            ? dict.budgetsPage.over(formatCurrency(diff, locale))
-                            : dict.budgetsPage.left(formatCurrency(diff, locale))}
+                            ? dict.budgetsPage.over(
+                                formatCurrency(diff, locale),
+                              )
+                            : dict.budgetsPage.left(
+                                formatCurrency(diff, locale),
+                              )}
                         </span>
                         {demo ? null : (
-                          <RemoveBudgetButton category={budget.category} label={dict.budgetsPage.remove} />
+                          <RemoveBudgetButton
+                            category={budget.category}
+                            label={dict.budgetsPage.remove}
+                          />
                         )}
                       </div>
                     </section>
@@ -185,22 +232,37 @@ export function BudgetsView({
             {progress.unbudgeted.length > 0 ? (
               <section className="chart-card">
                 <div className="budget-card-top">
-                  <h2 className="chart-heading">{dict.budgetsPage.unbudgetedHeading}</h2>
-                  <span className="card-highlight">{formatCurrency(progress.unbudgetedTotal, locale)}</span>
+                  <h2 className="chart-heading">
+                    {dict.budgetsPage.unbudgetedHeading}
+                  </h2>
+                  <span className="card-highlight">
+                    {formatCurrency(progress.unbudgetedTotal, locale)}
+                  </span>
                 </div>
                 <p className="muted-cell">{dict.budgetsPage.unbudgetedHelp}</p>
                 <ul className="mini-list">
                   {progress.unbudgeted.map((item) => {
-                    const params = new URLSearchParams({ type: "expense", month });
+                    const params = new URLSearchParams({
+                      type: "expense",
+                      month,
+                    });
                     params.set("category", item.category ?? "__none__");
                     return (
-                      <li key={item.category ?? "__none__"} className="mini-row">
-                        <Link href={`${transactionsPath}?${params.toString()}`} className="mini-row-label">
+                      <li
+                        key={item.category ?? "__none__"}
+                        className="mini-row"
+                      >
+                        <Link
+                          href={`${transactionsPath}?${params.toString()}`}
+                          className="mini-row-label"
+                        >
                           {item.category
                             ? `${getCategoryIcon(item.category) ?? ""} ${translateCategory(item.category, locale)}`.trim()
                             : dict.txPage.uncategorized}
                         </Link>
-                        <span className="muted-cell">{formatCurrency(item.spent, locale)}</span>
+                        <span className="muted-cell">
+                          {formatCurrency(item.spent, locale)}
+                        </span>
                       </li>
                     );
                   })}
