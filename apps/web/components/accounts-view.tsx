@@ -1,5 +1,6 @@
 import { ImportOfxButton } from "@/components/import-ofx-button";
 import { CategorizeButton } from "@/components/categorize-button";
+import { CardCycleForm } from "@/components/card-cycle-form";
 import { formatDate } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -75,6 +76,28 @@ export function AccountsView({
                   <strong>{account.institution_name}</strong>
                   <span className="muted-cell">{dict.accountsPage.kind[account.kind]}</span>
                 </div>
+                {account.kind === "credit_card" ? (
+                  <div className="card-cycle">
+                    <strong>{dict.accountsPage.cycleTitle}</strong>
+                    <p className="muted-cell block">{dict.accountsPage.cycleHelp}</p>
+                    {account.closing_day === null || account.due_day === null ? (
+                      <p className="muted-cell block">{dict.accountsPage.cycleMissing}</p>
+                    ) : null}
+                    {demo ? null : (
+                      <CardCycleForm
+                        accountId={account.id}
+                        closingDay={account.closing_day}
+                        dueDay={account.due_day}
+                        labels={{
+                          closing: dict.accountsPage.cycleClosing,
+                          due: dict.accountsPage.cycleDue,
+                          save: dict.accountsPage.cycleSave,
+                          saved: dict.accountsPage.cycleSaved,
+                        }}
+                      />
+                    )}
+                  </div>
+                ) : null}
                 <span className="muted-cell">
                   {account.last_import_at
                     ? dict.accountsPage.lastImport(formatDate(account.last_import_at, locale))

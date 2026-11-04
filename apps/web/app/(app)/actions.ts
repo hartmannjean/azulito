@@ -9,6 +9,8 @@ import {
   deleteBudget,
   createUserCategory,
   deleteUserCategory,
+  setTransactionsReferenceMonth,
+  updateCardCycle,
 } from "@/lib/api-client";
 import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
 import { getAccess } from "@/lib/access";
@@ -159,5 +161,48 @@ export async function removeCategoryAction(id: string): Promise<void> {
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao remover categoria:", error);
+  }
+}
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Define (ou, com `null`, volta ao automático) o mês em que uma transação conta nas somas. */
+export async function setReferenceMonth(id: string, month: string | null): Promise<{ ok: boolean }> {
+  const access = await getAccess();
+  if (!access || id.length === 0 || id.length > 64) return { ok: false };
+  if (month !== null && !MONTH_PATTERN.test(month)) return { ok: false };
+  try {
+    await setTransactionsReferenceMonth(access.jwt, [id], month);
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (error) {
+    console.error("Falha ao definir mês de referência:", error);
+    return { ok: false };
+  }
+}
+
+export type CardCycleState = { error?: string; saved?: boolean };
+
+/** Ajusta o dia de fechamento e o de vencimento da fatura de um cartão. */
+export async function saveCardCycleAction(_prev: CardCycleState, formData: FormData): Promise<CardCycleState> {
+  const dict = getDictionary(await getLocale());
+  const access = await getAccess();
+  if (!access) return { error: dict.auth.errors.notAuthenticated };
+
+  const accountId = String(formData.get("account_id") ?? "");
+  const closing = Number(formData.get("closing_day"));
+  const due = Number(formData.get("due_day"));
+  const validDay = (n: number) => Number.isInteger(n) && n >= 1 && n <= 31;
+  if (!/^[0-9a-f]{32}$/.test(accountId) || !validDay(closing) || !validDay(due)) {
+    return { error: dict.accountsPage.cycleInvalid };
+  }
+
+  try {
+    await updateCardCycle(access.jwt, accountId, closing, due);
+    revalidatePath("/", "layout");
+    return { saved: true };
+  } catch (error) {
+    console.error("Falha ao salvar o ciclo do cartão:", error);
+    return { error: dict.accountsPage.cycleFailed };
   }
 }

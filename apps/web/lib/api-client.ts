@@ -173,3 +173,28 @@ export async function deleteUserCategory(accessJwt: string, id: string): Promise
 export async function fetchRecurring(accessJwt: string): Promise<RecurringSummary> {
   return apiFetch<RecurringSummary>("/recurring", accessJwt);
 }
+
+export async function setTransactionsReferenceMonth(
+  accessJwt: string,
+  ids: string[],
+  month: string | null,
+): Promise<void> {
+  await apiFetch("/transactions/reference-month", accessJwt, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ ids, month }),
+  });
+}
+
+export async function updateCardCycle(
+  accessJwt: string,
+  accountId: string,
+  closingDay: number,
+  dueDay: number,
+): Promise<void> {
+  await apiFetch(`/accounts/${encodeURIComponent(accountId)}`, accessJwt, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ closing_day: closingDay, due_day: dueDay }),
+  });
+}

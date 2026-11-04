@@ -18,6 +18,10 @@ export type Transaction = {
   account_id: string;
   institution_name: string;
   account_kind: "checking" | "credit_card";
+  /** Mês (AAAA-MM) em que a transação conta nas somas. */
+  effective_month: string;
+  /** Preenchido só quando o usuário trocou o mês; `null` = padrão. */
+  reference_month: string | null;
 };
 
 /** GET /transactions — `total` é o total de linhas do filtro (para paginar). */
@@ -79,6 +83,9 @@ export type Account = {
   institution_name: string;
   kind: "checking" | "credit_card";
   last_import_at: string | null;
+  /** Só cartão: dia do fechamento e do vencimento da fatura. */
+  closing_day: number | null;
+  due_day: number | null;
 };
 
 /** Resultado de POST /imports. */

@@ -2,25 +2,16 @@ import { Router } from "express";
 import {
   listTransactionsQuerySchema,
   monthSummaryQuerySchema,
+  setReferenceMonthSchema,
   trendQuerySchema,
   updateCategorySchema,
 } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
 import { resolveCategory } from "../lib/categories.js";
 import { categorizePending } from "../lib/categorizer.js";
+import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
 
 export const transactionsRouter = Router();
-
-/** `month` no formato AAAA-MM -> [primeiro dia do mês, primeiro dia do mês seguinte). */
-function getMonthRange(month: string): { start: string; end: string } {
-  const [year, mon] = month.split("-").map(Number) as [number, number];
-  const start = `${month}-01`;
-  const end =
-    mon === 12
-      ? `${year + 1}-01-01`
-      : `${year}-${String(mon + 1).padStart(2, "0")}-01`;
-  return { start, end };
-}
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
@@ -49,9 +40,8 @@ transactionsRouter.get("/", async (req, res) => {
   const params: unknown[] = [req.userId!];
 
   if (month) {
-    const { start, end } = getMonthRange(month);
-    conditions.push("t.transaction_date >= ?", "t.transaction_date < ?");
-    params.push(start, end);
+    conditions.push(`${EFFECTIVE_MONTH} = ?`);
+    params.push(month);
   }
   if (category === "__none__") {
     conditions.push("t.category is null");
@@ -88,6 +78,7 @@ transactionsRouter.get("/", async (req, res) => {
         .prepare(
           `select t.id, t.description, t.amount, t.currency_code, t.transaction_date, t.category,
                   t.category_source, t.excluded, t.account_id,
+                  t.reference_month, ${EFFECTIVE_MONTH} as effective_month,
                   a.institution_name, a.kind as account_kind
            from transactions t join accounts a on a.id = t.account_id
            where ${where}
@@ -101,7 +92,8 @@ transactionsRouter.get("/", async (req, res) => {
           `select count(*) as n,
                   coalesce(sum(case when t.excluded = 0 and t.amount > 0 then t.amount end), 0) as income,
                   coalesce(sum(case when t.excluded = 0 and t.amount < 0 then -t.amount end), 0) as expenses
-           from transactions t where ${where}`,
+           from transactions t join accounts a on a.id = t.account_id
+           where ${where}`,
         )
         .bind(...params)
         .first<{ n: number; income: number; expenses: number }>(),
@@ -178,6 +170,31 @@ transactionsRouter.patch("/:id", async (req, res) => {
   }
 });
 
+/**
+ * POST /transactions/reference-month — define (ou, com `month: null`, limpa)
+ * o mês em que as transações contam nas somas. Aceita vários ids de uma vez.
+ * O filtro por user_id garante que só se altera o que é do usuário.
+ */
+transactionsRouter.post("/reference-month", async (req, res) => {
+  const parsed = setReferenceMonthSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Dados inválidos." });
+  const { ids, month } = parsed.data;
+
+  try {
+    const db = getDb();
+    const statements = ids.map((id) =>
+      db
+        .prepare("update transactions set reference_month = ? where id = ? and user_id = ?")
+        .bind(month, id, req.userId!),
+    );
+    const results = await db.batch(statements);
+    res.json({ updated: results.reduce((sum, r) => sum + r.meta.changes, 0) });
+  } catch (error) {
+    console.error("Falha ao definir mês de referência:", error);
+    res.status(500).json({ error: "Falha ao definir mês de referência." });
+  }
+});
+
 /** POST /transactions/categorize — categoriza (regras + IA) o que está sem categoria. */
 transactionsRouter.post("/categorize", async (req, res) => {
   try {
@@ -199,17 +216,16 @@ transactionsRouter.get("/summary", async (req, res) => {
   }
 
   const { month } = parsed.data;
-  const { start, end } = getMonthRange(month);
 
   try {
     const row = await getDb()
       .prepare(
-        `select coalesce(sum(case when amount >= 0 then amount end), 0) as income,
-                coalesce(sum(case when amount < 0 then -amount end), 0) as expenses
-         from transactions
-         where user_id = ? and excluded = 0 and transaction_date >= ? and transaction_date < ?`,
+        `select coalesce(sum(case when t.amount >= 0 then t.amount end), 0) as income,
+                coalesce(sum(case when t.amount < 0 then -t.amount end), 0) as expenses
+         from transactions t join accounts a on a.id = t.account_id
+         where t.user_id = ? and t.excluded = 0 and ${EFFECTIVE_MONTH} = ?`,
       )
-      .bind(req.userId!, start, end)
+      .bind(req.userId!, month)
       .first<{ income: number; expenses: number }>();
     const income = Number(row?.income ?? 0);
     const expenses = Number(row?.expenses ?? 0);
@@ -238,18 +254,16 @@ transactionsRouter.get("/categories", async (req, res) => {
   }
 
   const { month } = parsed.data;
-  const { start, end } = getMonthRange(month);
 
   try {
     const { results } = await getDb()
       .prepare(
-        `select coalesce(category, 'Outros') as category, sum(-amount) as total
-         from transactions
-         where user_id = ? and excluded = 0 and amount < 0
-           and transaction_date >= ? and transaction_date < ?
+        `select coalesce(t.category, 'Outros') as category, sum(-t.amount) as total
+         from transactions t join accounts a on a.id = t.account_id
+         where t.user_id = ? and t.excluded = 0 and t.amount < 0 and ${EFFECTIVE_MONTH} = ?
          group by 1`,
       )
-      .bind(req.userId!, start, end)
+      .bind(req.userId!, month)
       .all<{ category: string; total: number }>();
 
     const totalExpenses = results.reduce((sum, row) => sum + Number(row.total), 0);
@@ -288,17 +302,19 @@ transactionsRouter.get("/trend", async (req, res) => {
     monthList.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
   }
 
-  const rangeStart = getMonthRange(monthList[0]!).start;
-  const rangeEnd = getMonthRange(monthList[monthList.length - 1]!).end;
+  // AAAA-MM compara certo como texto, então o intervalo é fechado nos dois lados.
+  const rangeStart = monthList[0]!;
+  const rangeEnd = monthList[monthList.length - 1]!;
 
   try {
     const { results } = await getDb()
       .prepare(
-        `select substr(transaction_date, 1, 7) as month,
-                coalesce(sum(case when amount >= 0 then amount end), 0) as income,
-                coalesce(sum(case when amount < 0 then -amount end), 0) as expenses
-         from transactions
-         where user_id = ? and excluded = 0 and transaction_date >= ? and transaction_date < ?
+        `select ${EFFECTIVE_MONTH} as month,
+                coalesce(sum(case when t.amount >= 0 then t.amount end), 0) as income,
+                coalesce(sum(case when t.amount < 0 then -t.amount end), 0) as expenses
+         from transactions t join accounts a on a.id = t.account_id
+         where t.user_id = ? and t.excluded = 0
+           and ${EFFECTIVE_MONTH} >= ? and ${EFFECTIVE_MONTH} <= ?
          group by 1`,
       )
       .bind(req.userId!, rangeStart, rangeEnd)

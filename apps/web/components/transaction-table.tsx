@@ -1,8 +1,9 @@
 import type { Transaction } from "@azulito/shared";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { CategorySelect } from "@/components/category-select";
+import { ReferenceMonthSelect } from "@/components/reference-month-select";
 import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -38,6 +39,7 @@ export function TransactionTable({
             <th role="columnheader">{dict.columns.description}</th>
             <th role="columnheader">{dict.columns.account}</th>
             <th role="columnheader">{dict.columns.category}</th>
+            <th role="columnheader">{dict.columns.refMonth}</th>
             <th role="columnheader" className="num">
               {dict.columns.amount}
             </th>
@@ -73,6 +75,21 @@ export function TransactionTable({
                 {!readOnly && tx.category_source ? (
                   <span className={`chip source-${tx.category_source}`}>{sourceLabel[tx.category_source]}</span>
                 ) : null}
+              </td>
+              <td role="cell" className="nowrap tx-ref">
+                {readOnly || tx.excluded ? (
+                  <span className="muted-cell">{formatMonthLabel(tx.effective_month, locale)}</span>
+                ) : (
+                  <ReferenceMonthSelect
+                    transactionId={tx.id}
+                    effectiveMonth={tx.effective_month}
+                    referenceMonth={tx.reference_month}
+                    locale={locale}
+                    autoLabel={dict.refAuto}
+                    autoPlainLabel={dict.refAutoPlain}
+                    errorLabel={dict.refError}
+                  />
+                )}
               </td>
               <td role="cell" className={`num nowrap tx-amount-cell ${tx.amount < 0 ? "negative" : "positive"}`}>
                 {formatCurrency(tx.amount, locale, tx.currency_code)}

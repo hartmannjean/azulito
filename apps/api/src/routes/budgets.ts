@@ -2,15 +2,9 @@ import { Router } from "express";
 import { monthSummaryQuerySchema, upsertBudgetSchema } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
 import { resolveCategory } from "../lib/categories.js";
+import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
 
 export const budgetsRouter = Router();
-
-function monthRange(month: string): { start: string; end: string } {
-  const [year, mon] = month.split("-").map(Number) as [number, number];
-  const end =
-    mon === 12 ? `${year + 1}-01-01` : `${year}-${String(mon + 1).padStart(2, "0")}-01`;
-  return { start: `${month}-01`, end };
-}
 
 /** GET /budgets — limites mensais definidos pelo usuário. */
 budgetsRouter.get("/", async (req, res) => {
@@ -80,7 +74,6 @@ budgetsRouter.get("/progress", async (req, res) => {
     return res.status(400).json({ error: "Parâmetros inválidos." });
   }
   const { month } = parsed.data;
-  const { start, end } = monthRange(month);
   const db = getDb();
 
   try {
@@ -91,13 +84,12 @@ budgetsRouter.get("/progress", async (req, res) => {
         .all<{ category: string; monthly_limit: number }>(),
       db
         .prepare(
-          `select category, sum(-amount) as spent
-           from transactions
-           where user_id = ? and excluded = 0 and amount < 0
-             and transaction_date >= ? and transaction_date < ?
+          `select t.category, sum(-t.amount) as spent
+           from transactions t join accounts a on a.id = t.account_id
+           where t.user_id = ? and t.excluded = 0 and t.amount < 0 and ${EFFECTIVE_MONTH} = ?
            group by 1`,
         )
-        .bind(req.userId!, start, end)
+        .bind(req.userId!, month)
         .all<{ category: string | null; spent: number }>(),
     ]);
 

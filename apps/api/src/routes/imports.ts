@@ -4,6 +4,7 @@ import { decodeOfx, parseOfx, OfxParseError } from "../lib/ofx.js";
 import { isExcludedFromTotals } from "../lib/classify.js";
 import { merchantKey } from "../lib/merchant.js";
 import { categorizePending } from "../lib/categorizer.js";
+import { defaultDueDay } from "../lib/refmonth.js";
 
 export const importsRouter = Router();
 
@@ -75,12 +76,22 @@ importsRouter.post(
       let duplicates = 0;
 
       for (const statement of statements) {
+        // Fechamento da fatura = dia do DTEND. Só preenche quando ainda não há
+        // valor, para não desfazer o que o usuário editou.
+        const closingDay =
+          statement.kind === "credit_card" && statement.periodEnd
+            ? Number(statement.periodEnd.slice(8, 10))
+            : null;
+        const dueDay = closingDay ? defaultDueDay(closingDay) : null;
+
         const account = await db
           .prepare(
-            `insert into accounts (user_id, kind, bank_id, account_id, institution_name, currency_code)
-             values (?, ?, ?, ?, ?, ?)
+            `insert into accounts (user_id, kind, bank_id, account_id, institution_name, currency_code, closing_day, due_day)
+             values (?, ?, ?, ?, ?, ?, ?, ?)
              on conflict (user_id, kind, bank_id, account_id) do update set
-               institution_name = excluded.institution_name
+               institution_name = excluded.institution_name,
+               closing_day = coalesce(accounts.closing_day, excluded.closing_day),
+               due_day = coalesce(accounts.due_day, excluded.due_day)
              returning id`,
           )
           .bind(
@@ -90,6 +101,8 @@ importsRouter.post(
             statement.accountId,
             statement.institution,
             statement.currency,
+            closingDay,
+            dueDay,
           )
           .first<{ id: string }>();
         if (!account) throw new Error("Falha ao gravar a conta.");

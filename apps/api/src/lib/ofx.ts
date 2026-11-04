@@ -14,6 +14,8 @@ export type OfxStatement = {
   accountId: string;
   institution: string;
   currency: string;
+  /** Fim do período do extrato (DTEND) — no cartão, a data de fechamento da fatura. */
+  periodEnd?: string;
   transactions: OfxTransaction[];
 };
 
@@ -21,6 +23,7 @@ export class OfxParseError extends Error {}
 
 const MAX_TRANSACTIONS = 20_000;
 const MAX_DESCRIPTION = 200;
+const INSTALLMENT = /parcela [0-9]+\/[0-9]+/i;
 
 /**
  * OFX 1.x (SGML) declara o charset no cabeçalho de texto (`CHARSET:1252`) e
@@ -82,6 +85,7 @@ type Draft = {
   bankId: string;
   accountId: string;
   currency: string;
+  periodEnd?: string;
   transactions: OfxTransaction[];
 };
 
@@ -158,6 +162,16 @@ export function parseOfx(text: string): OfxStatement[] {
       case "ACCTID":
         if (current) current.accountId = value.slice(0, 80);
         break;
+      case "DTEND":
+        // Só orienta o ciclo do cartão: uma data ilegível não deve barrar a importação.
+        if (current && !trn && /^[0-9]{8}/.test(value)) {
+          try {
+            current.periodEnd = parseDate(value);
+          } catch {
+            // ignora
+          }
+        }
+        break;
       case "STMTTRN":
         trn = {};
         break;
@@ -186,8 +200,18 @@ export function parseOfx(text: string): OfxStatement[] {
 
     // Alguns bancos repetem FITID dentro do mesmo arquivo; sem desambiguar, a
     // chave de idempotência descartaria transações legítimas como duplicadas.
+    //
+    // No cartão, o Nubank reaproveita o MESMO FITID em todas as parcelas de uma
+    // compra (uma por fatura); sem a data na chave, da 2ª parcela em diante
+    // seriam descartadas como duplicadas. Reimportar o mesmo arquivo gera a
+    // mesma chave, então a idempotência continua. (Migration 0007 faz o
+    // mesmo nas linhas já gravadas — manter o padrão do glob de lá igual.)
     const seen = new Map<string, number>();
-    const transactions = statement.transactions.map((tx) => {
+    const transactions = statement.transactions.map((raw) => {
+      const tx =
+        statement.kind === "credit_card" && INSTALLMENT.test(raw.description)
+          ? { ...raw, fitid: `${raw.fitid}~${raw.date}` }
+          : raw;
       const count = (seen.get(tx.fitid) ?? 0) + 1;
       seen.set(tx.fitid, count);
       return count === 1 ? tx : { ...tx, fitid: `${tx.fitid}#${count}` };

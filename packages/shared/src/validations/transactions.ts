@@ -48,3 +48,15 @@ export const upsertBudgetSchema = z.object({
   category: z.string().trim().max(60),
   monthly_limit: z.number().positive().max(10_000_000),
 });
+
+/** Corpo de POST /transactions/reference-month; `month: null` volta ao padrão. */
+export const setReferenceMonthSchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(64)).min(1).max(200),
+  month: monthSchema.nullable(),
+});
+
+/** Corpo de PATCH /accounts/:id — dias do fechamento e do vencimento da fatura. */
+export const updateCardCycleSchema = z.object({
+  closing_day: z.number().int().min(1).max(31),
+  due_day: z.number().int().min(1).max(31),
+});

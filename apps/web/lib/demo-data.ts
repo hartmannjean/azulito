@@ -21,6 +21,8 @@ const CHECKING: Account = {
   institution_name: "Banco Demo",
   kind: "checking",
   last_import_at: null,
+  closing_day: null,
+  due_day: null,
 };
 
 const CARD: Account = {
@@ -28,6 +30,8 @@ const CARD: Account = {
   institution_name: "Banco Demo",
   kind: "credit_card",
   last_import_at: null,
+  closing_day: 2,
+  due_day: 9,
 };
 
 type Seed = [
@@ -111,6 +115,8 @@ export function getDemoData(now: Date = new Date()) {
       account_id: account.id,
       institution_name: account.institution_name,
       account_kind: account.kind,
+      effective_month: month,
+      reference_month: null,
     };
   }).sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || a.id.localeCompare(b.id));
 
