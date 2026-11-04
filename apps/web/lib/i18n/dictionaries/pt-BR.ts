@@ -98,6 +98,7 @@ export const ptBR = {
     savings: "Caixinhas",
     recurring: "Recorrências",
     accounts: "Contas e importação",
+    history: "Histórico",
     label: "Principal",
     short: {
       overview: "Início",
@@ -107,6 +108,7 @@ export const ptBR = {
       savings: "Caixinhas",
       recurring: "Fixos",
       accounts: "Contas",
+      history: "Histórico",
     },
   },
   overview: {
@@ -249,6 +251,37 @@ export const ptBR = {
     aiFailed: "Não foi possível gerar a análise agora. Tente de novo em alguns segundos.",
     aiNone: "Nenhuma análise gerada ainda.",
     aiUpdated: (date: string) => `Gerada em ${date}`,
+  },
+  history: {
+    subtitle: "Tudo o que você fez no app, com a opção de desfazer",
+    empty: "Nenhuma ação registrada ainda.",
+    undo: "Desfazer",
+    undone: "Ação desfeita.",
+    dismiss: "Fechar aviso",
+    failed: "Não foi possível desfazer.",
+    undoneAt: (when: string) => `Desfeita em ${when}`,
+    note: "O histórico guarda as 100 últimas ações. Desfazer devolve o que aquela ação mudou ao estado de antes; mudanças posteriores nos mesmos itens podem ser sobrescritas.",
+    unknown: "Ação",
+    kinds: {
+      category_set: (description: string, category: string, others: number) =>
+        `Categoria de “${description}” alterada para ${category}${others > 0 ? ` (e de mais ${others} do mesmo lugar)` : ""}`,
+      reference_month: (count: number, month: string | null) =>
+        month
+          ? `Mês de referência de ${count} ${count === 1 ? "transação" : "transações"} alterado para ${month}`
+          : `Mês de referência de ${count} ${count === 1 ? "transação" : "transações"} voltou ao automático`,
+      categorize: (count: number) =>
+        `${count} ${count === 1 ? "transação categorizada" : "transações categorizadas"} pela IA`,
+      budget_set: (category: string, limit: string) => `Limite de ${category} definido em ${limit}`,
+      budget_remove: (category: string) => `Limite de ${category} removido`,
+      category_create: (name: string) => `Categoria “${name}” criada`,
+      category_delete: (name: string) => `Categoria “${name}” removida`,
+      card_cycle: (closing: number, due: number) => `Ciclo do cartão alterado: fecha dia ${closing}, vence dia ${due}`,
+      savings_set: (month: string, balance: string) => `Saldo das caixinhas de ${month} definido em ${balance}`,
+      savings_remove: (month: string) => `Saldo das caixinhas de ${month} removido`,
+      insight: () => "Análise da IA gerada",
+      import: (file: string | null, count: number) =>
+        `Importação${file ? ` de ${file}` : ""}: ${count} ${count === 1 ? "transação" : "transações"}`,
+    },
   },
   accountsPage: {
     accountsHeading: "Contas e cartões",

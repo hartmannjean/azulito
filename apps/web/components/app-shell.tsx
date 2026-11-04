@@ -30,6 +30,7 @@ export function AppShell({
     { href: `${base}/savings`, label: dict.nav.savings, short: short.savings, icon: "◈" },
     { href: `${base}/recurring`, label: dict.nav.recurring, short: short.recurring, icon: "↻" },
     { href: `${base}/accounts`, label: dict.nav.accounts, short: short.accounts, icon: "⇪" },
+    ...(demo ? [] : [{ href: `${base}/history`, label: dict.nav.history, short: short.history, icon: "↶" }]),
   ];
 
   return (

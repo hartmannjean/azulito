@@ -3,6 +3,7 @@ import { monthSummaryQuerySchema, upsertBudgetSchema } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
 import { resolveCategory } from "../lib/categories.js";
 import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
+import { logAction } from "../lib/history.js";
 
 export const budgetsRouter = Router();
 
@@ -33,6 +34,11 @@ budgetsRouter.put("/", async (req, res) => {
     if (!resolved) return res.status(400).json({ error: "Orçamento inválido." });
     const category = resolved.name;
 
+    const previous = await getDb()
+      .prepare("select monthly_limit from budgets where user_id = ? and category = ?")
+      .bind(req.userId!, category)
+      .first<{ monthly_limit: number }>();
+
     await getDb()
       .prepare(
         `insert into budgets (user_id, category, monthly_limit) values (?, ?, ?)
@@ -42,6 +48,9 @@ budgetsRouter.put("/", async (req, res) => {
       )
       .bind(req.userId!, category, Math.round(monthly_limit * 100) / 100)
       .run();
+    await logAction(req.userId!, "budget_set", { category, limit: Math.round(monthly_limit * 100) / 100 }, [
+      { op: "budget", category, monthly_limit: previous?.monthly_limit ?? null },
+    ]);
     res.json({ ok: true });
   } catch (error) {
     console.error("Falha ao salvar orçamento:", error);
@@ -52,10 +61,19 @@ budgetsRouter.put("/", async (req, res) => {
 /** DELETE /budgets/:category — remove o limite de uma categoria. */
 budgetsRouter.delete("/:category", async (req, res) => {
   try {
+    const previous = await getDb()
+      .prepare("select monthly_limit from budgets where user_id = ? and category = ?")
+      .bind(req.userId!, req.params.category)
+      .first<{ monthly_limit: number }>();
     await getDb()
       .prepare("delete from budgets where user_id = ? and category = ?")
       .bind(req.userId!, req.params.category)
       .run();
+    if (previous) {
+      await logAction(req.userId!, "budget_remove", { category: req.params.category }, [
+        { op: "budget", category: req.params.category, monthly_limit: previous.monthly_limit },
+      ]);
+    }
     res.json({ ok: true });
   } catch (error) {
     console.error("Falha ao remover orçamento:", error);

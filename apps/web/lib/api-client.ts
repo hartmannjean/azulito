@@ -14,6 +14,7 @@ import type {
   TransactionsTrend,
   UserCategory,
   SavingsOverview,
+  HistoryResponse,
 } from "@azulito/shared";
 
 /**
@@ -218,4 +219,12 @@ export async function deleteSavingsSnapshot(accessJwt: string, month: string): P
 
 export async function requestSavingsInsight(accessJwt: string): Promise<{ content: string; created_at: string }> {
   return apiFetch("/savings/insight", accessJwt, { method: "POST" });
+}
+
+export async function fetchHistory(accessJwt: string, limit = 30): Promise<HistoryResponse> {
+  return apiFetch<HistoryResponse>(`/history?limit=${limit}`, accessJwt);
+}
+
+export async function undoHistoryAction(accessJwt: string, id: string): Promise<void> {
+  await apiFetch(`/history/${encodeURIComponent(id)}/undo`, accessJwt, { method: "POST" });
 }

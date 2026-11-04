@@ -5,6 +5,7 @@ import { isExcludedFromTotals } from "../lib/classify.js";
 import { merchantKey } from "../lib/merchant.js";
 import { categorizePending } from "../lib/categorizer.js";
 import { defaultDueDay } from "../lib/refmonth.js";
+import { logAction, type UndoOp } from "../lib/history.js";
 
 export const importsRouter = Router();
 
@@ -74,6 +75,8 @@ importsRouter.post(
     try {
       let imported = 0;
       let duplicates = 0;
+      const newIds: string[] = [];
+      const importRowIds: string[] = [];
 
       for (const statement of statements) {
         // Fechamento da fatura = dia do DTEND. Só preenche quando ainda não há
@@ -113,7 +116,8 @@ importsRouter.post(
               `insert into transactions
                  (user_id, account_id, fitid, description, amount, currency_code, transaction_date, merchant_key, excluded)
                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-               on conflict (account_id, fitid) do nothing`,
+               on conflict (account_id, fitid) do nothing
+               returning id`,
             )
             .bind(
               userId,
@@ -130,29 +134,47 @@ importsRouter.post(
 
         let inserted = 0;
         for (let i = 0; i < inserts.length; i += BATCH_SIZE) {
-          const results = await db.batch(inserts.slice(i, i + BATCH_SIZE));
+          const results = await db.batch<{ id: string }>(inserts.slice(i, i + BATCH_SIZE));
           inserted += results.reduce((sum, result) => sum + result.meta.changes, 0);
+          for (const result of results) for (const row of result.results) newIds.push(row.id);
         }
 
         const skipped = inserts.length - inserted;
         imported += inserted;
         duplicates += skipped;
 
-        await db
+        const importRow = await db
           .prepare(
-            "insert into imports (user_id, account_id, file_name, r2_key, imported, duplicates) values (?, ?, ?, ?, ?, ?)",
+            "insert into imports (user_id, account_id, file_name, r2_key, imported, duplicates) values (?, ?, ?, ?, ?, ?) returning id",
           )
           .bind(userId, account.id, fileName, r2Key, inserted, skipped)
-          .run();
+          .first<{ id: string }>();
+        if (importRow) importRowIds.push(importRow.id);
       }
 
       // Categoriza (regras + IA) o que acabou de entrar. Melhor esforço: a
       // importação já foi gravada, então uma falha aqui não a desfaz.
       let remaining = 0;
+      let changedIds: string[] = [];
       try {
-        remaining = (await categorizePending(userId)).remaining;
+        const categorized = await categorizePending(userId);
+        remaining = categorized.remaining;
+        changedIds = categorized.changedIds;
       } catch (error) {
         console.error("Falha ao categorizar após importar:", error);
+      }
+
+      if (imported > 0) {
+        const created = new Set(newIds);
+        const undo: UndoOp[] = [
+          { op: "delete_transactions", ids: newIds },
+          ...importRowIds.map((id) => ({ op: "delete_import" as const, id })),
+          {
+            op: "tx_fields",
+            rows: changedIds.filter((id) => !created.has(id)).map((id) => ({ id, category: null, category_source: null })),
+          },
+        ];
+        await logAction(userId, "import", { file: fileName ? fileName.slice(0, 80) : null, imported }, undo);
       }
 
       res.json({ accounts: statements.length, imported, duplicates, uncategorized: remaining });

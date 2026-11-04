@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createCategorySchema, isReservedCategoryName } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
+import { logAction, type UndoOp } from "../lib/history.js";
 
 export const categoriesRouter = Router();
 
@@ -49,6 +50,9 @@ categoriesRouter.post("/", async (req, res) => {
       .first<{ id: string; name: string }>();
     if (!created) return res.status(409).json({ error: "Essa categoria já existe." });
 
+    await logAction(userId, "category_create", { name: created.name }, [
+      { op: "user_category", name: created.name, exists: false },
+    ]);
     res.status(201).json(created);
   } catch (error) {
     console.error("Falha ao criar categoria:", error);
@@ -72,6 +76,28 @@ categoriesRouter.delete("/:id", async (req, res) => {
       .first<{ name: string }>();
     if (!row) return res.status(404).json({ error: "Categoria não encontrada." });
 
+    // Tudo que a remoção apaga ou zera, para o desfazer recriar.
+    const [affectedTx, budget, rules] = await Promise.all([
+      db
+        .prepare("select id, category, category_source from transactions where user_id = ? and category = ? limit 2000")
+        .bind(userId, row.name)
+        .all<{ id: string; category: string | null; category_source: string | null }>(),
+      db
+        .prepare("select monthly_limit from budgets where user_id = ? and category = ?")
+        .bind(userId, row.name)
+        .first<{ monthly_limit: number }>(),
+      db
+        .prepare("select merchant_key from merchant_rules where user_id = ? and category = ?")
+        .bind(userId, row.name)
+        .all<{ merchant_key: string }>(),
+    ]);
+    const undo: UndoOp[] = [
+      { op: "user_category", name: row.name, exists: true },
+      { op: "tx_fields", rows: affectedTx.results },
+      ...(budget ? [{ op: "budget" as const, category: row.name, monthly_limit: budget.monthly_limit }] : []),
+      ...rules.results.map((rule) => ({ op: "rule" as const, merchant_key: rule.merchant_key, category: row.name })),
+    ];
+
     await db.batch([
       db
         .prepare(
@@ -83,6 +109,7 @@ categoriesRouter.delete("/:id", async (req, res) => {
       db.prepare("delete from user_categories where id = ? and user_id = ?").bind(req.params.id, userId),
     ]);
 
+    await logAction(userId, "category_delete", { name: row.name }, undo);
     res.json({ ok: true });
   } catch (error) {
     console.error("Falha ao remover categoria:", error);

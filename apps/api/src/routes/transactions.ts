@@ -10,6 +10,7 @@ import { getDb } from "../lib/db.js";
 import { resolveCategory } from "../lib/categories.js";
 import { categorizePending } from "../lib/categorizer.js";
 import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
+import { chunks, logAction, type TxFieldRow, type UndoOp } from "../lib/history.js";
 
 export const transactionsRouter = Router();
 
@@ -133,10 +134,40 @@ transactionsRouter.patch("/:id", async (req, res) => {
     const category = resolved.name;
 
     const row = await db
-      .prepare("select merchant_key from transactions where id = ? and user_id = ?")
+      .prepare(
+        "select merchant_key, description, category, category_source from transactions where id = ? and user_id = ?",
+      )
       .bind(req.params.id, userId)
-      .first<{ merchant_key: string | null }>();
+      .first<{
+        merchant_key: string | null;
+        description: string;
+        category: string | null;
+        category_source: string | null;
+      }>();
     if (!row) return res.status(404).json({ error: "Transação não encontrada." });
+
+    // Estado anterior, para o desfazer (a regra e as outras transações do mesmo lugar também mudam).
+    const undo: UndoOp[] = [
+      { op: "tx_fields", rows: [{ id: req.params.id, category: row.category, category_source: row.category_source }] },
+    ];
+    if (row.merchant_key && !resolved.custom) {
+      const oldRule = await db
+        .prepare("select category from merchant_rules where user_id = ? and merchant_key = ?")
+        .bind(userId, row.merchant_key)
+        .first<{ category: string }>();
+      const affected = await db
+        .prepare(
+          `select id, category, category_source from transactions
+           where user_id = ? and merchant_key = ? and id != ?
+             and (category_source is null or category_source != 'user') limit 2000`,
+        )
+        .bind(userId, row.merchant_key, req.params.id)
+        .all<{ id: string; category: string | null; category_source: string | null }>();
+      undo.push(
+        { op: "rule", merchant_key: row.merchant_key, category: oldRule?.category ?? null },
+        { op: "tx_fields", rows: affected.results },
+      );
+    }
 
     await db
       .prepare("update transactions set category = ?, category_source = 'user' where id = ? and user_id = ?")
@@ -163,6 +194,12 @@ transactionsRouter.patch("/:id", async (req, res) => {
       updated += others.meta.changes;
     }
 
+    await logAction(
+      userId,
+      "category_set",
+      { description: row.description.slice(0, 60), category, others: updated - 1 },
+      undo,
+    );
     res.json({ updated });
   } catch (error) {
     console.error("Falha ao atualizar categoria:", error);
@@ -182,13 +219,28 @@ transactionsRouter.post("/reference-month", async (req, res) => {
 
   try {
     const db = getDb();
+    const before: TxFieldRow[] = [];
+    for (const part of chunks(ids, 50)) {
+      const { results } = await db
+        .prepare(
+          `select id, reference_month from transactions
+           where user_id = ? and id in (${part.map(() => "?").join(",")})`,
+        )
+        .bind(req.userId!, ...part)
+        .all<{ id: string; reference_month: string | null }>();
+      before.push(...results);
+    }
     const statements = ids.map((id) =>
       db
         .prepare("update transactions set reference_month = ? where id = ? and user_id = ?")
         .bind(month, id, req.userId!),
     );
     const results = await db.batch(statements);
-    res.json({ updated: results.reduce((sum, r) => sum + r.meta.changes, 0) });
+    const updated = results.reduce((sum, r) => sum + r.meta.changes, 0);
+    if (updated > 0) {
+      await logAction(req.userId!, "reference_month", { count: updated, month }, [{ op: "tx_fields", rows: before }]);
+    }
+    res.json({ updated });
   } catch (error) {
     console.error("Falha ao definir mês de referência:", error);
     res.status(500).json({ error: "Falha ao definir mês de referência." });
@@ -198,7 +250,13 @@ transactionsRouter.post("/reference-month", async (req, res) => {
 /** POST /transactions/categorize — categoriza (regras + IA) o que está sem categoria. */
 transactionsRouter.post("/categorize", async (req, res) => {
   try {
-    res.json(await categorizePending(req.userId!));
+    const { categorized, remaining, changedIds } = await categorizePending(req.userId!);
+    if (changedIds.length > 0) {
+      await logAction(req.userId!, "categorize", { count: changedIds.length }, [
+        { op: "tx_fields", rows: changedIds.map((id) => ({ id, category: null, category_source: null })) },
+      ]);
+    }
+    res.json({ categorized, remaining });
   } catch (error) {
     console.error("Falha ao categorizar:", error);
     res.status(500).json({ error: "Falha ao categorizar." });

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { updateCardCycleSchema } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
+import { logAction } from "../lib/history.js";
 
 export const accountsRouter = Router();
 
@@ -33,6 +34,10 @@ accountsRouter.patch("/:id", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: "Dados inválidos." });
 
   try {
+    const previous = await getDb()
+      .prepare("select closing_day, due_day from accounts where id = ? and user_id = ? and kind = 'credit_card'")
+      .bind(req.params.id, req.userId!)
+      .first<{ closing_day: number | null; due_day: number | null }>();
     const result = await getDb()
       .prepare(
         "update accounts set closing_day = ?, due_day = ? where id = ? and user_id = ? and kind = 'credit_card'",
@@ -40,6 +45,14 @@ accountsRouter.patch("/:id", async (req, res) => {
       .bind(parsed.data.closing_day, parsed.data.due_day, req.params.id, req.userId!)
       .run();
     if (result.meta.changes === 0) return res.status(404).json({ error: "Cartão não encontrado." });
+    if (previous) {
+      await logAction(
+        req.userId!,
+        "card_cycle",
+        { closing: parsed.data.closing_day, due: parsed.data.due_day },
+        [{ op: "card_cycle", account_id: req.params.id, closing_day: previous.closing_day, due_day: previous.due_day }],
+      );
+    }
     res.json({ ok: true });
   } catch (error) {
     console.error("Falha ao atualizar o cartão:", error);

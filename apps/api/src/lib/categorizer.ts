@@ -26,7 +26,7 @@ async function runBatches(statements: D1PreparedStatement[]): Promise<void> {
  */
 export async function categorizePending(
   userId: string,
-): Promise<{ categorized: number; remaining: number }> {
+): Promise<{ categorized: number; remaining: number; changedIds: string[] }> {
   const db = getDb();
 
   const pending = await db
@@ -34,7 +34,7 @@ export async function categorizePending(
     .bind(userId)
     .all<{ id: string; description: string; amount: number; merchant_key: string | null }>();
 
-  if (pending.results.length === 0) return { categorized: 0, remaining: 0 };
+  if (pending.results.length === 0) return { categorized: 0, remaining: 0, changedIds: [] };
 
   const keyById = new Map<string, string>();
   const missingKey: D1PreparedStatement[] = [];
@@ -95,12 +95,13 @@ export async function categorizePending(
     console.error("Falha na categorização por IA (seguindo sem ela):", error);
   }
 
-  const left = await db
-    .prepare("select count(*) as n from transactions where user_id = ? and category is null")
+  // Quem estava sem categoria e agora tem: é o que o desfazer precisa limpar.
+  const stillNull = await db
+    .prepare("select id from transactions where user_id = ? and category is null")
     .bind(userId)
-    .first<{ n: number }>();
-  const remaining = left?.n ?? 0;
-  const categorized = Math.max(0, pending.results.length - remaining);
+    .all<{ id: string }>();
+  const nullIds = new Set(stillNull.results.map((row) => row.id));
+  const changedIds = pending.results.map((row) => row.id).filter((id) => !nullIds.has(id));
 
-  return { categorized, remaining };
+  return { categorized: changedIds.length, remaining: nullIds.size, changedIds };
 }

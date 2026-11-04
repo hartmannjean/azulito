@@ -10,6 +10,7 @@ import { getDb } from "../lib/db.js";
 import { isInvestmentFlow } from "../lib/classify.js";
 import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
 import { generateSavingsInsight, type SpendRow } from "../lib/insight.js";
+import { logAction } from "../lib/history.js";
 
 export const savingsRouter = Router();
 
@@ -76,6 +77,10 @@ savingsRouter.put("/", async (req, res) => {
   }
 
   try {
+    const previous = await getDb()
+      .prepare("select balance from savings_snapshots where user_id = ? and month = ?")
+      .bind(req.userId!, parsed.data.month)
+      .first<{ balance: number }>();
     await getDb()
       .prepare(
         `insert into savings_snapshots (user_id, month, balance) values (?, ?, ?)
@@ -85,6 +90,12 @@ savingsRouter.put("/", async (req, res) => {
       )
       .bind(req.userId!, parsed.data.month, Math.round(parsed.data.balance * 100) / 100)
       .run();
+    await logAction(
+      req.userId!,
+      "savings_set",
+      { month: parsed.data.month, balance: Math.round(parsed.data.balance * 100) / 100 },
+      [{ op: "snapshot", month: parsed.data.month, balance: previous?.balance ?? null }],
+    );
     res.json({ ok: true });
   } catch (error) {
     console.error("Falha ao salvar o saldo:", error);
@@ -98,10 +109,19 @@ savingsRouter.delete("/:month", async (req, res) => {
   if (!month.success) return res.status(400).json({ error: "Mês inválido." });
 
   try {
+    const previous = await getDb()
+      .prepare("select balance from savings_snapshots where user_id = ? and month = ?")
+      .bind(req.userId!, month.data)
+      .first<{ balance: number }>();
     await getDb()
       .prepare("delete from savings_snapshots where user_id = ? and month = ?")
       .bind(req.userId!, month.data)
       .run();
+    if (previous) {
+      await logAction(req.userId!, "savings_remove", { month: month.data }, [
+        { op: "snapshot", month: month.data, balance: previous.balance },
+      ]);
+    }
     res.json({ ok: true });
   } catch (error) {
     console.error("Falha ao remover o saldo:", error);
@@ -120,9 +140,9 @@ savingsRouter.post("/insight", async (req, res) => {
 
   try {
     const last = await db
-      .prepare("select created_at from ai_insights where user_id = ? and kind = 'savings'")
+      .prepare("select content, created_at from ai_insights where user_id = ? and kind = 'savings'")
       .bind(userId)
-      .first<{ created_at: string }>();
+      .first<{ content: string; created_at: string }>();
     if (last && Date.now() - Date.parse(last.created_at) < INSIGHT_COOLDOWN_MS) {
       return res.status(429).json({ error: "Aguarde alguns segundos para gerar outra análise." });
     }
@@ -160,6 +180,9 @@ savingsRouter.post("/insight", async (req, res) => {
       .bind(userId, content)
       .run();
 
+    await logAction(userId, "insight", {}, [
+      { op: "insight", content: last?.content ?? null, created_at: last?.created_at ?? null },
+    ]);
     res.json({ content, created_at: new Date().toISOString() });
   } catch (error) {
     console.error("Falha ao gerar a análise:", error);

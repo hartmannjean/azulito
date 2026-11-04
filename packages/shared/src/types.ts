@@ -166,3 +166,19 @@ export type SavingsOverview = {
   assumptions: { avg_net: number; avg_rate: number } | null;
   insight: { content: string; created_at: string } | null;
 };
+
+/** Uma ação do histórico (GET /history), que pode ser desfeita. */
+export type ActionLogEntry = {
+  id: string;
+  kind: string;
+  /** Dados soltos para montar a frase da ação; a interface valida cada campo. */
+  meta: Record<string, unknown>;
+  created_at: string;
+  undone_at: string | null;
+};
+
+export type HistoryResponse = {
+  /** Relógio da api, para calcular a idade da ação sem depender do fuso do servidor web. */
+  now: string;
+  actions: ActionLogEntry[];
+};

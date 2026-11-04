@@ -99,6 +99,7 @@ export const en: typeof ptBR = {
     savings: "Savings",
     recurring: "Recurring",
     accounts: "Accounts & import",
+    history: "History",
     label: "Main",
     short: {
       overview: "Home",
@@ -108,6 +109,7 @@ export const en: typeof ptBR = {
       savings: "Savings",
       recurring: "Recurring",
       accounts: "Accounts",
+      history: "History",
     },
   },
   overview: {
@@ -250,6 +252,37 @@ export const en: typeof ptBR = {
     aiFailed: "Could not generate the analysis right now. Try again in a few seconds.",
     aiNone: "No analysis generated yet.",
     aiUpdated: (date: string) => `Generated on ${date}`,
+  },
+  history: {
+    subtitle: "Everything you did in the app, with the option to undo",
+    empty: "No actions recorded yet.",
+    undo: "Undo",
+    undone: "Action undone.",
+    dismiss: "Dismiss",
+    failed: "Could not undo.",
+    undoneAt: (when: string) => `Undone on ${when}`,
+    note: "History keeps the last 100 actions. Undo puts what that action changed back as it was; later changes to the same items may be overwritten.",
+    unknown: "Action",
+    kinds: {
+      category_set: (description: string, category: string, others: number) =>
+        `Category of “${description}” changed to ${category}${others > 0 ? ` (and ${others} more from the same place)` : ""}`,
+      reference_month: (count: number, month: string | null) =>
+        month
+          ? `Reference month of ${count} ${count === 1 ? "transaction" : "transactions"} set to ${month}`
+          : `Reference month of ${count} ${count === 1 ? "transaction" : "transactions"} back to automatic`,
+      categorize: (count: number) =>
+        `${count} ${count === 1 ? "transaction" : "transactions"} categorized by AI`,
+      budget_set: (category: string, limit: string) => `${category} limit set to ${limit}`,
+      budget_remove: (category: string) => `${category} limit removed`,
+      category_create: (name: string) => `Category “${name}” created`,
+      category_delete: (name: string) => `Category “${name}” removed`,
+      card_cycle: (closing: number, due: number) => `Card cycle changed: closes on day ${closing}, due on day ${due}`,
+      savings_set: (month: string, balance: string) => `Savings balance for ${month} set to ${balance}`,
+      savings_remove: (month: string) => `Savings balance for ${month} removed`,
+      insight: () => "AI analysis generated",
+      import: (file: string | null, count: number) =>
+        `Import${file ? ` of ${file}` : ""}: ${count} ${count === 1 ? "transaction" : "transactions"}`,
+    },
   },
   accountsPage: {
     accountsHeading: "Accounts and cards",

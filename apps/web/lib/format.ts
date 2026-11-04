@@ -11,6 +11,15 @@ export function formatDate(dateIso: string, locale: Locale) {
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(dateIso));
 }
 
+/** Data e hora (horário de Brasília): o histórico precisa da hora para distinguir ações do mesmo dia. */
+export function formatDateTime(dateIso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(dateIso));
+}
+
 /** Mês atual no formato AAAA-MM, no fuso do servidor. */
 export function currentMonth(): string {
   const now = new Date();

@@ -14,6 +14,7 @@ import {
   saveSavingsSnapshot,
   deleteSavingsSnapshot,
   requestSavingsInsight,
+  undoHistoryAction,
 } from "@/lib/api-client";
 import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
 import { getAccess } from "@/lib/access";
@@ -262,6 +263,20 @@ export async function generateInsightAction(): Promise<{ ok: boolean }> {
     return { ok: true };
   } catch (error) {
     console.error("Falha ao gerar a análise:", error);
+    return { ok: false };
+  }
+}
+
+/** Desfaz uma ação do histórico (volta ao estado de antes dela). */
+export async function undoActionAction(id: string): Promise<{ ok: boolean }> {
+  const access = await getAccess();
+  if (!access || !/^[0-9a-f]{32}$/.test(id)) return { ok: false };
+  try {
+    await undoHistoryAction(access.jwt, id);
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (error) {
+    console.error("Falha ao desfazer:", error);
     return { ok: false };
   }
 }
