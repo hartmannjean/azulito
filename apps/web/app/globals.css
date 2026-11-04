@@ -2939,3 +2939,119 @@ a.button {
   background: #fff;
   color: #073bbd;
 }
+
+/* ==========================================================================
+   Revisão mobile: nada pode estourar a largura da tela
+   ========================================================================== */
+
+.forecast {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.forecast-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+}
+
+.page > *,
+.forecast-grid > *,
+.grid-main > *,
+.grid-two > *,
+.grid-three > *,
+.grid-side > * {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  /* Cabeçalho da página: título e ação empilham em vez de espremer. */
+  .page-header {
+    align-items: stretch;
+  }
+
+  .page-header > .button,
+  .page-header form,
+  .page-header form .button {
+    width: 100%;
+  }
+
+  /* Cartões de orçamento e de sugestão: o chip desce para a linha de baixo. */
+  .budget-card-top,
+  .budget-card-bottom {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .budget-card-top h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .chip {
+    white-space: normal;
+  }
+
+  .suggestion-card {
+    opacity: 1;
+  }
+
+  .suggestion-actions .button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .budget-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .forecast-line dd {
+    white-space: normal;
+    text-align: right;
+  }
+
+  /* Previsão: um mês por vez, deslizando de lado, como carrossel. */
+  .forecast-grid {
+    grid-auto-flow: column;
+    grid-auto-columns: 86%;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem;
+  }
+
+  .forecast-grid > * {
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 700px) {
+  /* Tabelas simples (caixinhas, fixos, importações) rolam de lado, sem virar cartão. */
+  .table-scroll:has(> .plain-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .plain-table {
+    display: table;
+    min-width: 34rem;
+  }
+
+  .plain-table tbody {
+    display: table-row-group;
+  }
+
+  .plain-table thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .plain-table tbody tr {
+    display: table-row;
+    padding: 0;
+  }
+
+  .plain-table td {
+    padding: 0.75rem 1rem;
+  }
+}

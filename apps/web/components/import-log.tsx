@@ -82,7 +82,7 @@ export function ImportDetailsToggle({
                 })}
               </p>
               <div className="table-scroll">
-                <table className="tx-table">
+                <table className="tx-table plain-table">
                   <thead>
                     <tr>
                       <th>{labels.columns.date}</th>

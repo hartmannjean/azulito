@@ -102,7 +102,7 @@ export function SavingsView({
               <p className="empty-state">{t.empty}</p>
             ) : (
               <div className="table-scroll">
-                <table className="tx-table">
+                <table className="tx-table plain-table">
                   <thead>
                     <tr>
                       <th>{t.columns.month}</th>
