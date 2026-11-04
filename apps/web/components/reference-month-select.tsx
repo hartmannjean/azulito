@@ -24,7 +24,8 @@ export function ReferenceMonthSelect({
   effectiveMonth: string;
   referenceMonth: string | null;
   locale: Locale;
-  autoLabel: (month: string) => string;
+  /** Texto pronto (função não atravessa a fronteira Server -> Client Component). */
+  autoLabel: string;
   autoPlainLabel: string;
   errorLabel: string;
 }) {
@@ -61,7 +62,7 @@ export function ReferenceMonthSelect({
         aria-label={errorLabel}
       >
         <option value="">
-          {value === "" ? autoLabel(formatMonthLabel(effectiveMonth, locale)) : autoPlainLabel}
+          {value === "" ? autoLabel : autoPlainLabel}
         </option>
         {ordered.map((month) => (
           <option key={month} value={month}>

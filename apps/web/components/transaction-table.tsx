@@ -85,7 +85,7 @@ export function TransactionTable({
                     effectiveMonth={tx.effective_month}
                     referenceMonth={tx.reference_month}
                     locale={locale}
-                    autoLabel={dict.refAuto}
+                    autoLabel={dict.refAuto(formatMonthLabel(tx.effective_month, locale))}
                     autoPlainLabel={dict.refAutoPlain}
                     errorLabel={dict.refError}
                   />
