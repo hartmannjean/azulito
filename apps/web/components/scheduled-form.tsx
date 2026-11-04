@@ -36,28 +36,38 @@ export function ScheduledForm({
   );
 
   return (
-    <form ref={formRef} action={formAction} className="card-cycle-form scheduled-form">
-      <label>
-        <span className="sr-only">{labels.kindExpense}</span>
-        <select name="kind" defaultValue="expense">
-          <option value="expense">{labels.kindExpense}</option>
-          <option value="income">{labels.kindIncome}</option>
-        </select>
-      </label>
-      <label>
-        {labels.description}
+    <form ref={formRef} action={formAction} className="sched-form">
+      <div className="sched-kind" role="radiogroup" aria-label={`${labels.kindExpense} / ${labels.kindIncome}`}>
+        <label className="sched-kind-option expense">
+          <input type="radio" name="kind" value="expense" defaultChecked />
+          <span>{labels.kindExpense}</span>
+        </label>
+        <label className="sched-kind-option income">
+          <input type="radio" name="kind" value="income" />
+          <span>{labels.kindIncome}</span>
+        </label>
+      </div>
+
+      <label className="sched-field wide">
+        <span>{labels.description}</span>
         <input name="description" type="text" required maxLength={80} autoComplete="off" />
       </label>
-      <label>
-        {labels.amount}
-        <input name="amount" type="text" inputMode="decimal" required placeholder="0,00" />
+
+      <label className="sched-field">
+        <span>{labels.amount}</span>
+        <span className="sched-money">
+          <span aria-hidden="true">R$</span>
+          <input name="amount" type="text" inputMode="decimal" required placeholder="0,00" autoComplete="off" />
+        </span>
       </label>
-      <label>
-        {labels.dueDate}
+
+      <label className="sched-field">
+        <span>{labels.dueDate}</span>
         <input name="due_date" type="date" required defaultValue={today} />
       </label>
-      <label>
-        {labels.category}
+
+      <label className="sched-field wide">
+        <span>{labels.category}</span>
         <select name="category" defaultValue="">
           <option value="">{labels.none}</option>
           {options.map((option) => (
@@ -67,14 +77,16 @@ export function ScheduledForm({
           ))}
         </select>
       </label>
-      <button type="submit" className="button" disabled={pending}>
+
+      <button type="submit" className="button sched-submit" disabled={pending}>
         {labels.add}
       </button>
-      {state.saved ? <span className="muted-cell">{labels.added}</span> : null}
+
+      {state.saved ? <p className="sched-note muted-cell">{labels.added}</p> : null}
       {state.error ? (
-        <span role="alert" className="form-error inline">
+        <p role="alert" className="sched-note form-error">
           {state.error}
-        </span>
+        </p>
       ) : null}
     </form>
   );
