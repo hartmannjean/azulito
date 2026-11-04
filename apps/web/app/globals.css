@@ -291,7 +291,7 @@ h2,
 .button {
   margin-top: 1rem;
   padding: 0.65rem 1.1rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: none;
   background: var(--accent);
   color: white;
@@ -330,7 +330,7 @@ h2,
   width: 2.35rem;
   height: 2.35rem;
   padding: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
@@ -345,9 +345,27 @@ h2,
 }
 
 .lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  width: auto;
+  padding: 0.22rem;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+}
+
+.lang-option {
+  padding: 0.38rem 0.6rem;
+  border-radius: 7px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.lang-option.active {
+  opacity: 1;
+  background: var(--accent-strong);
+  color: #fff;
 }
 
 .theme-toggle-icon-dark {
@@ -477,9 +495,10 @@ h2,
 .month-nav-arrow {
   display: grid;
   place-items: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 50%;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
   text-decoration: none;
@@ -582,7 +601,7 @@ h2,
   flex-shrink: 0;
   width: 2.1rem;
   height: 2.1rem;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   font-weight: 700;
   font-size: 1rem;
 }
@@ -1508,11 +1527,25 @@ a.button {
 }
 
 .pagination {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   padding: 0.8rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.pagination > :first-child {
+  justify-self: start;
+}
+
+.pagination > :last-child {
+  justify-self: end;
+}
+
+.pagination .button.small {
+  min-width: 6.5rem;
+  justify-content: center;
 }
 
 /* Formulários empilhados e contas */
@@ -1639,6 +1672,170 @@ a.button {
 .undo-message {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* Gráficos SVG */
+
+.bar-chart,
+.line-chart {
+  width: 100%;
+  height: auto;
+}
+
+.chart-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.bar-positive {
+  fill: var(--positive);
+}
+
+.bar-negative {
+  fill: var(--danger);
+}
+
+.chart-value {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.line-actual,
+.line-forecast {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.line-forecast {
+  stroke-dasharray: 7 7;
+  opacity: 0.75;
+}
+
+.dot-actual {
+  fill: var(--accent);
+}
+
+.dot-forecast {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.legend-line {
+  display: inline-block;
+  width: 1.6rem;
+  border-top: 3px solid var(--accent);
+}
+
+.legend-line.forecast {
+  border-top-style: dashed;
+  margin-left: 0.75rem;
+}
+
+/* Sugestões da IA: cartões apagados até você aplicar ou ignorar */
+
+.suggestion-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.suggestion-card {
+  opacity: 0.62;
+  border-style: dashed;
+  transition: opacity 0.15s ease;
+}
+
+.suggestion-card:hover,
+.suggestion-card:focus-within {
+  opacity: 1;
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Revisão do mês e plano de economia */
+
+.audit-sub {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.audit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.audit-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.audit-finding {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.audit-finding summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.plan-heading {
+  margin-top: 0.5rem;
+}
+
+.plan-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.plan-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Histórico de importações */
+
+.import-item {
+  flex-wrap: wrap;
+}
+
+.import-details {
+  flex-basis: 100%;
+}
+
+.import-body {
+  margin-top: 0.75rem;
 }
 
 /* Responsivo */
@@ -2459,4 +2656,26 @@ a.button {
   .page-title {
     font-size: 1.45rem;
   }
+}
+
+.mini-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rename-form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rename-form input {
+  width: 11rem;
+}
+
+.sidebar .lang-option.active {
+  background: #fff;
+  color: #073bbd;
 }

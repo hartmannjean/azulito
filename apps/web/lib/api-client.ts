@@ -15,6 +15,10 @@ import type {
   UserCategory,
   SavingsOverview,
   HistoryResponse,
+  BudgetSuggestions,
+  AuditResult,
+  ImportLogEntry,
+  ImportDetails,
 } from "@azulito/shared";
 
 /**
@@ -227,4 +231,51 @@ export async function fetchHistory(accessJwt: string, limit = 30): Promise<Histo
 
 export async function undoHistoryAction(accessJwt: string, id: string): Promise<void> {
   await apiFetch(`/history/${encodeURIComponent(id)}/undo`, accessJwt, { method: "POST" });
+}
+
+export async function renameUserCategory(accessJwt: string, id: string, name: string): Promise<void> {
+  await apiFetch(`/categories/${encodeURIComponent(id)}`, accessJwt, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function fetchBudgetSuggestions(accessJwt: string): Promise<BudgetSuggestions> {
+  return apiFetch<BudgetSuggestions>("/budgets/suggestions", accessJwt);
+}
+
+export async function requestBudgetSuggestions(accessJwt: string): Promise<BudgetSuggestions> {
+  return apiFetch<BudgetSuggestions>("/budgets/suggestions", accessJwt, { method: "POST" });
+}
+
+export async function dismissBudgetSuggestion(accessJwt: string, category: string): Promise<void> {
+  await apiFetch(`/budgets/suggestions/${encodeURIComponent(category)}`, accessJwt, { method: "DELETE" });
+}
+
+export async function requestRecurringInsight(accessJwt: string): Promise<{ content: string; created_at: string }> {
+  return apiFetch("/recurring/insight", accessJwt, { method: "POST" });
+}
+
+export async function fetchAudit(accessJwt: string): Promise<AuditResult | null> {
+  const data = await apiFetch<{ audit: AuditResult | null }>("/audit", accessJwt);
+  return data.audit;
+}
+
+export async function requestAudit(accessJwt: string, month: string): Promise<AuditResult> {
+  const data = await apiFetch<{ audit: AuditResult }>("/audit", accessJwt, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ month }),
+  });
+  return data.audit;
+}
+
+export async function fetchImports(accessJwt: string): Promise<ImportLogEntry[]> {
+  const data = await apiFetch<{ imports: ImportLogEntry[] }>("/imports", accessJwt);
+  return data.imports;
+}
+
+export async function fetchImportDetails(accessJwt: string, id: string): Promise<ImportDetails> {
+  return apiFetch<ImportDetails>(`/imports/${encodeURIComponent(id)}`, accessJwt);
 }

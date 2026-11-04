@@ -8,8 +8,8 @@ import {
 } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
 import { isInvestmentFlow } from "../lib/classify.js";
-import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
-import { generateSavingsInsight, type SpendRow } from "../lib/insight.js";
+import { generateSavingsPlan } from "../lib/insight.js";
+import { loadSpendRows } from "../lib/ai-facts.js";
 import { logAction } from "../lib/history.js";
 
 export const savingsRouter = Router();
@@ -149,26 +149,10 @@ savingsRouter.post("/insight", async (req, res) => {
 
     const current = currentMonth();
     const since = addMonths(current, -3);
-    const [overview, spend] = await Promise.all([
-      loadOverview(userId),
-      db
-        .prepare(
-          `select ${EFFECTIVE_MONTH} as month, coalesce(t.category, 'Other') as category,
-                  sum(case when t.amount < 0 then -t.amount else 0 end) as spent,
-                  sum(case when t.amount >= 0 then t.amount else 0 end) as income
-           from transactions t join accounts a on a.id = t.account_id
-           where t.user_id = ? and t.excluded = 0 and ${EFFECTIVE_MONTH} >= ?
-           group by 1, 2`,
-        )
-        .bind(userId, since)
-        .all<SpendRow>(),
-    ]);
+    const [overview, spend] = await Promise.all([loadOverview(userId), loadSpendRows(userId, since)]);
 
-    const content = await generateSavingsInsight(
-      spend.results.map((row) => ({ ...row, spent: Number(row.spent), income: Number(row.income) })),
-      overview,
-      current,
-    );
+    const plan = await generateSavingsPlan(userId, spend, overview, current);
+    const content = JSON.stringify(plan);
 
     await db
       .prepare(

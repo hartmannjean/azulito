@@ -1,10 +1,11 @@
 import { ImportOfxButton } from "@/components/import-ofx-button";
 import { CategorizeButton } from "@/components/categorize-button";
 import { CardCycleForm } from "@/components/card-cycle-form";
+import { ImportDetailsToggle } from "@/components/import-log";
 import { formatDate } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
-import type { Account } from "@azulito/shared";
+import type { Account, ImportLogEntry } from "@azulito/shared";
 
 /** Contas e importação; só apresentação. `demo` desliga o upload e a categorização. */
 export function AccountsView({
@@ -13,7 +14,9 @@ export function AccountsView({
   dict,
   loadError = false,
   demo = false,
+  imports = [],
 }: {
+  imports?: ImportLogEntry[];
   accounts: Account[];
   locale: Locale;
   dict: Dictionary;
@@ -56,6 +59,52 @@ export function AccountsView({
           )}
         </section>
       </div>
+
+      <section className="chart-card">
+        <h2 className="chart-heading">{dict.importLog.heading}</h2>
+        <p className="muted-cell block">{dict.importLog.help}</p>
+        {imports.length === 0 ? (
+          <p className="empty-state compact">{dict.importLog.empty}</p>
+        ) : (
+          <ul className="account-list">
+            {imports.map((entry) => (
+              <li key={entry.id} className="account-item import-item">
+                <span className="account-icon" aria-hidden="true">
+                  {entry.account_kind === "credit_card" ? "💳" : "🏦"}
+                </span>
+                <div className="account-info">
+                  <strong>{entry.file_name ?? dict.importLog.unnamed}</strong>
+                  <span className="muted-cell">
+                    {entry.institution_name} · {dict.accountsPage.kind[entry.account_kind]} ·{" "}
+                    {formatDate(entry.created_at, locale)} · {dict.importLog.counts(entry.imported, entry.duplicates)}
+                  </span>
+                </div>
+                {demo ? null : entry.has_file ? (
+                  <ImportDetailsToggle
+                    id={entry.id}
+                    locale={locale}
+                    labels={{
+                      view: dict.importLog.view,
+                      hide: dict.importLog.hide,
+                      loading: dict.importLog.loading,
+                      error: dict.importLog.error,
+                      period: dict.importLog.period,
+                      totals: dict.importLog.totals,
+                      excluded: dict.importLog.excluded,
+                      notInApp: dict.importLog.notInApp,
+                      uncategorized: dict.importLog.uncategorized,
+                      truncated: dict.importLog.truncated,
+                      columns: dict.importLog.columns,
+                    }}
+                  />
+                ) : (
+                  <span className="muted-cell">{dict.importLog.noFile}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="chart-card">
         <h2 className="chart-heading">{dict.accountsPage.accountsHeading}</h2>

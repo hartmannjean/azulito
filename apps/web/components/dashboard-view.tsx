@@ -2,6 +2,8 @@ import Link from "next/link";
 import { TransactionList } from "@/components/transaction-list";
 import { MonthSummary } from "@/components/month-summary";
 import { TrendChart } from "@/components/trend-chart";
+import { BalanceChart } from "@/components/balance-chart";
+import { AuditCard } from "@/components/audit-card";
 import { CategoryBreakdown } from "@/components/category-breakdown";
 import { ImportOfxButton } from "@/components/import-ofx-button";
 import { CategorizeButton } from "@/components/categorize-button";
@@ -12,6 +14,7 @@ import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 import type {
   Account,
+  AuditResult,
   BudgetsProgress,
   CategoriesSummary,
   MonthlyTrendPoint,
@@ -32,6 +35,8 @@ export type DashboardData = {
   recurring: RecurringSummary | null;
   recent: Transaction[];
   uncategorized: number;
+  /** Última revisão da IA (só no app real). */
+  audit?: AuditResult | null;
   loadError: boolean;
 };
 
@@ -106,6 +111,18 @@ export function DashboardView({
               <CategoryBreakdown categories={categories.categories} locale={locale} dict={dict.categories} />
             ) : null}
           </div>
+
+          <BalanceChart trend={trend} locale={locale} dict={dict} />
+
+          {demo ? null : (
+            <AuditCard
+              audit={data.audit ?? null}
+              month={data.month}
+              transactionsPath={`${base}/transactions`}
+              locale={locale}
+              dict={dict}
+            />
+          )}
 
           <div className="grid-three">
             <section className="chart-card">

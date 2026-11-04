@@ -23,6 +23,7 @@ interface D1Database {
 
 interface R2Bucket {
   head(key: string): Promise<{ key: string } | null>;
+  get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
   put(
     key: string,
     value: ArrayBuffer | ArrayBufferView,

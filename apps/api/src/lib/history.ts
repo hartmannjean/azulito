@@ -22,7 +22,8 @@ export type UndoOp =
   | { op: "user_category"; name: string; exists: boolean }
   | { op: "card_cycle"; account_id: string; closing_day: number | null; due_day: number | null }
   | { op: "snapshot"; month: string; balance: number | null }
-  | { op: "insight"; content: string | null; created_at: string | null };
+  | { op: "insight"; kind?: string; content: string | null; created_at: string | null }
+  | { op: "rename_category"; from: string; to: string };
 
 export type ActionKind =
   | "category_set"
@@ -36,6 +37,10 @@ export type ActionKind =
   | "savings_set"
   | "savings_remove"
   | "insight"
+  | "category_rename"
+  | "ai_budget"
+  | "ai_recurring"
+  | "ai_audit"
   | "import";
 
 const TX_COLUMNS = new Set(["category", "category_source", "reference_month"]);
@@ -49,6 +54,20 @@ export function chunks<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
   return out;
+}
+
+/**
+ * Categoria própria guarda o NOME em quatro tabelas (sem chave estrangeira),
+ * então renomear mexe nas quatro. Usado pela rota de renomear e pelo desfazer.
+ */
+export function renameCategoryStatements(userId: string, from: string, to: string): D1PreparedStatement[] {
+  const db = getDb();
+  return [
+    db.prepare("update user_categories set name = ? where user_id = ? and name = ?").bind(to, userId, from),
+    db.prepare("update transactions set category = ? where user_id = ? and category = ?").bind(to, userId, from),
+    db.prepare("update budgets set category = ? where user_id = ? and category = ?").bind(to, userId, from),
+    db.prepare("update merchant_rules set category = ? where user_id = ? and category = ?").bind(to, userId, from),
+  ];
 }
 
 function statementsFor(userId: string, op: UndoOp): D1PreparedStatement[] {
@@ -118,16 +137,18 @@ function statementsFor(userId: string, op: UndoOp): D1PreparedStatement[] {
               )
               .bind(userId, op.month, op.balance),
       ];
+    case "rename_category":
+      return renameCategoryStatements(userId, op.from, op.to);
     case "insight":
       return [
         op.content === null
-          ? db.prepare("delete from ai_insights where user_id = ? and kind = 'savings'").bind(userId)
+          ? db.prepare("delete from ai_insights where user_id = ? and kind = ?").bind(userId, op.kind ?? "savings")
           : db
               .prepare(
-                `insert into ai_insights (user_id, kind, content, created_at) values (?, 'savings', ?, ?)
+                `insert into ai_insights (user_id, kind, content, created_at) values (?, ?, ?, ?)
                  on conflict (user_id, kind) do update set content = excluded.content, created_at = excluded.created_at`,
               )
-              .bind(userId, op.content, op.created_at ?? new Date().toISOString()),
+              .bind(userId, op.kind ?? "savings", op.content, op.created_at ?? new Date().toISOString()),
       ];
   }
 }

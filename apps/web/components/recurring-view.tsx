@@ -1,6 +1,7 @@
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { AiButton } from "@/components/ai-button";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 import type { RecurringSummary } from "@azulito/shared";
@@ -11,11 +12,13 @@ export function RecurringView({
   locale,
   dict,
   loadError = false,
+  demo = false,
 }: {
   recurring: RecurringSummary | null;
   locale: Locale;
   dict: Dictionary;
   loadError?: boolean;
+  demo?: boolean;
 }) {
   return (
     <main className="page">
@@ -86,6 +89,27 @@ export function RecurringView({
               </table>
             </div>
           </section>
+
+          {demo ? null : (
+            <section className="chart-card">
+              <h2 className="chart-heading">{dict.recurringAi.heading}</h2>
+              <p className="muted-cell block">{dict.recurringAi.help}</p>
+              {recurring.insight ? (
+                <>
+                  <p className="insight-text">{recurring.insight.content}</p>
+                  <p className="muted-cell block">{dict.recurringAi.updated(formatDate(recurring.insight.created_at, locale))}</p>
+                </>
+              ) : (
+                <p className="muted-cell block">{dict.recurringAi.none}</p>
+              )}
+              <AiButton
+                kind="recurring"
+                label={dict.recurringAi.button}
+                runningLabel={dict.recurringAi.running}
+                errorLabel={dict.recurringAi.failed}
+              />
+            </section>
+          )}
         </>
       )}
     </main>

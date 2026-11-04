@@ -46,6 +46,14 @@ export function describeAction(entry: ActionLogEntry, locale: Locale, dict: Dict
       const month = monthOrNull(m.month);
       return k.savings_remove(month ? formatMonthLabel(month, locale) : "");
     }
+    case "category_rename":
+      return k.category_rename(text(m.from, 40), text(m.to, 40));
+    case "ai_budget":
+      return k.ai_budget();
+    case "ai_recurring":
+      return k.ai_recurring();
+    case "ai_audit":
+      return k.ai_audit();
     case "insight":
       return k.insight();
     case "import":

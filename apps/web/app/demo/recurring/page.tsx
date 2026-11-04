@@ -7,5 +7,5 @@ export default async function DemoRecurringPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
 
-  return <RecurringView recurring={getDemoData().recurring} locale={locale} dict={dict} />;
+  return <RecurringView demo recurring={getDemoData().recurring} locale={locale} dict={dict} />;
 }

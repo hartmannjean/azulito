@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { BudgetForm } from "@/components/budget-form";
 import { RemoveBudgetButton } from "@/components/remove-budget-button";
+import { AiButton } from "@/components/ai-button";
+import { BudgetSuggestionCard } from "@/components/budget-suggestions";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { formatCurrency, formatMonthLabel, shiftMonth } from "@/lib/format";
 import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
-import type { BudgetsProgress } from "@azulito/shared";
+import type { BudgetSuggestions, BudgetsProgress } from "@azulito/shared";
 
 /** Orçamentos por categoria; só apresentação. `demo` desliga o formulário e a remoção. */
 export function BudgetsView({
@@ -19,8 +21,11 @@ export function BudgetsView({
   loadError = false,
   demo = false,
   customCategories = [],
+  suggestions = null,
 }: {
   progress: BudgetsProgress | null;
+  /** Sugestões da IA (só no app real). */
+  suggestions?: BudgetSuggestions | null;
   customCategories?: string[];
   month: string;
   /** "/dash/budgets" ou "/demo/budgets". */
@@ -68,6 +73,48 @@ export function BudgetsView({
       ) : (
         <div className="grid-side">
           <div className="stack">
+            {demo ? null : (
+              <section className="chart-card">
+                <h2 className="chart-heading">{dict.budgetAi.heading}</h2>
+                <p className="muted-cell block">{dict.budgetAi.help}</p>
+                {suggestions && suggestions.suggestions.length > 0 ? (
+                  <div className="suggestion-list">
+                    {suggestions.suggestions.map((suggestion) => {
+                      const name = `${getCategoryIcon(suggestion.category) ?? ""} ${translateCategory(suggestion.category, locale) ?? suggestion.category}`.trim();
+                      return (
+                        <BudgetSuggestionCard
+                          key={suggestion.category}
+                          data={{
+                            category: suggestion.category,
+                            limit: suggestion.suggested,
+                            title: name,
+                            change:
+                              suggestion.current === null
+                                ? dict.budgetAi.create(formatCurrency(suggestion.suggested, locale))
+                                : dict.budgetAi.change(
+                                    formatCurrency(suggestion.current, locale),
+                                    formatCurrency(suggestion.suggested, locale),
+                                  ),
+                            reason: suggestion.reason,
+                            average: dict.budgetAi.average(formatCurrency(suggestion.average, locale)),
+                          }}
+                          labels={{ accept: dict.budgetAi.accept, dismiss: dict.budgetAi.dismiss }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="muted-cell block">{suggestions?.created_at ? dict.budgetAi.empty : dict.budgetAi.none}</p>
+                )}
+                <AiButton
+                  kind="budget"
+                  label={dict.budgetAi.button}
+                  runningLabel={dict.budgetAi.running}
+                  errorLabel={dict.budgetAi.failed}
+                  className="button secondary"
+                />
+              </section>
+            )}
             {progress.budgets.length > 0 ? (
               <section className="chart-card">
                 <h2 className="chart-heading">{dict.budgetsPage.totalHeading}</h2>

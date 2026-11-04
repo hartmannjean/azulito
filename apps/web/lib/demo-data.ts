@@ -7,7 +7,7 @@ import type {
   Transaction,
   TransactionsSummary,
 } from "@azulito/shared";
-import { buildSavingsOverview, type SavingsOverview } from "@azulito/shared";
+import { buildSavingsOverview, type ImportLogEntry, type SavingsOverview } from "@azulito/shared";
 import { shiftMonth } from "@/lib/format";
 
 /**
@@ -269,4 +269,14 @@ export function getDemoSavings(now: Date = new Date()): SavingsOverview {
       created_at: now.toISOString(),
     },
   };
+}
+
+/** Histórico de importações FICTÍCIO da demonstração. */
+export function getDemoImports(now: Date = new Date()): ImportLogEntry[] {
+  const day = (back: number) => new Date(now.getTime() - back * 86_400_000).toISOString();
+  return [
+    { id: "demo-imp-3", file_name: "extrato_conta_demo.ofx", imported: 31, duplicates: 6, created_at: day(2), institution_name: "Banco Demo", account_kind: "checking", has_file: true },
+    { id: "demo-imp-2", file_name: "fatura_cartao_demo.ofx", imported: 44, duplicates: 0, created_at: day(9), institution_name: "Banco Demo", account_kind: "credit_card", has_file: true },
+    { id: "demo-imp-1", file_name: "extrato_conta_anterior.ofx", imported: 27, duplicates: 0, created_at: day(33), institution_name: "Banco Demo", account_kind: "checking", has_file: true },
+  ];
 }

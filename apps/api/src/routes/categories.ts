@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { createCategorySchema, isReservedCategoryName } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
-import { logAction, type UndoOp } from "../lib/history.js";
+import { logAction, renameCategoryStatements, type UndoOp } from "../lib/history.js";
 
 export const categoriesRouter = Router();
 
@@ -57,6 +57,45 @@ categoriesRouter.post("/", async (req, res) => {
   } catch (error) {
     console.error("Falha ao criar categoria:", error);
     res.status(500).json({ error: "Falha ao criar categoria." });
+  }
+});
+
+/**
+ * PATCH /categories/:id — renomeia uma categoria própria. As transações, o
+ * orçamento e as regras dela acompanham o novo nome (todos guardam o nome).
+ */
+categoriesRouter.patch("/:id", async (req, res) => {
+  const parsed = createCategorySchema.safeParse(req.body);
+  if (!parsed.success || isReservedCategoryName(parsed.data.name)) {
+    return res.status(400).json({ error: "Nome de categoria inválido." });
+  }
+  const { name } = parsed.data;
+  const userId = req.userId!;
+  const db = getDb();
+
+  try {
+    const row = await db
+      .prepare("select name from user_categories where id = ? and user_id = ?")
+      .bind(req.params.id, userId)
+      .first<{ name: string }>();
+    if (!row) return res.status(404).json({ error: "Categoria não encontrada." });
+    if (row.name === name) return res.json({ ok: true });
+
+    // A coluna é nocase: "giovana" colide com "Giovana", exceto com ela mesma (só trocar caixa).
+    const clash = await db
+      .prepare("select id from user_categories where user_id = ? and name = ? and id != ?")
+      .bind(userId, name, req.params.id)
+      .first<{ id: string }>();
+    if (clash) return res.status(409).json({ error: "Essa categoria já existe." });
+
+    await db.batch(renameCategoryStatements(userId, row.name, name));
+    await logAction(userId, "category_rename", { from: row.name, to: name }, [
+      { op: "rename_category", from: name, to: row.name },
+    ]);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Falha ao renomear categoria:", error);
+    res.status(500).json({ error: "Falha ao renomear categoria." });
   }
 });
 

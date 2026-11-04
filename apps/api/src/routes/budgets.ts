@@ -4,6 +4,10 @@ import { getDb } from "../lib/db.js";
 import { resolveCategory } from "../lib/categories.js";
 import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
 import { logAction } from "../lib/history.js";
+import { addMonths, type BudgetSuggestion, type BudgetSuggestions } from "@azulito/shared";
+import { currentMonthUtc, loadSpendRows } from "../lib/ai-facts.js";
+import { polishReasons, proposeBudgets } from "../lib/budget-advice.js";
+import { cooldownActive, getInsight, rewriteInsight, saveInsight } from "../lib/insight-store.js";
 
 export const budgetsRouter = Router();
 
@@ -55,6 +59,74 @@ budgetsRouter.put("/", async (req, res) => {
   } catch (error) {
     console.error("Falha ao salvar orçamento:", error);
     res.status(500).json({ error: "Falha ao salvar orçamento." });
+  }
+});
+
+function parseSuggestions(content: string | undefined): BudgetSuggestion[] {
+  if (!content) return [];
+  try {
+    const parsed = JSON.parse(content) as { suggestions?: BudgetSuggestion[] };
+    return Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+  } catch {
+    return [];
+  }
+}
+
+async function currentLimits(userId: string): Promise<Record<string, number>> {
+  const { results } = await getDb()
+    .prepare("select category, monthly_limit from budgets where user_id = ?")
+    .bind(userId)
+    .all<{ category: string; monthly_limit: number }>();
+  return Object.fromEntries(results.map((row) => [row.category, Number(row.monthly_limit)]));
+}
+
+/** GET /budgets/suggestions — sugestões guardadas, sem as que já viraram o limite atual. */
+budgetsRouter.get("/suggestions", async (req, res) => {
+  try {
+    const [stored, limits] = await Promise.all([getInsight(req.userId!, "budget"), currentLimits(req.userId!)]);
+    const suggestions = parseSuggestions(stored?.content).filter((s) => limits[s.category] !== s.suggested);
+    res.json({ suggestions, created_at: stored?.created_at ?? null } satisfies BudgetSuggestions);
+  } catch (error) {
+    console.error("Falha ao buscar sugestões:", error);
+    res.status(500).json({ error: "Falha ao buscar sugestões." });
+  }
+});
+
+/**
+ * POST /budgets/suggestions — calcula sugestões de limite a partir do gasto
+ * real (código) e pede à IA uma justificativa curta para cada uma. Só propõe:
+ * aplicar é uma ação do usuário (PUT /budgets).
+ */
+budgetsRouter.post("/suggestions", async (req, res) => {
+  const userId = req.userId!;
+  try {
+    const previous = await getInsight(userId, "budget");
+    if (cooldownActive(previous)) {
+      return res.status(429).json({ error: "Aguarde alguns segundos para gerar novas sugestões." });
+    }
+    const current = currentMonthUtc();
+    const [rows, limits] = await Promise.all([loadSpendRows(userId, addMonths(current, -3)), currentLimits(userId)]);
+    const suggestions = await polishReasons(proposeBudgets(rows, limits, current));
+    const saved = await saveInsight(userId, "budget", JSON.stringify({ suggestions }), "ai_budget", previous);
+    res.json({ suggestions, created_at: saved.created_at } satisfies BudgetSuggestions);
+  } catch (error) {
+    console.error("Falha ao gerar sugestões:", error);
+    res.status(500).json({ error: "Falha ao gerar sugestões." });
+  }
+});
+
+/** DELETE /budgets/suggestions/:category — dispensa uma sugestão. */
+budgetsRouter.delete("/suggestions/:category", async (req, res) => {
+  try {
+    const stored = await getInsight(req.userId!, "budget");
+    if (stored) {
+      const kept = parseSuggestions(stored.content).filter((s) => s.category !== req.params.category);
+      await rewriteInsight(req.userId!, "budget", JSON.stringify({ suggestions: kept }));
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Falha ao dispensar sugestão:", error);
+    res.status(500).json({ error: "Falha ao dispensar sugestão." });
   }
 });
 

@@ -67,10 +67,10 @@ function safeJson(text: string): unknown {
  * de transação (entrada não confiável): só números e nomes de categoria já
  * agregados pelo app.
  */
-export async function generateText(system: string, user: string): Promise<string> {
+export async function generateText(system: string, user: string, maxTokens = 900): Promise<string> {
   const response = await env.AI.run(MODEL, {
     temperature: 0.4,
-    max_tokens: 900,
+    max_tokens: maxTokens,
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },

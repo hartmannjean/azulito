@@ -34,7 +34,8 @@ export function LanguageToggle({
       onClick={toggle}
       aria-label={isPortuguese ? switchToEnglishLabel : switchToPortugueseLabel}
     >
-      {isPortuguese ? "EN" : "PT"}
+      <span className={`lang-option${isPortuguese ? " active" : ""}`}>PT</span>
+      <span className={`lang-option${isPortuguese ? "" : " active"}`}>EN</span>
     </button>
   );
 }

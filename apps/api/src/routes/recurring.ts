@@ -1,100 +1,67 @@
 import { Router } from "express";
-import { getDb } from "../lib/db.js";
-import { merchantKey } from "../lib/merchant.js";
+import { addMonths, type RecurringSummary } from "@azulito/shared";
+import { currentMonthUtc, loadSpendRows, round2 } from "../lib/ai-facts.js";
+import { cooldownActive, getInsight, saveInsight } from "../lib/insight-store.js";
+import { detectRecurring, generateRecurringInsight, loadRecurringRows } from "../lib/recurring.js";
 
 export const recurringRouter = Router();
 
-const LOOKBACK_MONTHS = 6;
-const MIN_MONTHS = 3;
-// Quanto o valor pode variar em relação à mediana para contar como "o mesmo
-// gasto" (assinaturas têm reajuste, contas de consumo oscilam um pouco).
-const AMOUNT_TOLERANCE = 0.25;
-
-type Row = {
-  merchant_key: string | null;
-  description: string;
-  category: string | null;
-  amount: number;
-  transaction_date: string;
-};
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-}
-
 /**
- * GET /recurring — gastos que se repetem todo mês: mesmo estabelecimento, em
- * pelo menos MIN_MONTHS meses distintos da janela, com valor parecido, e que
- * apareceram nos últimos 2 meses (senão a assinatura provavelmente acabou).
- * Heurística sobre os dados importados — não é uma lista de assinaturas
- * confirmada pelo banco.
+ * GET /recurring — gastos que se repetem todo mês (ver lib/recurring.ts), mais
+ * a última análise da IA sobre eles.
  */
 recurringRouter.get("/", async (req, res) => {
-  const now = new Date();
-  const currentMonth = now.toISOString().slice(0, 7);
-  const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - LOOKBACK_MONTHS, 1))
-    .toISOString()
-    .slice(0, 10);
-
   try {
-    const { results } = await getDb()
-      .prepare(
-        `select merchant_key, description, category, amount, transaction_date
-         from transactions
-         where user_id = ? and excluded = 0 and amount < 0 and transaction_date >= ?
-         order by transaction_date`,
-      )
-      .bind(req.userId!, since)
-      .all<Row>();
-
-    const groups = new Map<string, Row[]>();
-    for (const row of results) {
-      const key = row.merchant_key ?? merchantKey(row.description);
-      groups.set(key, [...(groups.get(key) ?? []), row]);
-    }
-
-    const previousMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-      .toISOString()
-      .slice(0, 7);
-
-    const items = [];
-    for (const rows of groups.values()) {
-      const months = new Set(rows.map((row) => row.transaction_date.slice(0, 7)));
-      if (months.size < MIN_MONTHS) continue;
-
-      const amounts = rows.map((row) => -row.amount);
-      const typical = median(amounts);
-      const similar = amounts.filter((a) => Math.abs(a - typical) <= typical * AMOUNT_TOLERANCE);
-      if (similar.length < MIN_MONTHS) continue;
-
-      const last = rows[rows.length - 1]!;
-      const lastMonth = last.transaction_date.slice(0, 7);
-      if (lastMonth !== currentMonth && lastMonth !== previousMonth) continue;
-
-      items.push({
-        merchant: last.description,
-        category: last.category,
-        amount: Math.round(typical * 100) / 100,
-        months_seen: months.size,
-        last_date: last.transaction_date,
-        charged_this_month: months.has(currentMonth),
-      });
-    }
-
-    items.sort((a, b) => b.amount - a.amount);
-    const round = (value: number) => Math.round(value * 100) / 100;
+    const now = new Date();
+    const [rows, insight] = await Promise.all([loadRecurringRows(req.userId!, now), getInsight(req.userId!, "recurring")]);
+    const items = detectRecurring(rows, now).map((item) => ({
+      merchant: item.merchant,
+      category: item.category,
+      amount: item.amount,
+      months_seen: item.months_seen,
+      last_date: item.last_date,
+      charged_this_month: item.charged_this_month,
+    }));
 
     res.json({
       items,
-      pending_total: round(
-        items.filter((item) => !item.charged_this_month).reduce((sum, item) => sum + item.amount, 0),
-      ),
-      monthly_total: round(items.reduce((sum, item) => sum + item.amount, 0)),
-    });
+      pending_total: round2(items.filter((item) => !item.charged_this_month).reduce((sum, item) => sum + item.amount, 0)),
+      monthly_total: round2(items.reduce((sum, item) => sum + item.amount, 0)),
+      insight: insight ?? null,
+    } satisfies RecurringSummary);
   } catch (error) {
     console.error("Falha ao calcular recorrências:", error);
     res.status(500).json({ error: "Falha ao calcular recorrências." });
+  }
+});
+
+/** POST /recurring/insight — a IA analisa as recorrências (o que revisar, cancelar ou renegociar). */
+recurringRouter.post("/insight", async (req, res) => {
+  const userId = req.userId!;
+  try {
+    const previous = await getInsight(userId, "recurring");
+    if (cooldownActive(previous)) {
+      return res.status(429).json({ error: "Aguarde alguns segundos para gerar outra análise." });
+    }
+
+    const now = new Date();
+    const current = currentMonthUtc();
+    const [rows, spend] = await Promise.all([
+      loadRecurringRows(userId, now),
+      loadSpendRows(userId, addMonths(current, -3)),
+    ]);
+    const items = detectRecurring(rows, now);
+    if (items.length === 0) return res.status(422).json({ error: "Ainda não há recorrências detectadas." });
+
+    const months = [addMonths(current, -3), addMonths(current, -2), addMonths(current, -1)];
+    const incomes = months.map((m) => spend.filter((r) => r.month === m).reduce((sum, r) => sum + r.income, 0));
+    const withIncome = incomes.filter((v) => v > 0);
+    const avgIncome = withIncome.length > 0 ? withIncome.reduce((a, b) => a + b, 0) / withIncome.length : 0;
+
+    const content = await generateRecurringInsight(items, avgIncome);
+    res.json(await saveInsight(userId, "recurring", content, "ai_recurring", previous));
+  } catch (error) {
+    console.error("Falha ao analisar recorrências:", error);
+    res.status(500).json({ error: "Falha ao gerar a análise." });
   }
 });

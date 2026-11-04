@@ -1,6 +1,8 @@
 import type { SavingsOverview } from "@azulito/shared";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import { SavingsForm } from "@/components/savings-form";
+import { SavingsChart } from "@/components/savings-chart";
+import { parseSavingsPlan } from "@/lib/plan";
 import { SavingsInsightButton } from "@/components/savings-insight-button";
 import { RemoveSavingsButton } from "@/components/remove-savings-button";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -35,6 +37,7 @@ export function SavingsView({
 
   const hasData = overview !== null && overview.months.some((m) => m.applied > 0 || m.withdrawn > 0 || m.closing !== null);
   const lastForecast = overview?.forecast[overview.forecast.length - 1] ?? null;
+  const plan = overview?.insight ? parseSavingsPlan(overview.insight.content) : null;
 
   return (
     <main className="page">
@@ -76,6 +79,8 @@ export function SavingsView({
               <span className="tx-total-value">{lastForecast ? money(lastForecast.balance) : "—"}</span>
             </div>
           </section>
+
+          <SavingsChart overview={overview} locale={locale} dict={dict} />
 
           <section className="chart-card">
             <h2 className="chart-heading">{t.formHeading}</h2>
@@ -169,7 +174,7 @@ export function SavingsView({
             <p className="muted-cell block">{t.aiHelp}</p>
             {overview.insight ? (
               <>
-                <p className="insight-text">{overview.insight.content}</p>
+                <p className="insight-text">{plan?.summary}</p>
                 <p className="muted-cell block">{t.aiUpdated(formatDate(overview.insight.created_at, locale))}</p>
               </>
             ) : (
@@ -183,6 +188,22 @@ export function SavingsView({
               <SavingsInsightButton label={t.aiButton} runningLabel={t.aiRunning} errorLabel={t.aiFailed} />
             )}
           </section>
+
+          {plan && plan.sections.length > 0 ? (
+            <>
+              <h2 className="chart-heading plan-heading">{dict.plan.heading}</h2>
+              <div className="plan-grid">
+                {plan.sections.map((section) => (
+                  <section key={section.category} className="chart-card">
+                    <h3 className="plan-title">
+                      {dict.plan.section(section.category, money(section.average), money(section.saving))}
+                    </h3>
+                    <p className="insight-text">{section.text}</p>
+                  </section>
+                ))}
+              </div>
+            </>
+          ) : null}
         </>
       )}
     </main>

@@ -1,5 +1,6 @@
 import { CATEGORIES, type UserCategory } from "@azulito/shared";
 import { CategoryForm, RemoveCategoryButton } from "@/components/category-manager";
+import { RenameCategory } from "@/components/rename-category";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -44,7 +45,15 @@ export function CategoriesView({
                   <li key={category.id} className="mini-row">
                     <span className="mini-row-label">🏷️ {category.name}</span>
                     {demo ? null : (
-                      <RemoveCategoryButton id={category.id} label={t.remove} confirmLabel={t.removeHint} />
+                      <span className="mini-row-actions">
+                        <RenameCategory
+                          key={category.id + category.name}
+                          id={category.id}
+                          name={category.name}
+                          labels={{ rename: t.rename, save: t.save, cancel: t.cancel }}
+                        />
+                        <RemoveCategoryButton id={category.id} label={t.remove} confirmLabel={t.removeHint} />
+                      </span>
                     )}
                   </li>
                 ))}

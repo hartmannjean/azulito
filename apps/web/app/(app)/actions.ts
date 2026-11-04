@@ -15,7 +15,14 @@ import {
   deleteSavingsSnapshot,
   requestSavingsInsight,
   undoHistoryAction,
+  renameUserCategory,
+  requestBudgetSuggestions,
+  dismissBudgetSuggestion,
+  requestRecurringInsight,
+  requestAudit,
+  fetchImportDetails,
 } from "@/lib/api-client";
+import type { ImportDetails } from "@azulito/shared";
 import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
 import { getAccess } from "@/lib/access";
 import { getLocale } from "@/lib/i18n/get-locale";
@@ -278,5 +285,85 @@ export async function undoActionAction(id: string): Promise<{ ok: boolean }> {
   } catch (error) {
     console.error("Falha ao desfazer:", error);
     return { ok: false };
+  }
+}
+
+export type RenameState = { error?: string; saved?: boolean };
+
+/** Renomeia uma categoria própria (transações, orçamento e regras acompanham). */
+export async function renameCategoryAction(_prev: RenameState, formData: FormData): Promise<RenameState> {
+  const dict = getDictionary(await getLocale());
+  const access = await getAccess();
+  if (!access) return { error: dict.auth.errors.notAuthenticated };
+
+  const id = String(formData.get("id") ?? "");
+  const parsed = categoryNameSchema.safeParse(String(formData.get("name") ?? ""));
+  if (!/^[0-9a-f]{32}$/.test(id) || !parsed.success || isReservedCategoryName(parsed.data)) {
+    return { error: dict.categoriesPage.invalid };
+  }
+
+  try {
+    await renameUserCategory(access.jwt, id, parsed.data);
+    revalidatePath("/", "layout");
+    return { saved: true };
+  } catch (error) {
+    console.error("Falha ao renomear categoria:", error);
+    return { error: dict.categoriesPage.renameFailed };
+  }
+}
+
+export type AiKind = "budget" | "recurring" | "audit";
+
+/** Gera uma análise da IA (sugestões de orçamento, recorrências ou revisão do mês). */
+export async function generateAiAction(kind: AiKind, month?: string): Promise<{ ok: boolean }> {
+  const access = await getAccess();
+  if (!access) return { ok: false };
+  try {
+    if (kind === "budget") await requestBudgetSuggestions(access.jwt);
+    else if (kind === "recurring") await requestRecurringInsight(access.jwt);
+    else if (kind === "audit" && month && MONTH_PATTERN.test(month)) await requestAudit(access.jwt, month);
+    else return { ok: false };
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (error) {
+    console.error("Falha ao gerar a análise (" + kind + "):", error);
+    return { ok: false };
+  }
+}
+
+/** Aplica uma sugestão da IA: vira o limite do orçamento (com desfazer) e some da lista. */
+export async function acceptBudgetSuggestionAction(category: string, limit: number): Promise<void> {
+  const access = await getAccess();
+  if (!access || !isCategoryValue(category) || category === "Income") return;
+  if (!Number.isFinite(limit) || limit <= 0 || limit > 10_000_000) return;
+  try {
+    await saveBudget(access.jwt, category, limit);
+    await dismissBudgetSuggestion(access.jwt, category);
+    revalidatePath("/", "layout");
+  } catch (error) {
+    console.error("Falha ao aplicar a sugestão:", error);
+  }
+}
+
+export async function dismissBudgetSuggestionAction(category: string): Promise<void> {
+  const access = await getAccess();
+  if (!access || !isCategoryValue(category)) return;
+  try {
+    await dismissBudgetSuggestion(access.jwt, category);
+    revalidatePath("/", "layout");
+  } catch (error) {
+    console.error("Falha ao dispensar a sugestão:", error);
+  }
+}
+
+/** Conteúdo de um arquivo OFX já importado (relido do original guardado). */
+export async function loadImportDetailsAction(id: string): Promise<ImportDetails | null> {
+  const access = await getAccess();
+  if (!access || !/^[0-9a-f]{32}$/.test(id)) return null;
+  try {
+    return await fetchImportDetails(access.jwt, id);
+  } catch (error) {
+    console.error("Falha ao abrir a importação:", error);
+    return null;
   }
 }

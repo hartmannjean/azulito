@@ -14,6 +14,8 @@ export type OfxStatement = {
   accountId: string;
   institution: string;
   currency: string;
+  /** Início do período do extrato (DTSTART). */
+  periodStart?: string;
   /** Fim do período do extrato (DTEND) — no cartão, a data de fechamento da fatura. */
   periodEnd?: string;
   transactions: OfxTransaction[];
@@ -85,6 +87,7 @@ type Draft = {
   bankId: string;
   accountId: string;
   currency: string;
+  periodStart?: string;
   periodEnd?: string;
   transactions: OfxTransaction[];
 };
@@ -161,6 +164,15 @@ export function parseOfx(text: string): OfxStatement[] {
         break;
       case "ACCTID":
         if (current) current.accountId = value.slice(0, 80);
+        break;
+      case "DTSTART":
+        if (current && !trn && /^[0-9]{8}/.test(value)) {
+          try {
+            current.periodStart = parseDate(value);
+          } catch {
+            // ignora: só informativo
+          }
+        }
         break;
       case "DTEND":
         // Só orienta o ciclo do cartão: uma data ilegível não deve barrar a importação.

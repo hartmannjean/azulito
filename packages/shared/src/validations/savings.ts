@@ -9,3 +9,6 @@ export const upsertSavingsSnapshotSchema = z.object({
   month: savingsMonthSchema,
   balance: z.number().min(0).max(1_000_000_000),
 });
+
+/** Corpo de POST /audit: o mês a revisar. */
+export const auditRequestSchema = z.object({ month: savingsMonthSchema });

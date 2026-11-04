@@ -1,10 +1,10 @@
-import { fetchBudgetsProgress, fetchUserCategories } from "@/lib/api-client";
+import { fetchBudgetsProgress, fetchBudgetSuggestions, fetchUserCategories } from "@/lib/api-client";
 import { requireAccess } from "@/lib/access";
 import { resolveMonth } from "@/lib/month";
 import { BudgetsView } from "@/components/budgets-view";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
-import type { BudgetsProgress } from "@azulito/shared";
+import type { BudgetSuggestions, BudgetsProgress } from "@azulito/shared";
 
 export default async function BudgetsPage({
   searchParams,
@@ -19,12 +19,15 @@ export default async function BudgetsPage({
 
   let progress: BudgetsProgress | null = null;
   let customCategories: string[] = [];
+  let suggestions: BudgetSuggestions | null = null;
   let loadError = false;
   try {
-    const [progressResult, categoriesResult] = await Promise.all([
+    const [progressResult, categoriesResult, suggestionsResult] = await Promise.all([
       fetchBudgetsProgress(access.jwt, month),
       fetchUserCategories(access.jwt),
+      fetchBudgetSuggestions(access.jwt).catch(() => null),
     ]);
+    suggestions = suggestionsResult;
     progress = progressResult;
     customCategories = categoriesResult.map((category) => category.name);
   } catch (err) {
@@ -41,6 +44,7 @@ export default async function BudgetsPage({
       dict={dict}
       loadError={loadError}
       customCategories={customCategories}
+      suggestions={suggestions}
     />
   );
 }

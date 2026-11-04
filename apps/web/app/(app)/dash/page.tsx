@@ -1,5 +1,6 @@
 import {
   fetchAccounts,
+  fetchAudit,
   fetchBudgetsProgress,
   fetchRecurring,
   fetchTransactionsCategories,
@@ -44,7 +45,7 @@ export default async function DashboardPage({
 
   try {
     const jwt = access.jwt;
-    const [accounts, summary, previousSummary, categories, trend, budgets, recurring, recent, none] =
+    const [accounts, summary, previousSummary, categories, trend, budgets, recurring, recent, none, audit] =
       await Promise.all([
         fetchAccounts(jwt),
         fetchTransactionsSummary(jwt, month),
@@ -55,6 +56,8 @@ export default async function DashboardPage({
         fetchRecurring(jwt),
         fetchTransactionsPage(jwt, { month, limit: 8 }),
         fetchTransactionsPage(jwt, { category: "__none__", limit: 1 }),
+        // A revisão da IA é um extra: se falhar, o resto do dashboard segue.
+        fetchAudit(jwt).catch(() => null),
       ]);
     Object.assign(data, {
       accounts,
@@ -66,6 +69,7 @@ export default async function DashboardPage({
       recurring,
       recent: recent.transactions,
       uncategorized: none.total,
+      audit,
     });
   } catch (err) {
     console.error("Falha ao carregar dashboard:", err);

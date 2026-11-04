@@ -70,6 +70,8 @@ export type RecurringSummary = {
   /** Soma do que se espera cobrar ainda neste mês. */
   pending_total: number;
   monthly_total: number;
+  /** Última análise da IA sobre as recorrências. */
+  insight?: { content: string; created_at: string } | null;
 };
 
 /** POST /transactions/categorize. */
@@ -181,4 +183,92 @@ export type HistoryResponse = {
   /** Relógio da api, para calcular a idade da ação sem depender do fuso do servidor web. */
   now: string;
   actions: ActionLogEntry[];
+};
+
+/** Plano de economia da IA (conteúdo salvo em ai_insights, tipo "savings"). */
+export type SavingsPlanSection = {
+  category: string;
+  /** Gasto médio mensal na categoria (últimos meses completos). */
+  average: number;
+  /** Economia mensal se cortar 20%. */
+  saving: number;
+  /** Meta do mês e micro-objetivos semanais, em texto. */
+  text: string;
+};
+
+export type SavingsPlan = {
+  summary: string;
+  sections: SavingsPlanSection[];
+};
+
+/** Sugestão da IA para um orçamento (GET /budgets/suggestions). */
+export type BudgetSuggestion = {
+  category: string;
+  /** Limite atual (`null` = ainda sem orçamento nessa categoria). */
+  current: number | null;
+  suggested: number;
+  /** Gasto médio mensal nos últimos meses completos. */
+  average: number;
+  reason: string;
+};
+
+export type BudgetSuggestions = {
+  suggestions: BudgetSuggestion[];
+  created_at: string | null;
+};
+
+/** Um achado da revisão do mês (POST /audit). */
+export type AuditItem = { id: string; date: string; description: string; amount: number; reason?: string };
+
+export type AuditFinding = {
+  type: string;
+  title: string;
+  detail: string;
+  items: AuditItem[];
+};
+
+export type AuditResult = {
+  month: string;
+  income: number;
+  expenses: number;
+  balance: number;
+  /** Parecer da IA sobre se os números fazem sentido. */
+  verdict: string;
+  findings: AuditFinding[];
+  /** Transações que a IA achou suspeitas (categoria errada, deveria estar fora das somas...). */
+  ai_items: AuditItem[];
+  created_at: string;
+};
+
+/** Uma importação de OFX (GET /imports). */
+export type ImportLogEntry = {
+  id: string;
+  file_name: string | null;
+  imported: number;
+  duplicates: number;
+  created_at: string;
+  institution_name: string;
+  account_kind: "checking" | "credit_card";
+  /** Arquivo original guardado (permite ver o conteúdo). */
+  has_file: boolean;
+};
+
+/** O que um arquivo OFX trouxe (GET /imports/:id). */
+export type ImportDetails = {
+  period_start: string | null;
+  period_end: string | null;
+  total: number;
+  income: number;
+  expenses: number;
+  transactions: Array<{
+    date: string;
+    description: string;
+    amount: number;
+    category: string | null;
+    /** Fora das somas (fatura paga, aplicação/resgate). */
+    excluded: boolean;
+    /** Já está no app (false se a importação foi desfeita depois). */
+    in_app: boolean;
+  }>;
+  truncated: boolean;
 };

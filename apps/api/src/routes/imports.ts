@@ -6,6 +6,7 @@ import { merchantKey } from "../lib/merchant.js";
 import { categorizePending } from "../lib/categorizer.js";
 import { defaultDueDay } from "../lib/refmonth.js";
 import { logAction, type UndoOp } from "../lib/history.js";
+import type { ImportDetails, ImportLogEntry } from "@azulito/shared";
 
 export const importsRouter = Router();
 
@@ -184,3 +185,109 @@ importsRouter.post(
     }
   },
 );
+
+/** GET /imports — histórico de importações (mais recentes primeiro). */
+importsRouter.get("/", async (req, res) => {
+  try {
+    const { results } = await getDb()
+      .prepare(
+        `select i.id, i.file_name, i.imported, i.duplicates, i.created_at, i.r2_key,
+                a.institution_name, a.kind as account_kind
+         from imports i join accounts a on a.id = i.account_id
+         where i.user_id = ? order by i.created_at desc limit 100`,
+      )
+      .bind(req.userId!)
+      .all<{
+        id: string;
+        file_name: string | null;
+        imported: number;
+        duplicates: number;
+        created_at: string;
+        r2_key: string | null;
+        institution_name: string;
+        account_kind: "checking" | "credit_card";
+      }>();
+
+    res.json({
+      imports: results.map(({ r2_key, ...row }) => ({ ...row, has_file: r2_key !== null }) satisfies ImportLogEntry),
+    });
+  } catch (error) {
+    console.error("Falha ao buscar importações:", error);
+    res.status(500).json({ error: "Falha ao buscar importações." });
+  }
+});
+
+const MAX_DETAIL_ROWS = 500;
+
+/**
+ * GET /imports/:id — o que aquele arquivo trouxe: relê o OFX original
+ * guardado no R2 (a chave é <user_id>/<hash>.ofx e só chega aqui via linha de
+ * `imports` do próprio usuário) e cruza com o que está no app agora.
+ */
+importsRouter.get("/:id", async (req, res) => {
+  const userId = req.userId!;
+  if (!/^[0-9a-f]{32}$/.test(String(req.params.id))) return res.status(400).json({ error: "Importação inválida." });
+
+  try {
+    const db = getDb();
+    const row = await db
+      .prepare(
+        `select i.r2_key, i.account_id, a.kind, a.bank_id, a.account_id as ofx_account
+         from imports i join accounts a on a.id = i.account_id
+         where i.id = ? and i.user_id = ?`,
+      )
+      .bind(req.params.id, userId)
+      .first<{ r2_key: string | null; account_id: string; kind: string; bank_id: string; ofx_account: string }>();
+    if (!row) return res.status(404).json({ error: "Importação não encontrada." });
+    if (!row.r2_key) return res.status(404).json({ error: "O arquivo original não foi guardado." });
+
+    const object = await getOfxBucket().get(row.r2_key);
+    if (!object) return res.status(404).json({ error: "Arquivo original não encontrado." });
+
+    const statements = parseOfx(decodeOfx(new Uint8Array(await object.arrayBuffer())));
+    const statement =
+      statements.find((s) => s.kind === row.kind && s.accountId === row.ofx_account && s.bankId === row.bank_id) ??
+      statements.find((s) => s.kind === row.kind) ??
+      statements[0];
+    if (!statement) return res.status(404).json({ error: "Arquivo sem extrato." });
+
+    const { results: known } = await db
+      .prepare("select fitid, category, excluded from transactions where user_id = ? and account_id = ? limit 20000")
+      .bind(userId, row.account_id)
+      .all<{ fitid: string; category: string | null; excluded: number }>();
+    const byFitid = new Map(known.map((k) => [k.fitid, k]));
+
+    let income = 0;
+    let expenses = 0;
+    const transactions = statement.transactions.map((tx) => {
+      const match = byFitid.get(tx.fitid);
+      const excluded = match ? match.excluded === 1 : false;
+      if (match && !excluded) {
+        if (tx.amount > 0) income += tx.amount;
+        else expenses -= tx.amount;
+      }
+      return {
+        date: tx.date,
+        description: tx.description,
+        amount: tx.amount,
+        category: match?.category ?? null,
+        excluded,
+        in_app: match !== undefined,
+      };
+    });
+
+    const round2 = (value: number) => Math.round(value * 100) / 100;
+    res.json({
+      period_start: statement.periodStart ?? null,
+      period_end: statement.periodEnd ?? null,
+      total: transactions.length,
+      income: round2(income),
+      expenses: round2(expenses),
+      transactions: transactions.slice(0, MAX_DETAIL_ROWS),
+      truncated: transactions.length > MAX_DETAIL_ROWS,
+    } satisfies ImportDetails);
+  } catch (error) {
+    console.error("Falha ao abrir a importação:", error);
+    res.status(500).json({ error: "Falha ao abrir a importação." });
+  }
+});
