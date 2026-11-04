@@ -20,6 +20,7 @@ import type {
   ImportLogEntry,
   ImportDetails,
   ForecastResponse,
+  CardComparison,
 } from "@azulito/shared";
 
 /**
@@ -302,4 +303,8 @@ export async function setScheduledPaid(accessJwt: string, id: string, paid: bool
 
 export async function deleteScheduledItem(accessJwt: string, id: string): Promise<void> {
   await apiFetch(`/scheduled/${encodeURIComponent(id)}`, accessJwt, { method: "DELETE" });
+}
+
+export async function fetchCardComparison(accessJwt: string): Promise<CardComparison> {
+  return apiFetch<CardComparison>("/card/comparison", accessJwt);
 }

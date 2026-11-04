@@ -14,6 +14,7 @@ import { savingsRouter } from "./routes/savings.js";
 import { historyRouter } from "./routes/history.js";
 import { auditRouter } from "./routes/audit.js";
 import { forecastRouter, scheduledRouter } from "./routes/forecast.js";
+import { cardRouter } from "./routes/card.js";
 
 export function createApp() {
   const app = express();
@@ -61,6 +62,7 @@ export function createApp() {
   app.use("/audit", requireAuth, auditRouter);
   app.use("/forecast", requireAuth, forecastRouter);
   app.use("/scheduled", requireAuth, scheduledRouter);
+  app.use("/card", requireAuth, cardRouter);
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 

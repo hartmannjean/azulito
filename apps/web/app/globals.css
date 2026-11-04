@@ -1921,6 +1921,38 @@ a.button {
   white-space: nowrap;
 }
 
+/* Comparativo do cartão */
+
+.line-previous {
+  stroke: var(--muted);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.line-previous.dashed {
+  stroke-dasharray: 7 7;
+  opacity: 0.55;
+}
+
+.dot-previous {
+  fill: var(--muted);
+}
+
+.chart-axis.cutoff {
+  stroke-dasharray: 3 5;
+}
+
+.legend-line.previous {
+  border-top-color: var(--muted);
+  margin-left: 0.75rem;
+}
+
+.card-compare-totals {
+  margin-bottom: 1rem;
+}
+
 /* Responsivo */
 
 @media (max-width: 1100px) {

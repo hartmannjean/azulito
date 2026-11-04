@@ -8,8 +8,10 @@ import type {
   TransactionsSummary,
 } from "@azulito/shared";
 import {
+  buildCardComparison,
   buildForecast,
   buildSavingsOverview,
+  type CardComparison,
   type ForecastResponse,
   type ImportLogEntry,
   type SavingsOverview,
@@ -316,4 +318,38 @@ export function getDemoForecast(now: Date = new Date()): ForecastResponse {
     recurringIncomes: [{ amount: 9500, charged_this_month: false, account_kind: "checking" }],
     cards: [{ closing_day: 2, due_day: 9 }],
   });
+}
+
+/** Comparativo do cartão FICTÍCIO da demonstração (mesmo cálculo do app real). */
+export function getDemoCardComparison(now: Date = new Date()): CardComparison {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const today = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
+  const current = today.slice(0, 7);
+  const previous = shiftMonth(current, -1);
+  const plan: Array<[number, number, string, string]> = [
+    [2, 214.9, "Mercado Bom Preço", "Groceries"],
+    [4, 64.5, "Restaurante Sabor da Casa", "Eating out"],
+    [7, 139.9, "Loja de Eletrônicos Bit", "Electronics"],
+    [9, 52.3, "Entrega Rápida Food", "Food delivery"],
+    [13, 310.4, "Mercado Bom Preço", "Groceries"],
+    [18, 98, "Posto Rota 66", "Gas stations"],
+    [22, 188.7, "Farmácia Saúde Total", "Pharmacy"],
+    [27, 76.2, "Pizzaria Forno a Lenha", "Eating out"],
+  ];
+  const rows = [
+    ...plan.map(([day, amount, description, category]) => ({
+      date: `${previous}-${pad(day)}`,
+      amount: -amount,
+      description,
+      category,
+    })),
+    ...plan.map(([day, amount, description, category], index) => ({
+      date: `${current}-${pad(day)}`,
+      amount: -(amount * (index % 2 === 0 ? 1.18 : 0.9)),
+      description,
+      category,
+    })),
+    { date: `${current}-02`, amount: -215.97, description: "Loja Exemplo - Parcela 3/10", category: "Shopping" },
+  ].filter((row) => row.date <= today);
+  return buildCardComparison({ today, dataUntil: today, rows });
 }

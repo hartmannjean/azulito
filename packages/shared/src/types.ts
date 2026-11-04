@@ -326,3 +326,27 @@ export type ForecastResponse = {
   months: ForecastMonth[];
   items: ScheduledItem[];
 };
+
+/** Compras no cartão: este mês até hoje × mês passado até o mesmo dia (GET /card/comparison). */
+export type CardComparison = {
+  current_month: string;
+  previous_month: string;
+  /** Dia do mês até o qual as duas pontas foram somadas. */
+  cutoff_day: number;
+  cutoff_date: string;
+  /** Data da última transação do cartão importada. */
+  data_until: string | null;
+  /** O último dado do cartão é anterior a hoje (falta importar a fatura). */
+  stale: boolean;
+  /** Ainda não há nenhuma compra do cartão neste mês. */
+  no_data_this_month: boolean;
+  current: { purchases: number; count: number; installments: number; refunds: number };
+  previous: { purchases: number; count: number; installments: number; refunds: number };
+  /** Compras novas do mês passado inteiro (referência). */
+  previous_full: number;
+  delta: { amount: number; percent: number | null };
+  /** Variação por categoria (compras novas), das maiores diferenças. */
+  categories: Array<{ category: string; current: number; previous: number; delta: number }>;
+  /** Compras novas acumuladas por dia (índice 0 = dia 1). */
+  daily: { current: number[]; previous: number[] };
+};

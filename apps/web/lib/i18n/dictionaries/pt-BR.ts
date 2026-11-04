@@ -403,6 +403,26 @@ export const ptBR = {
     unmark: "Desmarcar",
     remove: "Remover",
   },
+  cardCompare: {
+    heading: "Cartão de crédito: compras do mês × mês passado",
+    period: (day: number, current: string, previous: string) =>
+      `Compras feitas de 1 a ${day} de ${current}, contra 1 a ${day} de ${previous} (pela data da compra, não pelo mês da fatura).`,
+    thisMonth: (day: number) => `Este mês, até o dia ${day}`,
+    lastMonth: (day: number) => `Mês passado, até o dia ${day}`,
+    count: (count: number) => (count === 1 ? "1 compra" : `${count} compras`),
+    difference: "Diferença",
+    spendingMore: "gastando mais que no mesmo ponto do mês passado",
+    spendingLess: "gastando menos que no mesmo ponto do mês passado",
+    same: "igual ao mês passado",
+    fullLastMonth: "Mês passado inteiro",
+    chartLabel: "Compras acumuladas por dia no cartão",
+    byCategory: "Onde mudou (por categoria)",
+    note: (current: string, previous: string) =>
+      `Parcelas de compras anteriores ficam fora da comparação (${current} este mês, ${previous} no mês passado), assim como estornos.`,
+    noDataThisMonth: "Ainda não há compras do cartão neste mês nos dados importados.",
+    stale: (date: string) =>
+      `O último dado do cartão é de ${date}; a comparação vai até essa data. Importe a fatura para atualizar.`,
+  },
   accountsPage: {
     accountsHeading: "Contas e cartões",
     kind: { checking: "Conta corrente", credit_card: "Cartão de crédito" },

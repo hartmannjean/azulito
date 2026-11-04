@@ -3,6 +3,7 @@ import { TransactionList } from "@/components/transaction-list";
 import { MonthSummary } from "@/components/month-summary";
 import { TrendChart } from "@/components/trend-chart";
 import { BalanceChart } from "@/components/balance-chart";
+import { CardCompareCard } from "@/components/card-compare-card";
 import { AuditCard } from "@/components/audit-card";
 import { CategoryBreakdown } from "@/components/category-breakdown";
 import { ImportOfxButton } from "@/components/import-ofx-button";
@@ -16,6 +17,7 @@ import type {
   Account,
   AuditResult,
   BudgetsProgress,
+  CardComparison,
   CategoriesSummary,
   MonthlyTrendPoint,
   RecurringSummary,
@@ -37,6 +39,8 @@ export type DashboardData = {
   uncategorized: number;
   /** Última revisão da IA (só no app real). */
   audit?: AuditResult | null;
+  /** Compras no cartão: este mês × mês passado até o mesmo dia. */
+  cardComparison?: CardComparison | null;
   loadError: boolean;
 };
 
@@ -111,6 +115,8 @@ export function DashboardView({
               <CategoryBreakdown categories={categories.categories} locale={locale} dict={dict.categories} />
             ) : null}
           </div>
+
+          {data.cardComparison ? <CardCompareCard data={data.cardComparison} locale={locale} dict={dict} /> : null}
 
           <BalanceChart trend={trend} locale={locale} dict={dict} />
 

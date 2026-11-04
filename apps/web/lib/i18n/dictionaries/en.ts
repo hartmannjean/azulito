@@ -404,6 +404,26 @@ export const en: typeof ptBR = {
     unmark: "Unmark",
     remove: "Remove",
   },
+  cardCompare: {
+    heading: "Credit card: this month's purchases × last month",
+    period: (day: number, current: string, previous: string) =>
+      `Purchases made from the 1st to the ${day}th of ${current}, versus the 1st to the ${day}th of ${previous} (by purchase date, not by bill month).`,
+    thisMonth: (day: number) => `This month, up to day ${day}`,
+    lastMonth: (day: number) => `Last month, up to day ${day}`,
+    count: (count: number) => (count === 1 ? "1 purchase" : `${count} purchases`),
+    difference: "Difference",
+    spendingMore: "spending more than at the same point last month",
+    spendingLess: "spending less than at the same point last month",
+    same: "same as last month",
+    fullLastMonth: "Whole last month",
+    chartLabel: "Cumulative card purchases per day",
+    byCategory: "What changed (by category)",
+    note: (current: string, previous: string) =>
+      `Installments of earlier purchases are left out of the comparison (${current} this month, ${previous} last month), as are refunds.`,
+    noDataThisMonth: "There are no card purchases this month in the imported data yet.",
+    stale: (date: string) =>
+      `The latest card data is from ${date}; the comparison goes up to that date. Import the bill to update.`,
+  },
   accountsPage: {
     accountsHeading: "Accounts and cards",
     kind: { checking: "Checking account", credit_card: "Credit card" },
