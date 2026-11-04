@@ -13,6 +13,7 @@ import type {
   CategoriesSummary,
   TransactionsTrend,
   UserCategory,
+  SavingsOverview,
 } from "@azulito/shared";
 
 /**
@@ -197,4 +198,24 @@ export async function updateCardCycle(
     headers: JSON_HEADERS,
     body: JSON.stringify({ closing_day: closingDay, due_day: dueDay }),
   });
+}
+
+export async function fetchSavings(accessJwt: string): Promise<SavingsOverview> {
+  return apiFetch<SavingsOverview>("/savings", accessJwt);
+}
+
+export async function saveSavingsSnapshot(accessJwt: string, month: string, balance: number): Promise<void> {
+  await apiFetch("/savings", accessJwt, {
+    method: "PUT",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ month, balance }),
+  });
+}
+
+export async function deleteSavingsSnapshot(accessJwt: string, month: string): Promise<void> {
+  await apiFetch(`/savings/${encodeURIComponent(month)}`, accessJwt, { method: "DELETE" });
+}
+
+export async function requestSavingsInsight(accessJwt: string): Promise<{ content: string; created_at: string }> {
+  return apiFetch("/savings/insight", accessJwt, { method: "POST" });
 }

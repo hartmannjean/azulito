@@ -128,3 +128,41 @@ export type MonthlyTrendPoint = {
 export type TransactionsTrend = {
   trend: MonthlyTrendPoint[];
 };
+
+/** Uma linha mês a mês das caixinhas (GET /savings). Valores em reais. */
+export type SavingsMonth = {
+  month: string;
+  /** Total aplicado nas caixinhas no mês (saiu da conta). */
+  applied: number;
+  /** Total resgatado das caixinhas no mês (voltou para a conta). */
+  withdrawn: number;
+  /** applied - withdrawn: quanto o saldo cresceu por movimentação. */
+  net: number;
+  /** Saldo informado no fim do mês anterior. */
+  opening: number | null;
+  /** Saldo informado no fim deste mês. */
+  closing: number | null;
+  /** Rendimento = closing - opening - net; só com os dois saldos. */
+  yield: number | null;
+  /** yield / opening (fração, ex.: 0,011 = 1,1%). */
+  yield_pct: number | null;
+};
+
+export type SavingsForecastPoint = {
+  month: string;
+  net: number;
+  yield: number;
+  balance: number;
+};
+
+export type SavingsOverview = {
+  months: SavingsMonth[];
+  /** Saldo do último mês informado, ou estimado até o mês corrente. */
+  current_balance: number | null;
+  current_balance_estimated: boolean;
+  total_yield: number;
+  forecast: SavingsForecastPoint[];
+  /** Premissas da projeção: média mensal guardada e rendimento mensal médio. */
+  assumptions: { avg_net: number; avg_rate: number } | null;
+  insight: { content: string; created_at: string } | null;
+};

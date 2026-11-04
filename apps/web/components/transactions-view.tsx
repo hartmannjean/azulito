@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TransactionTable } from "@/components/transaction-table";
+import { AutoSubmitForm } from "@/components/auto-submit-form";
 import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -14,6 +15,8 @@ export type TransactionsSearch = {
   category?: string;
   type?: "income" | "expense";
   month?: string;
+  /** Mostra também o que está fora das somas (fatura paga, aplicação/resgate). */
+  excluded?: boolean;
 };
 
 /** Listagem filtrável; só apresentação (dados e filtros chegam prontos). */
@@ -54,6 +57,7 @@ export function TransactionsView({
     if (search.category) params.set("category", search.category);
     if (search.type) params.set("type", search.type);
     if (search.month) params.set("month", search.month);
+    if (search.excluded) params.set("excluded", "1");
     if (target > 1) params.set("p", String(target));
     const query = params.toString();
     return query ? `${basePath}?${query}` : basePath;
@@ -68,7 +72,7 @@ export function TransactionsView({
         </div>
       </header>
 
-      <form method="get" action={basePath} className="filter-bar">
+      <AutoSubmitForm basePath={basePath} className="filter-bar">
         <input
           type="search"
           name="q"
@@ -118,13 +122,14 @@ export function TransactionsView({
           defaultValue={search.month ?? ""}
           aria-label={dict.txPage.month}
         />
-        <button type="submit" className="button small">
-          {dict.txPage.apply}
-        </button>
+        <label className="filter-check">
+          <input type="checkbox" name="excluded" value="1" defaultChecked={search.excluded ?? false} />
+          {dict.txPage.showExcluded}
+        </label>
         <Link href={basePath} className="button secondary small">
           {dict.txPage.clear}
         </Link>
-      </form>
+      </AutoSubmitForm>
 
       {loadError ? (
         <p role="alert" className="form-error">

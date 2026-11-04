@@ -11,6 +11,9 @@ import {
   deleteUserCategory,
   setTransactionsReferenceMonth,
   updateCardCycle,
+  saveSavingsSnapshot,
+  deleteSavingsSnapshot,
+  requestSavingsInsight,
 } from "@/lib/api-client";
 import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
 import { getAccess } from "@/lib/access";
@@ -204,5 +207,61 @@ export async function saveCardCycleAction(_prev: CardCycleState, formData: FormD
   } catch (error) {
     console.error("Falha ao salvar o ciclo do cartão:", error);
     return { error: dict.accountsPage.cycleFailed };
+  }
+}
+
+export type SavingsState = { error?: string; saved?: boolean };
+
+/** "1.234,56", "1234,56" e "1234.56" viram número; qualquer outra coisa vira NaN. */
+function parseMoney(raw: string): number {
+  const text = raw.trim().replace(/\s/g, "");
+  const normalized = text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
+  return /^\d+(\.\d+)?$/.test(normalized) ? Number(normalized) : Number.NaN;
+}
+
+/** Informa o saldo das caixinhas no fim de um mês. */
+export async function saveSavingsAction(_prev: SavingsState, formData: FormData): Promise<SavingsState> {
+  const dict = getDictionary(await getLocale());
+  const access = await getAccess();
+  if (!access) return { error: dict.auth.errors.notAuthenticated };
+
+  const month = String(formData.get("month") ?? "");
+  const balance = parseMoney(String(formData.get("balance") ?? ""));
+  if (!MONTH_PATTERN.test(month) || !Number.isFinite(balance) || balance < 0 || balance > 1_000_000_000) {
+    return { error: dict.savingsPage.invalid };
+  }
+
+  try {
+    await saveSavingsSnapshot(access.jwt, month, balance);
+    revalidatePath("/", "layout");
+    return { saved: true };
+  } catch (error) {
+    console.error("Falha ao salvar o saldo das caixinhas:", error);
+    return { error: dict.savingsPage.failed };
+  }
+}
+
+export async function removeSavingsAction(month: string): Promise<void> {
+  const access = await getAccess();
+  if (!access || !MONTH_PATTERN.test(month)) return;
+  try {
+    await deleteSavingsSnapshot(access.jwt, month);
+    revalidatePath("/", "layout");
+  } catch (error) {
+    console.error("Falha ao remover o saldo das caixinhas:", error);
+  }
+}
+
+/** Gera a análise da IA (onde cortar gastos); fica salva e a página recarrega com ela. */
+export async function generateInsightAction(): Promise<{ ok: boolean }> {
+  const access = await getAccess();
+  if (!access) return { ok: false };
+  try {
+    await requestSavingsInsight(access.jwt);
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (error) {
+    console.error("Falha ao gerar a análise:", error);
+    return { ok: false };
   }
 }

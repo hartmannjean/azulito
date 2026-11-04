@@ -18,6 +18,8 @@ export const listTransactionsQuerySchema = z.object({
   q: z.string().trim().max(80).optional(),
   account_id: z.string().trim().max(64).optional(),
   type: z.enum(["income", "expense"]).optional(),
+  /** "1" = inclui o que está fora das somas (fatura paga, aplicação/resgate). */
+  show_excluded: z.enum(["1"]).optional(),
   sort: z.enum(["date", "amount"]).default("date"),
   order: z.enum(["asc", "desc"]).default("desc"),
 });

@@ -61,3 +61,21 @@ function safeJson(text: string): unknown {
     return null;
   }
 }
+
+/**
+ * Gera um texto livre. Diferente da categorização, aqui NÃO entra descrição
+ * de transação (entrada não confiável): só números e nomes de categoria já
+ * agregados pelo app.
+ */
+export async function generateText(system: string, user: string): Promise<string> {
+  const response = await env.AI.run(MODEL, {
+    temperature: 0.4,
+    max_tokens: 900,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  });
+  const raw = (response as { response?: unknown }).response;
+  return typeof raw === "string" ? raw.trim() : "";
+}

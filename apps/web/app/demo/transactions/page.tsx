@@ -13,6 +13,7 @@ type Search = {
   category?: string;
   type?: string;
   month?: string;
+  excluded?: string;
   p?: string;
 };
 
@@ -29,6 +30,7 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
     category: raw.category,
     type: raw.type === "income" || raw.type === "expense" ? raw.type : undefined,
     month: raw.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw.month) ? raw.month : undefined,
+    excluded: raw.excluded === "1",
   };
 
   // Filtros aplicados em memória sobre os dados fictícios.
@@ -39,7 +41,7 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
     if (search.category === "__none__" ? tx.category !== null : search.category && tx.category !== search.category) {
       return false;
     }
-    if (search.type && tx.excluded) return false;
+    if ((search.type || !search.excluded) && tx.excluded) return false;
     if (search.type === "income" && tx.amount <= 0) return false;
     if (search.type === "expense" && tx.amount >= 0) return false;
     if (search.month && !tx.transaction_date.startsWith(search.month)) return false;

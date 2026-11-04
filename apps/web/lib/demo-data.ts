@@ -7,6 +7,7 @@ import type {
   Transaction,
   TransactionsSummary,
 } from "@azulito/shared";
+import { buildSavingsOverview, type SavingsOverview } from "@azulito/shared";
 import { shiftMonth } from "@/lib/format";
 
 /**
@@ -233,5 +234,39 @@ export function getDemoData(now: Date = new Date()) {
     budgets,
     recurring,
     uncategorized: transactions.filter((tx) => tx.category === null).length,
+  };
+}
+
+/**
+ * Caixinhas FICTÍCIAS da demonstração: mesmos cálculos do app real
+ * (`buildSavingsOverview`), com aplicações, resgates e saldos inventados.
+ */
+export function getDemoSavings(now: Date = new Date()): SavingsOverview {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const current = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}`;
+  const at = (delta: number) => shiftMonth(current, delta);
+
+  const flows = [
+    { month: at(-3), amount: -1500 },
+    { month: at(-2), amount: -1200 },
+    { month: at(-2), amount: 2000 },
+    { month: at(-1), amount: -1800 },
+    { month: at(-1), amount: 300 },
+    { month: current, amount: -500 },
+  ];
+  const snapshots: Record<string, number> = {
+    [at(-4)]: 8000,
+    [at(-3)]: 9660,
+    [at(-2)]: 8975,
+    [at(-1)]: 10610,
+  };
+
+  return {
+    ...buildSavingsOverview(flows, snapshots, current),
+    insight: {
+      content:
+        "Diagnóstico: exemplo fictício. Suas caixinhas crescem em média R$ 733,33 por mês, com rendimento perto de 1,6% ao mês.\n- Delivery de comida: média de R$ 410,00 por mês; cortar 20% libera R$ 82,00.\n- Compras: média de R$ 520,00 por mês; cortar 20% libera R$ 104,00.\nEfeito: cerca de R$ 186,00 a mais nas caixinhas por mês, ou R$ 558,00 em 3 meses.",
+      created_at: now.toISOString(),
+    },
   };
 }

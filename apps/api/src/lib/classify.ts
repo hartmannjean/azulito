@@ -25,3 +25,8 @@ export function isExcludedFromTotals(
   return amount > 0 && CARD_PAYMENT_RECEIVED.test(description);
 }
 
+
+/** Movimento de aplicação/resgate (caixinhas, RDB, CDB...): o dinheiro só muda de lugar. */
+export function isInvestmentFlow(description: string): boolean {
+  return INVESTMENT.test(description);
+}

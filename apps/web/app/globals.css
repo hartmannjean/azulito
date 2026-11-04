@@ -1595,6 +1595,30 @@ a.button {
   width: 7rem;
 }
 
+.filter-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.insight-text {
+  white-space: pre-line;
+  line-height: 1.55;
+  margin: 0.75rem 0;
+}
+
+.forecast-row td {
+  font-style: italic;
+  color: var(--muted, inherit);
+}
+
+.chart-heading.padded,
+.tx-totals-note.padded {
+  padding: 0 1rem;
+}
+
 /* Responsivo */
 
 @media (max-width: 1100px) {

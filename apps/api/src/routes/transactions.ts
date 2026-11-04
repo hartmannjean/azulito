@@ -30,7 +30,7 @@ transactionsRouter.get("/", async (req, res) => {
     return res.status(400).json({ error: "Parâmetros inválidos.", issues: parsed.error.flatten() });
   }
 
-  const { limit, offset, category, month, q, account_id, type, sort, order } = parsed.data;
+  const { limit, offset, category, month, q, account_id, type, show_excluded, sort, order } = parsed.data;
 
   // Sem RLS no D1: o filtro por user_id (vindo do JWT, nunca do cliente) é a
   // única barreira de isolamento entre usuários. Todo valor do cliente entra
@@ -56,7 +56,7 @@ transactionsRouter.get("/", async (req, res) => {
   // Filtrar por tipo segue a mesma regra das somas (summary): o que está
   // `excluded` (resgate/aplicação, pagamento de fatura) não é receita nem
   // despesa, então a lista bate com o total do card do dashboard.
-  if (type) conditions.push("t.excluded = 0");
+  if (type || !show_excluded) conditions.push("t.excluded = 0");
   if (type === "income") conditions.push("t.amount > 0");
   if (type === "expense") conditions.push("t.amount < 0");
   if (q) {

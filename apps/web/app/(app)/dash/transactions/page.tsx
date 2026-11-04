@@ -15,6 +15,7 @@ type Search = {
   category?: string;
   type?: string;
   month?: string;
+  excluded?: string;
   p?: string;
 };
 
@@ -31,6 +32,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     category: raw.category,
     type: raw.type === "income" || raw.type === "expense" ? raw.type : undefined,
     month: raw.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw.month) ? raw.month : undefined,
+    excluded: raw.excluded === "1",
   };
 
   let accounts: Account[] = [];
@@ -49,6 +51,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         category: search.category,
         type: search.type,
         month: search.month,
+        show_excluded: search.excluded ? "1" : undefined,
         limit: TRANSACTIONS_PAGE_SIZE,
         offset: (page - 1) * TRANSACTIONS_PAGE_SIZE,
       }),
