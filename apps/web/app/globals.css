@@ -3203,3 +3203,177 @@ a.button {
     padding: 0.9rem;
   }
 }
+
+/* ==========================================================================
+   Campos de formulário: um só visual (filtros, orçamentos, caixinhas, ciclo
+   do cartão, categorias). Vem por último para valer sobre as regras antigas.
+   ========================================================================== */
+
+.filter-bar input,
+.filter-bar select,
+.stack-form input,
+.stack-form select,
+.card-cycle-form input,
+.card-cycle-form select,
+.rename-form input,
+.category-select {
+  min-height: 2.6rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-bar select,
+.stack-form select,
+.card-cycle-form select,
+.category-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a5cc' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  cursor: pointer;
+}
+
+.filter-bar input:hover,
+.filter-bar select:hover,
+.stack-form input:hover,
+.stack-form select:hover,
+.card-cycle-form input:hover,
+.category-select:hover {
+  border-color: var(--accent);
+}
+
+.filter-bar input:focus,
+.filter-bar select:focus,
+.stack-form input:focus,
+.stack-form select:focus,
+.card-cycle-form input:focus,
+.card-cycle-form select:focus,
+.rename-form input:focus,
+.category-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.filter-bar input::placeholder,
+.stack-form input::placeholder,
+.card-cycle-form input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+/* Barra de filtros */
+
+.filter-bar {
+  padding: 0.9rem;
+  gap: 0.65rem;
+  border-radius: var(--radius-lg);
+}
+
+.filter-search {
+  flex: 1 1 14rem;
+}
+
+.filter-check {
+  padding: 0.5rem 0.8rem;
+  min-height: 2.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.filter-check input {
+  min-height: 0;
+  width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  accent-color: var(--accent-strong);
+}
+
+/* Formulários empilhados (orçamento, categoria) */
+
+.stack-form label {
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stack-form .button {
+  width: 100%;
+  min-height: 2.8rem;
+  border-radius: var(--radius-md);
+}
+
+/* Formulários em linha (caixinhas, ciclo do cartão) */
+
+.card-cycle-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+  max-width: 28rem;
+}
+
+.card-cycle-form label {
+  min-width: 0;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.card-cycle-form input,
+.card-cycle-form select {
+  width: 100%;
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.card-cycle-form .button,
+.card-cycle-form .muted-cell,
+.card-cycle-form .form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.card-cycle-form .button {
+  width: 100%;
+  min-height: 2.6rem;
+}
+
+/* Renomear categoria */
+
+.rename-form {
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.rename-form input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .rename-form {
+    flex-wrap: wrap;
+  }
+
+  .rename-form input {
+    flex-basis: 100%;
+  }
+}
