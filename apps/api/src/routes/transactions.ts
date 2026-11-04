@@ -4,9 +4,9 @@ import {
   monthSummaryQuerySchema,
   trendQuerySchema,
   updateCategorySchema,
-  isCategory,
 } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
+import { resolveCategory } from "../lib/categories.js";
 import { categorizePending } from "../lib/categorizer.js";
 
 export const transactionsRouter = Router();
@@ -22,34 +22,11 @@ function getMonthRange(month: string): { start: string; end: string } {
   return { start, end };
 }
 
-type AdjustedRow = { amount: number; category: string | null; transaction_date: string };
+const round2 = (value: number) => Math.round(value * 100) / 100;
 
-/**
- * Transações do período que contam como receita/despesa real: o OFX tem sinal
- * confiável (TRNAMT), e o que não é fluxo de caixa (pagamento de fatura,
- * aplicação/resgate) já vem marcado como `excluded` na importação (ver
- * lib/classify.ts). A lista (GET /transactions) mostra tudo; só a soma
- * agregada (summary/categories/trend) desconsidera as excluídas.
- */
-async function fetchAdjustedTransactions(
-  userId: string,
-  start: string,
-  end: string,
-): Promise<AdjustedRow[]> {
-  const { results } = await getDb()
-    .prepare(
-      `select amount, category, transaction_date from transactions
-       where user_id = ? and excluded = 0 and transaction_date >= ? and transaction_date < ?`,
-    )
-    .bind(userId, start, end)
-    .all<{ amount: number; category: string | null; transaction_date: string }>();
-
-  return results.map((row) => ({
-    amount: Number(row.amount),
-    category: row.category,
-    transaction_date: row.transaction_date,
-  }));
-}
+// Agregação feita no D1 (GROUP BY) para não trazer todas as linhas do período.
+// O que não é fluxo de caixa (fatura paga, aplicação/resgate) já vem marcado
+// como `excluded` na importação (lib/classify.ts); só as somas o ignoram.
 
 /**
  * GET /transactions — lista paginada e filtrável das transações do usuário
@@ -86,6 +63,10 @@ transactionsRouter.get("/", async (req, res) => {
     conditions.push("t.account_id = ?");
     params.push(account_id);
   }
+  // Filtrar por tipo segue a mesma regra das somas (summary): o que está
+  // `excluded` (resgate/aplicação, pagamento de fatura) não é receita nem
+  // despesa, então a lista bate com o total do card do dashboard.
+  if (type) conditions.push("t.excluded = 0");
   if (type === "income") conditions.push("t.amount > 0");
   if (type === "expense") conditions.push("t.amount < 0");
   if (q) {
@@ -116,14 +97,22 @@ transactionsRouter.get("/", async (req, res) => {
         .bind(...params, limit, offset)
         .all<{ excluded: number }>(),
       db
-        .prepare(`select count(*) as n from transactions t where ${where}`)
+        .prepare(
+          `select count(*) as n,
+                  coalesce(sum(case when t.excluded = 0 and t.amount > 0 then t.amount end), 0) as income,
+                  coalesce(sum(case when t.excluded = 0 and t.amount < 0 then -t.amount end), 0) as expenses
+           from transactions t where ${where}`,
+        )
         .bind(...params)
-        .first<{ n: number }>(),
+        .first<{ n: number; income: number; expenses: number }>(),
     ]);
+    const income = Number(count?.income ?? 0);
+    const expenses = Number(count?.expenses ?? 0);
 
     res.json({
       transactions: page.results.map((row) => ({ ...row, excluded: row.excluded === 1 })),
       total: count?.n ?? 0,
+      totals: { income: round2(income), expenses: round2(expenses), balance: round2(income - expenses) },
     });
   } catch (error) {
     console.error("Falha ao buscar transações:", error);
@@ -132,20 +121,25 @@ transactionsRouter.get("/", async (req, res) => {
 });
 
 /**
- * PATCH /transactions/:id — corrige a categoria. Vira uma regra por
- * estabelecimento (`merchant_rules`) e é aplicada às OUTRAS transações do
- * mesmo lugar que não foram definidas à mão pelo usuário.
+ * PATCH /transactions/:id — corrige a categoria. Para categoria fixa, vira
+ * uma regra por estabelecimento (`merchant_rules`) aplicada às OUTRAS
+ * transações do mesmo lugar que não foram definidas à mão. Categoria própria
+ * vale só para esta transação: ela costuma marcar QUEM fez a compra (ex.:
+ * outra pessoa usando o cartão), não o lugar.
  */
 transactionsRouter.patch("/:id", async (req, res) => {
   const parsed = updateCategorySchema.safeParse(req.body);
-  if (!parsed.success || !isCategory(parsed.data.category)) {
+  if (!parsed.success) {
     return res.status(400).json({ error: "Categoria inválida." });
   }
-  const { category } = parsed.data;
   const userId = req.userId!;
   const db = getDb();
 
   try {
+    const resolved = await resolveCategory(userId, parsed.data.category);
+    if (!resolved) return res.status(400).json({ error: "Categoria inválida." });
+    const category = resolved.name;
+
     const row = await db
       .prepare("select merchant_key from transactions where id = ? and user_id = ?")
       .bind(req.params.id, userId)
@@ -158,7 +152,7 @@ transactionsRouter.patch("/:id", async (req, res) => {
       .run();
 
     let updated = 1;
-    if (row.merchant_key) {
+    if (row.merchant_key && !resolved.custom) {
       await db
         .prepare(
           `insert into merchant_rules (user_id, merchant_key, category) values (?, ?, ?)
@@ -196,9 +190,7 @@ transactionsRouter.post("/categorize", async (req, res) => {
 
 /**
  * GET /transactions/summary?month=AAAA-MM — total de receitas/despesas do
- * mês. Soma no servidor em vez de agregar no SQL: o
- * volume de transações de um único mês de uma pessoa nunca é grande o
- * bastante pra isso pesar.
+ * mês.
  */
 transactionsRouter.get("/summary", async (req, res) => {
   const parsed = monthSummaryQuerySchema.safeParse(req.query);
@@ -209,30 +201,29 @@ transactionsRouter.get("/summary", async (req, res) => {
   const { month } = parsed.data;
   const { start, end } = getMonthRange(month);
 
-  let rows: AdjustedRow[];
   try {
-    rows = await fetchAdjustedTransactions(req.userId!, start, end);
+    const row = await getDb()
+      .prepare(
+        `select coalesce(sum(case when amount >= 0 then amount end), 0) as income,
+                coalesce(sum(case when amount < 0 then -amount end), 0) as expenses
+         from transactions
+         where user_id = ? and excluded = 0 and transaction_date >= ? and transaction_date < ?`,
+      )
+      .bind(req.userId!, start, end)
+      .first<{ income: number; expenses: number }>();
+    const income = Number(row?.income ?? 0);
+    const expenses = Number(row?.expenses ?? 0);
+
+    res.json({
+      month,
+      income: round2(income),
+      expenses: round2(expenses),
+      balance: round2(income - expenses),
+    });
   } catch (error) {
     console.error("Falha ao calcular o resumo:", error);
-    return res.status(500).json({ error: "Falha ao calcular o resumo." });
+    res.status(500).json({ error: "Falha ao calcular o resumo." });
   }
-
-  let income = 0;
-  let expenses = 0;
-  for (const row of rows) {
-    if (row.amount >= 0) {
-      income += row.amount;
-    } else {
-      expenses += Math.abs(row.amount);
-    }
-  }
-
-  res.json({
-    month,
-    income: Math.round(income * 100) / 100,
-    expenses: Math.round(expenses * 100) / 100,
-    balance: Math.round((income - expenses) * 100) / 100,
-  });
 });
 
 /**
@@ -249,38 +240,39 @@ transactionsRouter.get("/categories", async (req, res) => {
   const { month } = parsed.data;
   const { start, end } = getMonthRange(month);
 
-  let rows: AdjustedRow[];
   try {
-    rows = await fetchAdjustedTransactions(req.userId!, start, end);
+    const { results } = await getDb()
+      .prepare(
+        `select coalesce(category, 'Outros') as category, sum(-amount) as total
+         from transactions
+         where user_id = ? and excluded = 0 and amount < 0
+           and transaction_date >= ? and transaction_date < ?
+         group by 1`,
+      )
+      .bind(req.userId!, start, end)
+      .all<{ category: string; total: number }>();
+
+    const totalExpenses = results.reduce((sum, row) => sum + Number(row.total), 0);
+    const categories = results
+      .map((row) => ({
+        category: row.category,
+        total: round2(Number(row.total)),
+        percentage:
+          totalExpenses > 0 ? Math.round((Number(row.total) / totalExpenses) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({ month, categories });
   } catch (error) {
     console.error("Falha ao calcular categorias:", error);
-    return res.status(500).json({ error: "Falha ao calcular categorias." });
+    res.status(500).json({ error: "Falha ao calcular categorias." });
   }
-
-  const totals = new Map<string, number>();
-  for (const row of rows) {
-    if (row.amount >= 0) continue;
-    const key = row.category ?? "Outros";
-    totals.set(key, (totals.get(key) ?? 0) + Math.abs(row.amount));
-  }
-
-  const totalExpenses = [...totals.values()].reduce((sum, value) => sum + value, 0);
-  const categories = [...totals.entries()]
-    .map(([category, total]) => ({
-      category,
-      total: Math.round(total * 100) / 100,
-      percentage: totalExpenses > 0 ? Math.round((total / totalExpenses) * 1000) / 10 : 0,
-    }))
-    .sort((a, b) => b.total - a.total);
-
-  res.json({ month, categories });
 });
 
 /**
  * GET /transactions/trend?months=6 — receitas/despesas/saldo dos últimos N
- * meses (incluindo o atual), do mais antigo pro mais recente. Soma no
- * servidor com uma única query no intervalo inteiro, em vez de uma query por
- * mês.
+ * meses (incluindo o atual), do mais antigo pro mais recente. Uma única
+ * query agregada no intervalo inteiro, em vez de uma por mês.
  */
 transactionsRouter.get("/trend", async (req, res) => {
   const parsed = trendQuerySchema.safeParse(req.query);
@@ -299,37 +291,34 @@ transactionsRouter.get("/trend", async (req, res) => {
   const rangeStart = getMonthRange(monthList[0]!).start;
   const rangeEnd = getMonthRange(monthList[monthList.length - 1]!).end;
 
-  let rows: AdjustedRow[];
   try {
-    rows = await fetchAdjustedTransactions(req.userId!, rangeStart, rangeEnd);
+    const { results } = await getDb()
+      .prepare(
+        `select substr(transaction_date, 1, 7) as month,
+                coalesce(sum(case when amount >= 0 then amount end), 0) as income,
+                coalesce(sum(case when amount < 0 then -amount end), 0) as expenses
+         from transactions
+         where user_id = ? and excluded = 0 and transaction_date >= ? and transaction_date < ?
+         group by 1`,
+      )
+      .bind(req.userId!, rangeStart, rangeEnd)
+      .all<{ month: string; income: number; expenses: number }>();
+
+    const byMonth = new Map(results.map((row) => [row.month, row]));
+    const trend = monthList.map((monthKey) => {
+      const income = Number(byMonth.get(monthKey)?.income ?? 0);
+      const expenses = Number(byMonth.get(monthKey)?.expenses ?? 0);
+      return {
+        month: monthKey,
+        income: round2(income),
+        expenses: round2(expenses),
+        balance: round2(income - expenses),
+      };
+    });
+
+    res.json({ trend });
   } catch (error) {
     console.error("Falha ao calcular a tendência:", error);
-    return res.status(500).json({ error: "Falha ao calcular a tendência." });
+    res.status(500).json({ error: "Falha ao calcular a tendência." });
   }
-
-  const byMonth = new Map<string, { income: number; expenses: number }>();
-  for (const monthKey of monthList) {
-    byMonth.set(monthKey, { income: 0, expenses: 0 });
-  }
-  for (const row of rows) {
-    const bucket = byMonth.get(row.transaction_date.slice(0, 7));
-    if (!bucket) continue;
-    if (row.amount >= 0) {
-      bucket.income += row.amount;
-    } else {
-      bucket.expenses += Math.abs(row.amount);
-    }
-  }
-
-  const trend = monthList.map((monthKey) => {
-    const bucket = byMonth.get(monthKey)!;
-    return {
-      month: monthKey,
-      income: Math.round(bucket.income * 100) / 100,
-      expenses: Math.round(bucket.expenses * 100) / 100,
-      balance: Math.round((bucket.income - bucket.expenses) * 100) / 100,
-    };
-  });
-
-  res.json({ trend });
 });

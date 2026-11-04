@@ -1,30 +1,31 @@
 import type { Request, Response, NextFunction } from "express";
-import { apiRateLimiter, checkRateLimit } from "@azulito/shared";
+import { env } from "cloudflare:workers";
 import { getClientIp } from "../lib/request.js";
 
 /**
  * Rate limit por IP aplicado a toda rota da API (montado em src/app.ts antes
- * das rotas). Workers são stateless entre invocações — por isso o
- * limitador guarda o contador no Upstash Redis (compartilhado via
- * `@azulito/shared`), não em memória do processo.
+ * das rotas). Usa o binding nativo de rate limiting dos Workers: o contador
+ * fica na própria borda, sem ida à rede. O Upstash foi trocado por isso
+ * porque, sem as credenciais configuradas, o cliente dele fazia retries por
+ * ~4,4 s em TODA requisição antes de desistir.
  *
- * Falha ABERTA (deixa passar) se o Upstash estiver fora do ar: uma
- * indisponibilidade do provedor de rate limit não pode derrubar a API
- * inteira. Um atacante não controla essa falha sob demanda (não é um jeito
- * confiável de burlar o limite), então o trade-off de disponibilidade vale
- * a pena aqui.
+ * Chamadas do apps/web chegam por service binding, sem `cf-connecting-ip`,
+ * e dividem um mesmo contador; requisições públicas sempre trazem o IP real
+ * (a Cloudflare sobrescreve o header). Falha ABERTA se o binding faltar ou
+ * der erro: indisponibilidade do limitador não pode derrubar a API.
  */
 export async function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-  const ip = getClientIp(req);
-
-  try {
-    const result = await checkRateLimit(apiRateLimiter, `api:${ip}`);
-    if (!result.success) {
-      res.setHeader("Retry-After", "60");
-      return res.status(429).json({ error: "Muitas requisições. Tente novamente em instantes." });
+  const limiter = env.RATE_LIMITER;
+  if (limiter) {
+    try {
+      const { success } = await limiter.limit({ key: `api:${getClientIp(req)}` });
+      if (!success) {
+        res.setHeader("Retry-After", "60");
+        return res.status(429).json({ error: "Muitas requisições. Tente novamente em instantes." });
+      }
+    } catch (error) {
+      console.error("rate limit indisponível, deixando requisição passar:", error);
     }
-  } catch (error) {
-    console.error("rate limit indisponível, deixando requisição passar:", error);
   }
 
   next();

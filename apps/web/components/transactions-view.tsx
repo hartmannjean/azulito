@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { CATEGORIES } from "@azulito/shared";
 import { TransactionTable } from "@/components/transaction-table";
-import { getCategoryIcon } from "@/lib/category-icons";
-import { translateCategory } from "@/lib/i18n/category-names";
+import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
-import type { Account, Transaction } from "@azulito/shared";
+import { formatCurrency } from "@/lib/format";
+import type { Account, Transaction, TransactionsPage } from "@azulito/shared";
 
 export const TRANSACTIONS_PAGE_SIZE = 50;
 
@@ -21,6 +20,8 @@ export type TransactionsSearch = {
 export function TransactionsView({
   transactions,
   total,
+  totals,
+  customCategories = [],
   accounts,
   search,
   page,
@@ -32,6 +33,8 @@ export function TransactionsView({
 }: {
   transactions: Transaction[];
   total: number;
+  totals: TransactionsPage["totals"];
+  customCategories?: string[];
   accounts: Account[];
   search: TransactionsSearch;
   page: number;
@@ -74,29 +77,47 @@ export function TransactionsView({
           maxLength={80}
           className="filter-search"
         />
-        <select name="account" defaultValue={search.account ?? ""} aria-label={dict.txPage.columns.account}>
+        <select
+          name="account"
+          defaultValue={search.account ?? ""}
+          aria-label={dict.txPage.columns.account}
+        >
           <option value="">{dict.txPage.allAccounts}</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.institution_name} · {dict.accountsPage.kind[account.kind]}
+              {account.institution_name} ·{" "}
+              {dict.accountsPage.kind[account.kind]}
             </option>
           ))}
         </select>
-        <select name="category" defaultValue={search.category ?? ""} aria-label={dict.txPage.columns.category}>
+        <select
+          name="category"
+          defaultValue={search.category ?? ""}
+          aria-label={dict.txPage.columns.category}
+        >
           <option value="">{dict.txPage.allCategories}</option>
           <option value="__none__">{dict.txPage.uncategorized}</option>
-          {CATEGORIES.map((category) => (
-            <option key={category} value={category}>
-              {getCategoryIcon(category)} {translateCategory(category, locale)}
+          {buildCategoryOptions(locale, customCategories).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>
-        <select name="type" defaultValue={search.type ?? ""} aria-label={dict.txPage.allTypes}>
+        <select
+          name="type"
+          defaultValue={search.type ?? ""}
+          aria-label={dict.txPage.allTypes}
+        >
           <option value="">{dict.txPage.allTypes}</option>
           <option value="income">{dict.txPage.income}</option>
           <option value="expense">{dict.txPage.expense}</option>
         </select>
-        <input type="month" name="month" defaultValue={search.month ?? ""} aria-label={dict.txPage.month} />
+        <input
+          type="month"
+          name="month"
+          defaultValue={search.month ?? ""}
+          aria-label={dict.txPage.month}
+        />
         <button type="submit" className="button small">
           {dict.txPage.apply}
         </button>
@@ -110,28 +131,73 @@ export function TransactionsView({
           {dict.dashboard.loadError}
         </p>
       ) : (
-        <section className="chart-card flush">
-          <TransactionTable transactions={transactions} locale={locale} dict={dict.txPage} readOnly={readOnly} />
-          {pages > 1 ? (
-            <nav className="pagination" aria-label="Paginação">
-              {page > 1 ? (
-                <Link href={pageHref(page - 1)} className="button secondary small">
-                  ‹ {dict.txPage.previous}
-                </Link>
-              ) : (
-                <span />
-              )}
-              <span className="muted-cell">{dict.txPage.page(page, pages)}</span>
-              {page < pages ? (
-                <Link href={pageHref(page + 1)} className="button secondary small">
-                  {dict.txPage.next} ›
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          ) : null}
-        </section>
+        <>
+          <section className="tx-totals" aria-label={dict.txPage.totalsLabel}>
+            {search.type !== "expense" ? (
+              <div className="tx-total">
+                <span className="summary-label">{dict.txPage.income}</span>
+                <span className="tx-total-value positive">
+                  {formatCurrency(totals.income, locale)}
+                </span>
+              </div>
+            ) : null}
+            {search.type !== "income" ? (
+              <div className="tx-total">
+                <span className="summary-label">{dict.txPage.expense}</span>
+                <span className="tx-total-value negative">
+                  {formatCurrency(totals.expenses, locale)}
+                </span>
+              </div>
+            ) : null}
+            {!search.type ? (
+              <div className="tx-total">
+                <span className="summary-label">{dict.summary.balance}</span>
+                <span
+                  className={`tx-total-value ${totals.balance >= 0 ? "positive" : "negative"}`}
+                >
+                  {formatCurrency(totals.balance, locale)}
+                </span>
+              </div>
+            ) : null}
+            <p className="tx-totals-note">{dict.txPage.totalsNote}</p>
+          </section>
+          <section className="chart-card flush">
+            <TransactionTable
+              transactions={transactions}
+              locale={locale}
+              dict={dict.txPage}
+              readOnly={readOnly}
+              customCategories={customCategories}
+            />
+            {pages > 1 ? (
+              <nav className="pagination" aria-label="Paginação">
+                {page > 1 ? (
+                  <Link
+                    href={pageHref(page - 1)}
+                    className="button secondary small"
+                  >
+                    ‹ {dict.txPage.previous}
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                <span className="muted-cell">
+                  {dict.txPage.page(page, pages)}
+                </span>
+                {page < pages ? (
+                  <Link
+                    href={pageHref(page + 1)}
+                    className="button secondary small"
+                  >
+                    {dict.txPage.next} ›
+                  </Link>
+                ) : (
+                  <span />
+                )}
+              </nav>
+            ) : null}
+          </section>
+        </>
       )}
     </main>
   );

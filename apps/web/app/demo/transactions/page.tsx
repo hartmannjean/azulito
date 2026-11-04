@@ -39,6 +39,7 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
     if (search.category === "__none__" ? tx.category !== null : search.category && tx.category !== search.category) {
       return false;
     }
+    if (search.type && tx.excluded) return false;
     if (search.type === "income" && tx.amount <= 0) return false;
     if (search.type === "expense" && tx.amount >= 0) return false;
     if (search.month && !tx.transaction_date.startsWith(search.month)) return false;
@@ -46,11 +47,21 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
   });
 
   const start = (page - 1) * TRANSACTIONS_PAGE_SIZE;
+  let income = 0;
+  let expenses = 0;
+  for (const tx of filtered) {
+    if (tx.excluded) continue;
+    if (tx.amount > 0) income += tx.amount;
+    else expenses -= tx.amount;
+  }
+  const round2 = (value: number) => Math.round(value * 100) / 100;
+  const totals = { income: round2(income), expenses: round2(expenses), balance: round2(income - expenses) };
 
   return (
     <TransactionsView
       transactions={filtered.slice(start, start + TRANSACTIONS_PAGE_SIZE)}
       total={filtered.length}
+      totals={totals}
       accounts={demo.accounts}
       search={search}
       page={page}

@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { isCategory, monthSummaryQuerySchema, upsertBudgetSchema } from "@azulito/shared";
+import { monthSummaryQuerySchema, upsertBudgetSchema } from "@azulito/shared";
 import { getDb } from "../lib/db.js";
+import { resolveCategory } from "../lib/categories.js";
 
 export const budgetsRouter = Router();
 
@@ -28,12 +29,16 @@ budgetsRouter.get("/", async (req, res) => {
 /** PUT /budgets — cria/atualiza o limite mensal de uma categoria de gasto. */
 budgetsRouter.put("/", async (req, res) => {
   const parsed = upsertBudgetSchema.safeParse(req.body);
-  if (!parsed.success || !isCategory(parsed.data.category) || parsed.data.category === "Income") {
+  if (!parsed.success || parsed.data.category === "Income") {
     return res.status(400).json({ error: "Orçamento inválido." });
   }
-  const { category, monthly_limit } = parsed.data;
+  const { monthly_limit } = parsed.data;
 
   try {
+    const resolved = await resolveCategory(req.userId!, parsed.data.category);
+    if (!resolved) return res.status(400).json({ error: "Orçamento inválido." });
+    const category = resolved.name;
+
     await getDb()
       .prepare(
         `insert into budgets (user_id, category, monthly_limit) values (?, ?, ?)
@@ -66,7 +71,8 @@ budgetsRouter.delete("/:category", async (req, res) => {
 
 /**
  * GET /budgets/progress?month=AAAA-MM — quanto já foi gasto em cada categoria
- * com limite, no mês. Só conta despesa real (fora as `excluded`).
+ * com limite, no mês, e o gasto nas categorias sem limite. Só conta despesa
+ * real (fora as `excluded`).
  */
 budgetsRouter.get("/progress", async (req, res) => {
   const parsed = monthSummaryQuerySchema.safeParse(req.query);
@@ -85,17 +91,22 @@ budgetsRouter.get("/progress", async (req, res) => {
         .all<{ category: string; monthly_limit: number }>(),
       db
         .prepare(
-          `select coalesce(category, 'Other') as category, sum(-amount) as spent
+          `select category, sum(-amount) as spent
            from transactions
            where user_id = ? and excluded = 0 and amount < 0
              and transaction_date >= ? and transaction_date < ?
            group by 1`,
         )
         .bind(req.userId!, start, end)
-        .all<{ category: string; spent: number }>(),
+        .all<{ category: string | null; spent: number }>(),
     ]);
 
-    const spentByCategory = new Map(spent.results.map((row) => [row.category, row.spent]));
+    const spentByCategory = new Map(spent.results.map((row) => [row.category, Number(row.spent)]));
+    const limited = new Set(limits.results.map((row) => row.category));
+    const unbudgeted = spent.results
+      .filter((row) => row.category === null || !limited.has(row.category))
+      .map((row) => ({ category: row.category, spent: Math.round(Number(row.spent) * 100) / 100 }))
+      .sort((a, b) => b.spent - a.spent);
     const budgets = limits.results
       .map((row) => {
         const value = Math.round((spentByCategory.get(row.category) ?? 0) * 100) / 100;
@@ -113,6 +124,8 @@ budgetsRouter.get("/progress", async (req, res) => {
       budgets,
       totalLimit: Math.round(budgets.reduce((sum, b) => sum + b.limit, 0) * 100) / 100,
       totalSpent: Math.round(budgets.reduce((sum, b) => sum + b.spent, 0) * 100) / 100,
+      unbudgeted,
+      unbudgetedTotal: Math.round(unbudgeted.reduce((sum, row) => sum + row.spent, 0) * 100) / 100,
     });
   } catch (error) {
     console.error("Falha ao calcular orçamentos:", error);

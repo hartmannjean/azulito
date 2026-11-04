@@ -1,4 +1,4 @@
-import { fetchBudgetsProgress } from "@/lib/api-client";
+import { fetchBudgetsProgress, fetchUserCategories } from "@/lib/api-client";
 import { requireAccess } from "@/lib/access";
 import { resolveMonth } from "@/lib/month";
 import { BudgetsView } from "@/components/budgets-view";
@@ -18,9 +18,15 @@ export default async function BudgetsPage({
   const month = await resolveMonth(access.jwt, monthParam);
 
   let progress: BudgetsProgress | null = null;
+  let customCategories: string[] = [];
   let loadError = false;
   try {
-    progress = await fetchBudgetsProgress(access.jwt, month);
+    const [progressResult, categoriesResult] = await Promise.all([
+      fetchBudgetsProgress(access.jwt, month),
+      fetchUserCategories(access.jwt),
+    ]);
+    progress = progressResult;
+    customCategories = categoriesResult.map((category) => category.name);
   } catch (err) {
     console.error("Falha ao carregar orçamentos:", err);
     loadError = true;
@@ -34,6 +40,7 @@ export default async function BudgetsPage({
       locale={locale}
       dict={dict}
       loadError={loadError}
+      customCategories={customCategories}
     />
   );
 }

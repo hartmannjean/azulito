@@ -7,11 +7,18 @@ import {
   categorizePendingTransactions,
   saveBudget,
   deleteBudget,
+  createUserCategory,
+  deleteUserCategory,
 } from "@/lib/api-client";
-import { isCategory } from "@azulito/shared";
+import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
 import { getAccess } from "@/lib/access";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
+
+/** Formato válido de categoria (fixa ou própria); a apps/api confere se a própria existe. */
+function isCategoryValue(value: string): boolean {
+  return isCategory(value) || categoryNameSchema.safeParse(value).success;
+}
 
 export type ImportState = { message?: string; error?: string };
 
@@ -53,10 +60,10 @@ export async function importOfx(_prev: ImportState, formData: FormData): Promise
   }
 }
 
-/** Altera a categoria de uma transação (vira regra para o mesmo estabelecimento). */
+/** Altera a categoria de uma transação (categoria fixa também vira regra para o estabelecimento). */
 export async function setCategory(id: string, category: string): Promise<{ ok: boolean }> {
   const access = await getAccess();
-  if (!access || !isCategory(category) || id.length === 0 || id.length > 64) return { ok: false };
+  if (!access || !isCategoryValue(category) || id.length === 0 || id.length > 64) return { ok: false };
   try {
     await updateTransactionCategory(access.jwt, id, category);
     revalidatePath("/", "layout");
@@ -95,7 +102,7 @@ export async function saveBudgetAction(_prev: BudgetState, formData: FormData): 
 
   const category = String(formData.get("category") ?? "");
   const limit = Number(String(formData.get("limit") ?? "").replace(",", "."));
-  if (!isCategory(category) || category === "Income" || !Number.isFinite(limit) || limit <= 0) {
+  if (!isCategoryValue(category) || category === "Income" || !Number.isFinite(limit) || limit <= 0) {
     return { error: dict.budgetsPage.invalid };
   }
 
@@ -111,11 +118,46 @@ export async function saveBudgetAction(_prev: BudgetState, formData: FormData): 
 
 export async function removeBudgetAction(category: string): Promise<void> {
   const access = await getAccess();
-  if (!access || !isCategory(category)) return;
+  if (!access || !isCategoryValue(category)) return;
   try {
     await deleteBudget(access.jwt, category);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao remover orçamento:", error);
+  }
+}
+
+export type CategoryState = { error?: string };
+
+/** Cria uma categoria própria. */
+export async function createCategoryAction(_prev: CategoryState, formData: FormData): Promise<CategoryState> {
+  const dict = getDictionary(await getLocale());
+  const access = await getAccess();
+  if (!access) return { error: dict.auth.errors.notAuthenticated };
+
+  const parsed = categoryNameSchema.safeParse(String(formData.get("name") ?? ""));
+  if (!parsed.success || isReservedCategoryName(parsed.data)) {
+    return { error: dict.categoriesPage.invalid };
+  }
+
+  try {
+    await createUserCategory(access.jwt, parsed.data);
+    revalidatePath("/", "layout");
+    return {};
+  } catch (error) {
+    console.error("Falha ao criar categoria:", error);
+    return { error: dict.categoriesPage.failed };
+  }
+}
+
+/** Remove uma categoria própria (as transações dela ficam sem categoria). */
+export async function removeCategoryAction(id: string): Promise<void> {
+  const access = await getAccess();
+  if (!access || !/^[0-9a-f]{32}$/.test(id)) return;
+  try {
+    await deleteUserCategory(access.jwt, id);
+    revalidatePath("/", "layout");
+  } catch (error) {
+    console.error("Falha ao remover categoria:", error);
   }
 }

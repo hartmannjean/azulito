@@ -10,8 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@upstash/ratelimit": "2.0.8",
-    "@upstash/redis": "1.38.3",
     "zod": "4.5.4",
     "jose": "6.2.14"
   },

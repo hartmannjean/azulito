@@ -37,6 +37,7 @@ declare module "cloudflare:workers" {
   export const env: {
     DB: D1Database;
     OFX_BUCKET: R2Bucket;
+    RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
     AI: { run(model: string, input: unknown): Promise<unknown> };
   };
 }

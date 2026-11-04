@@ -1,4 +1,4 @@
-import { fetchAccounts, fetchTransactionsPage } from "@/lib/api-client";
+import { fetchAccounts, fetchTransactionsPage, fetchUserCategories } from "@/lib/api-client";
 import { requireAccess } from "@/lib/access";
 import {
   TransactionsView,
@@ -7,7 +7,7 @@ import {
 } from "@/components/transactions-view";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
-import type { Account, Transaction } from "@azulito/shared";
+import type { Account, Transaction, TransactionsPage } from "@azulito/shared";
 
 type Search = {
   q?: string;
@@ -36,10 +36,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   let accounts: Account[] = [];
   let transactions: Transaction[] = [];
   let total = 0;
+  let customCategories: string[] = [];
+  let totals: TransactionsPage["totals"] = { income: 0, expenses: 0, balance: 0 };
   let loadError = false;
 
   try {
-    const [accountsResult, pageResult] = await Promise.all([
+    const [accountsResult, pageResult, categoriesResult] = await Promise.all([
       fetchAccounts(access.jwt),
       fetchTransactionsPage(access.jwt, {
         q: search.q,
@@ -50,10 +52,13 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         limit: TRANSACTIONS_PAGE_SIZE,
         offset: (page - 1) * TRANSACTIONS_PAGE_SIZE,
       }),
+      fetchUserCategories(access.jwt),
     ]);
+    customCategories = categoriesResult.map((category) => category.name);
     accounts = accountsResult;
     transactions = pageResult.transactions;
     total = pageResult.total;
+    totals = pageResult.totals;
   } catch (err) {
     console.error("Falha ao carregar transações:", err);
     loadError = true;
@@ -63,6 +68,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     <TransactionsView
       transactions={transactions}
       total={total}
+      totals={totals}
+      customCategories={customCategories}
       accounts={accounts}
       search={search}
       page={page}

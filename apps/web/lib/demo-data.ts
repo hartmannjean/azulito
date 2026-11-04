@@ -183,9 +183,16 @@ export function getDemoData(now: Date = new Date()) {
       return { category, limit, spent, percentage: Math.round((spent / limit) * 1000) / 10 };
     })
     .sort((a, b) => b.percentage - a.percentage);
+  const limited = new Set(limits.map(([category]) => category));
+  const unbudgeted = [...byCategory.entries()]
+    .filter(([category]) => !limited.has(category))
+    .map(([category, spent]) => ({ category, spent: round(spent) }))
+    .sort((a, b) => b.spent - a.spent);
   const budgets: BudgetsProgress = {
     month,
     budgets: budgetRows,
+    unbudgeted,
+    unbudgetedTotal: round(unbudgeted.reduce((sum, row) => sum + row.spent, 0)),
     totalLimit: round(budgetRows.reduce((sum, row) => sum + row.limit, 0)),
     totalSpent: round(budgetRows.reduce((sum, row) => sum + row.spent, 0)),
   };

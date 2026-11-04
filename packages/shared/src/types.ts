@@ -21,9 +21,14 @@ export type Transaction = {
 };
 
 /** GET /transactions — `total` é o total de linhas do filtro (para paginar). */
+/** Categoria criada pelo usuário (GET /categories). */
+export type UserCategory = { id: string; name: string };
+
 export type TransactionsPage = {
   transactions: Transaction[];
   total: number;
+  /** Somas de TODO o resultado filtrado (não só da página), sem as `excluded`. */
+  totals: { income: number; expenses: number; balance: number };
 };
 
 /** GET /budgets/progress. */
@@ -40,6 +45,9 @@ export type BudgetsProgress = {
   budgets: BudgetProgress[];
   totalLimit: number;
   totalSpent: number;
+  /** Gasto do mês em categorias SEM limite definido (`null` = sem categoria), do maior pro menor. */
+  unbudgeted: Array<{ category: string | null; spent: number }>;
+  unbudgetedTotal: number;
 };
 
 /** GET /recurring — gastos que se repetem todo mês. */

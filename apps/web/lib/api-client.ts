@@ -12,6 +12,7 @@ import type {
   TransactionsSummary,
   CategoriesSummary,
   TransactionsTrend,
+  UserCategory,
 } from "@azulito/shared";
 
 /**
@@ -150,6 +151,23 @@ export async function saveBudget(accessJwt: string, category: string, monthlyLim
 
 export async function deleteBudget(accessJwt: string, category: string): Promise<void> {
   await apiFetch(`/budgets/${encodeURIComponent(category)}`, accessJwt, { method: "DELETE" });
+}
+
+export async function fetchUserCategories(accessJwt: string): Promise<UserCategory[]> {
+  const data = await apiFetch<{ categories: UserCategory[] }>("/categories", accessJwt);
+  return data.categories;
+}
+
+export async function createUserCategory(accessJwt: string, name: string): Promise<void> {
+  await apiFetch("/categories", accessJwt, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteUserCategory(accessJwt: string, id: string): Promise<void> {
+  await apiFetch(`/categories/${encodeURIComponent(id)}`, accessJwt, { method: "DELETE" });
 }
 
 export async function fetchRecurring(accessJwt: string): Promise<RecurringSummary> {

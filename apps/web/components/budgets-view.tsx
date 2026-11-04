@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { CATEGORIES } from "@azulito/shared";
 import { BudgetForm } from "@/components/budget-form";
 import { RemoveBudgetButton } from "@/components/remove-budget-button";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { formatCurrency, formatMonthLabel, shiftMonth } from "@/lib/format";
+import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 import type { BudgetsProgress } from "@azulito/shared";
@@ -18,8 +18,10 @@ export function BudgetsView({
   dict,
   loadError = false,
   demo = false,
+  customCategories = [],
 }: {
   progress: BudgetsProgress | null;
+  customCategories?: string[];
   month: string;
   /** "/dash/budgets" ou "/demo/budgets". */
   basePath: string;
@@ -28,11 +30,9 @@ export function BudgetsView({
   loadError?: boolean;
   demo?: boolean;
 }) {
-  const options = CATEGORIES.filter((category) => category !== "Income").map((value) => ({
-    value,
-    label: `${getCategoryIcon(value) ?? ""} ${translateCategory(value, locale) ?? value}`.trim(),
-  }));
+  const options = buildCategoryOptions(locale, customCategories, { includeIncome: false });
 
+  const transactionsPath = basePath.replace(/\/budgets$/, "/transactions");
   const total = progress && progress.totalLimit > 0 ? (progress.totalSpent / progress.totalLimit) * 100 : 0;
 
   return (
@@ -134,6 +134,32 @@ export function BudgetsView({
                 })}
               </div>
             )}
+
+            {progress.unbudgeted.length > 0 ? (
+              <section className="chart-card">
+                <div className="budget-card-top">
+                  <h2 className="chart-heading">{dict.budgetsPage.unbudgetedHeading}</h2>
+                  <span className="card-highlight">{formatCurrency(progress.unbudgetedTotal, locale)}</span>
+                </div>
+                <p className="muted-cell">{dict.budgetsPage.unbudgetedHelp}</p>
+                <ul className="mini-list">
+                  {progress.unbudgeted.map((item) => {
+                    const params = new URLSearchParams({ type: "expense", month });
+                    params.set("category", item.category ?? "__none__");
+                    return (
+                      <li key={item.category ?? "__none__"} className="mini-row">
+                        <Link href={`${transactionsPath}?${params.toString()}`} className="mini-row-label">
+                          {item.category
+                            ? `${getCategoryIcon(item.category) ?? ""} ${translateCategory(item.category, locale)}`.trim()
+                            : dict.txPage.uncategorized}
+                        </Link>
+                        <span className="muted-cell">{formatCurrency(item.spent, locale)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
           </div>
 
           <aside className="chart-card form-card">

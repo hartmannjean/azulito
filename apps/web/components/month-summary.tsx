@@ -77,7 +77,11 @@ export function MonthSummary({
         </Link>
       </div>
       <div className="summary-cards">
-        <div className="summary-card summary-card-income">
+        <Link
+          href={`${basePath}/transactions?type=income&month=${summary.month}`}
+          className="summary-card summary-card-income summary-card-link"
+          title={dict.summary.viewIncome}
+        >
           <div className="summary-card-top">
             <span className="summary-icon income" aria-hidden="true">
               ↑
@@ -91,8 +95,12 @@ export function MonthSummary({
             <DeltaBadge value={incomeDelta} dict={dict.summary} />
             <Sparkline data={incomeTrend} color="var(--positive)" />
           </div>
-        </div>
-        <div className="summary-card summary-card-expense">
+        </Link>
+        <Link
+          href={`${basePath}/transactions?type=expense&month=${summary.month}`}
+          className="summary-card summary-card-expense summary-card-link"
+          title={dict.summary.viewExpenses}
+        >
           <div className="summary-card-top">
             <span className="summary-icon expense" aria-hidden="true">
               ↓
@@ -106,7 +114,7 @@ export function MonthSummary({
             <DeltaBadge value={expensesDelta} invert dict={dict.summary} />
             <Sparkline data={expensesTrend} color="var(--danger)" />
           </div>
-        </div>
+        </Link>
         <div
           className="summary-card summary-card-balance"
           style={{ "--card-accent": summary.balance >= 0 ? "var(--positive)" : "var(--danger)" } as CSSProperties}

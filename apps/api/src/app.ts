@@ -9,6 +9,7 @@ import { accountsRouter } from "./routes/accounts.js";
 import { importsRouter } from "./routes/imports.js";
 import { budgetsRouter } from "./routes/budgets.js";
 import { recurringRouter } from "./routes/recurring.js";
+import { categoriesRouter } from "./routes/categories.js";
 
 export function createApp() {
   const app = express();
@@ -50,6 +51,7 @@ export function createApp() {
   app.use("/imports", requireAuth, importsRouter);
   app.use("/budgets", requireAuth, budgetsRouter);
   app.use("/recurring", requireAuth, recurringRouter);
+  app.use("/categories", requireAuth, categoriesRouter);
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 

@@ -8,7 +8,7 @@ import {
   fetchTransactionsTrend,
 } from "@/lib/api-client";
 import { requireAccess } from "@/lib/access";
-import { resolveMonth } from "@/lib/month";
+import { resolveMonthWithTrend } from "@/lib/month";
 import { DashboardView, type DashboardData } from "@/components/dashboard-view";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
@@ -24,7 +24,7 @@ export default async function DashboardPage({
   const dict = getDictionary(locale);
   const access = await requireAccess();
 
-  const month = await resolveMonth(access.jwt, monthParam);
+  const { month, trend: resolvedTrend } = await resolveMonthWithTrend(access.jwt, monthParam);
   const previousMonth = shiftMonth(month, -1);
 
   const data: DashboardData = {
@@ -50,7 +50,7 @@ export default async function DashboardPage({
         fetchTransactionsSummary(jwt, month),
         fetchTransactionsSummary(jwt, previousMonth),
         fetchTransactionsCategories(jwt, month),
-        fetchTransactionsTrend(jwt, 6),
+        resolvedTrend ?? fetchTransactionsTrend(jwt, 6),
         fetchBudgetsProgress(jwt, month),
         fetchRecurring(jwt),
         fetchTransactionsPage(jwt, { month, limit: 8 }),
