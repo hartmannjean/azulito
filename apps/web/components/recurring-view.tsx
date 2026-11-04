@@ -50,7 +50,7 @@ export function RecurringView({
 
           <section className="chart-card flush">
             <div className="table-scroll">
-              <table className="tx-table plain-table">
+              <table className="tx-table rec-table">
                 <thead>
                   <tr>
                     <th>{dict.txPage.columns.description}</th>
