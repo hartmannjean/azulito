@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setCategory } from "@/app/(app)/actions";
+import { useCategoryOptions } from "@/components/category-options-context";
 
 export type CategoryOption = { value: string; label: string };
 
@@ -13,16 +14,15 @@ export type CategoryOption = { value: string; label: string };
 export function CategorySelect({
   transactionId,
   current,
-  options,
   uncategorizedLabel,
   errorLabel,
 }: {
   transactionId: string;
   current: string | null;
-  options: CategoryOption[];
   uncategorizedLabel: string;
   errorLabel: string;
 }) {
+  const options = useCategoryOptions();
   const [pending, startTransition] = useTransition();
   const [value, setValue] = useState(current ?? "");
   const [failed, setFailed] = useState(false);

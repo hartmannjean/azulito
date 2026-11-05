@@ -1,19 +1,20 @@
 import type { Locale } from "./i18n/locale";
+import { dateFormat, numberFormat } from "./intl-cache";
 
 export function formatCurrency(amount: number, locale: Locale, currencyCode = "BRL") {
-  return new Intl.NumberFormat(locale, {
+  return numberFormat(locale, {
     style: "currency",
     currency: currencyCode,
   }).format(amount);
 }
 
 export function formatDate(dateIso: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(dateIso));
+  return dateFormat(locale, { dateStyle: "medium" }).format(new Date(dateIso));
 }
 
 /** Data e hora (horário de Brasília): o histórico precisa da hora para distinguir ações do mesmo dia. */
 export function formatDateTime(dateIso: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale, {
+  return dateFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
     timeZone: "America/Sao_Paulo",
@@ -30,7 +31,7 @@ export function currentMonth(): string {
 export function formatMonthLabel(month: string, locale: Locale): string {
   const [year, mon] = month.split("-").map(Number);
   const date = new Date(Date.UTC(year!, mon! - 1, 12));
-  const label = new Intl.DateTimeFormat(locale, {
+  const label = dateFormat(locale, {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -49,7 +50,7 @@ export function shiftMonth(month: string, delta: number): string {
 export function formatMonthShort(month: string, locale: Locale): string {
   const [year, mon] = month.split("-").map(Number);
   const date = new Date(Date.UTC(year!, mon! - 1, 1));
-  return new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" })
+  return dateFormat(locale, { month: "short", timeZone: "UTC" })
     .format(date)
     .replace(".", "");
 }

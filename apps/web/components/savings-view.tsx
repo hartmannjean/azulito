@@ -8,9 +8,10 @@ import { SavingsInsightButton } from "@/components/savings-insight-button";
 import { RemoveSavingsButton } from "@/components/remove-savings-button";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
+import { numberFormat } from "@/lib/intl-cache";
 
 function percent(value: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale, { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+  return numberFormat(locale, { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
     value,
   );
 }

@@ -1,5 +1,6 @@
 import type { MonthlyTrendPoint } from "@azulito/shared";
 import { formatCurrency, formatMonthLabel, formatMonthShort } from "@/lib/format";
+import { numberFormat } from "@/lib/intl-cache";
 import { TrendChartClient, type TrendColumn } from "@/components/trend-chart-client";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -75,7 +76,7 @@ export function TrendChart({
   const incomeArea = `${buildSmoothPath(incomePoints)} L ${incomePoints[incomePoints.length - 1]!.x} ${HEIGHT} L ${incomePoints[0]!.x} ${HEIGHT} Z`;
   const expenseLine = buildSmoothPath(expensePoints);
 
-  const compact = new Intl.NumberFormat(locale, { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+  const compact = numberFormat(locale, { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
   const gridFractions = [0.25, 0.5, 0.75];
   const gridLabels = gridFractions.map((fraction) => ({
     y: ((PADDING_Y + (HEIGHT - PADDING_Y * 2) * fraction) / HEIGHT) * 100,

@@ -3,6 +3,7 @@ import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { CategorySelect } from "@/components/category-select";
+import { CategoryOptionsProvider } from "@/components/category-options-context";
 import { ReferenceMonthSelect } from "@/components/reference-month-select";
 import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -31,6 +32,7 @@ export function TransactionTable({
   const sourceLabel = { ai: dict.sourceAi, rule: dict.sourceRule, user: dict.sourceUser } as const;
 
   return (
+    <CategoryOptionsProvider options={options}>
     <div className="table-scroll">
       <table className="tx-table" role="table">
         <thead role="rowgroup">
@@ -68,7 +70,6 @@ export function TransactionTable({
                     key={`${tx.id}:${tx.category ?? ""}`}
                     transactionId={tx.id}
                     current={tx.category}
-                    options={options}
                     uncategorizedLabel={dict.uncategorized}
                     errorLabel={dict.categoryError}
                   />
@@ -101,5 +102,6 @@ export function TransactionTable({
         </tbody>
       </table>
     </div>
+    </CategoryOptionsProvider>
   );
 }

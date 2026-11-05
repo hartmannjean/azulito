@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { shiftMonth } from "@/lib/format";
+import { dateFormat } from "@/lib/intl-cache";
 import type { Locale } from "@/lib/i18n/locale";
 
 function parts(month: string, locale: Locale) {
   const date = new Date(`${month}-01T00:00:00Z`);
   return {
-    name: new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(date),
-    short: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date).replace(".", ""),
-    year: new Intl.DateTimeFormat(locale, { year: "numeric", timeZone: "UTC" }).format(date),
+    name: dateFormat(locale, { month: "long", timeZone: "UTC" }).format(date),
+    short: dateFormat(locale, { month: "short", timeZone: "UTC" }).format(date).replace(".", ""),
+    year: dateFormat(locale, { year: "numeric", timeZone: "UTC" }).format(date),
   };
 }
 
