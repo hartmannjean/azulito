@@ -31,6 +31,8 @@ describe("exportação", () => {
     assert.equal(res.body.transactions.length, tableCount("transactions", w.alice.user.id), "todas as transações");
     assert.equal(res.body.accounts.length, tableCount("accounts", w.alice.user.id));
     assert.equal(res.body.budgets.length, tableCount("budgets", w.alice.user.id));
+    assert.equal(res.body.user_settings.length, 1, "as preferências (salário e cartão) vão na exportação");
+    assert.ok(text.includes("7777.77"), "o salário informado vai na exportação");
     assert.ok(text.includes("SEGREDO-A"));
     for (const marker of markersOf(w.bob)) assert.ok(!text.includes(marker), `vazou "${marker}" na exportação`);
   });

@@ -26,5 +26,6 @@
   ["src/lib/recurring.ts","where t.user_id = ? and t.excluded = 0 and t.amount","where ? is not null and t.excluded = 0 and t.amount","GET /recurring"],
   ["src/lib/insight-store.ts","from ai_insights where user_id = ? and kind = ?","from ai_insights where ? is not null and kind = ?","insights de IA (leitura)"],
   ["src/lib/history.ts","select undo, undone_at from action_log where id = ? and user_id = ?","select undo, undone_at from action_log where id = ? and ? is not null","POST /history/:id/undo (leitura)"],
-  ["src/routes/history.ts","where user_id = ? order by created_at desc limit ?","where ? is not null order by created_at desc limit ?","GET /history"]
+  ["src/routes/history.ts","where user_id = ? order by created_at desc limit ?","where ? is not null order by created_at desc limit ?","GET /history"],
+  ["src/routes/settings.ts","onboarded_at from user_settings where user_id = ?","onboarded_at from user_settings where ? is not null","GET /settings"]
 ]

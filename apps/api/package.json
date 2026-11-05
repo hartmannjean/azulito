@@ -15,7 +15,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply azulito --remote",
     "test": "node --experimental-strip-types --no-warnings --import ./tests/support/register.mjs --test tests/*.test.ts",
     "check:sql": "node --experimental-strip-types --no-warnings scripts/check-sql-scope.mts",
-    "test:mutation": "node scripts/mutation-isolation.mjs isolation && node scripts/mutation-isolation.mjs limits && node scripts/mutation-isolation.mjs account && node scripts/mutation-isolation.mjs cutover"
+    "test:mutation": "node scripts/mutation-isolation.mjs isolation && node scripts/mutation-isolation.mjs limits && node scripts/mutation-isolation.mjs account && node scripts/mutation-isolation.mjs cutover && node scripts/mutation-isolation.mjs settings"
   },
   "dependencies": {
     "@azulito/shared": "0.1.0",

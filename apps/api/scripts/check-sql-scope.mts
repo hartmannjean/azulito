@@ -24,6 +24,7 @@ const USER_TABLES = [
   "action_log",
   "scheduled_items",
   "usage_counters",
+  "user_settings",
 ];
 
 // Excecões deliberadas: "arquivo:trecho da SQL" -> motivo.

@@ -112,13 +112,21 @@ export function buildAuthOptions(deps: AuthDeps) {
       },
     },
 
-    // Cadastro aberto, mas com teto: o login por código cria a conta no primeiro uso.
+    // Criar conta é um passo EXPLÍCITO: só a tela de cadastro envia o nome. O login (sem nome)
+    // nunca cria conta (a biblioteca grava name "" nesse caso). Cadastro aberto, mas com teto.
     databaseHooks: {
       user: {
         create: {
-          before: async () => {
+          before: async (user: { name?: string | null }) => {
+            const name = (user.name ?? "").trim();
+            if (name.length < 2 || name.length > 80) {
+              throw new APIError("FORBIDDEN", {
+                message: "Não existe conta com este e-mail. Crie uma conta.",
+                code: "SIGNUP_REQUIRED",
+              });
+            }
             if (!(await deps.signupsAllowed())) {
-              throw new APIError("FORBIDDEN", { message: "Cadastros fechados no momento." });
+              throw new APIError("FORBIDDEN", { message: "Cadastros fechados no momento.", code: "SIGNUPS_CLOSED" });
             }
           },
         },

@@ -5,5 +5,6 @@ export * from "./validations/categories.js";
 export * from "./validations/savings.js";
 export * from "./savings.js";
 export * from "./validations/scheduled.js";
+export * from "./validations/settings.js";
 export * from "./forecast.js";
 export * from "./card-compare.js";

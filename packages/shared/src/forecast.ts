@@ -40,12 +40,18 @@ export type ForecastInput = {
   recurringExpenses: RecurringPoint[];
   recurringIncomes: RecurringPoint[];
   cards: CardCycle[];
+  /** Salário informado pelo usuário: entra como receita esperada de cada mês, até cair. */
+  salary?: { amount: number; day: number } | null;
 };
 
 const HISTORY_MONTHS = 3;
 const MATCH_DAYS_BEFORE = 7;
 const MATCH_DAYS_AFTER = 10;
 const RECURRING_OVERLAP = 0.05;
+/** Receita do mês a partir da qual o salário conta como já recebido. */
+const SALARY_RECEIVED_RATIO = 0.8;
+/** Recorrente detectada com valor até esta distância do salário é o próprio salário. */
+const SALARY_MATCH = 0.15;
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -61,7 +67,7 @@ const days = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
  *   fatura do cartão ainda aberta também usa a média (ela ainda vai crescer).
  *
  * Receitas: só o que já tem base (recebido + cadastrado + recorrente que ainda
- * não caiu). A média histórica vai ao lado como referência, sem entrar na conta:
+ * não caiu + o salário informado, enquanto não cair no mês). A média histórica vai ao lado como referência, sem entrar na conta:
  * não se conta com entrada que ninguém prometeu.
  *
  * Um boleto cadastrado vira "reconhecido" quando há uma transação importada com
@@ -117,6 +123,12 @@ export function buildForecast(input: ForecastInput): { months: ForecastMonth[]; 
       };
     });
 
+  // O salário informado substitui a recorrente detectada de valor parecido (é a mesma entrada).
+  const salary = input.salary && input.salary.amount > 0 ? input.salary : null;
+  const detectedIncomes = salary
+    ? input.recurringIncomes.filter((r) => Math.abs(r.amount - salary.amount) > salary.amount * SALARY_MATCH)
+    : input.recurringIncomes;
+
   const cardClosed = (month: string): boolean =>
     input.cards.every((card) => {
       const closingMonth = card.due_day > card.closing_day ? month : addMonths(month, -1);
@@ -160,7 +172,19 @@ export function buildForecast(input: ForecastInput): { months: ForecastMonth[]; 
         .reduce((sum, r) => sum + r.amount, 0);
     };
     const recurringExpenses = recurringPending(input.recurringExpenses, scheduledExpenses, "expense");
-    const recurringIncomes = recurringPending(input.recurringIncomes, scheduledIncomes, "income");
+    // O salário conta como pendente até a receita do mês chegar perto dele; um boleto de entrada
+    // cadastrado à mão com valor parecido já o cobre (recurringPending não conta duas vezes).
+    const incomeList: RecurringPoint[] = salary
+      ? [
+          ...detectedIncomes,
+          {
+            amount: salary.amount,
+            charged_this_month: received >= salary.amount * SALARY_RECEIVED_RATIO,
+            account_kind: "checking",
+          },
+        ]
+      : input.recurringIncomes;
+    const recurringIncomes = recurringPending(incomeList, scheduledIncomes, "income");
 
     const scheduledExpense = scheduledExpenses.reduce((s, item) => s + item.amount, 0);
     const scheduledIncome = scheduledIncomes.reduce((s, item) => s + item.amount, 0);

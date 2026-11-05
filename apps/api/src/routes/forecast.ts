@@ -88,6 +88,16 @@ forecastRouter.get("/", async (req, res) => {
       .bind(userId, earliest)
       .all<{ date: string; amount: number }>();
 
+    // Salário informado pelo usuário: entra como receita esperada dos meses, até cair.
+    const prefs = await db
+      .prepare("select salary_amount, salary_day from user_settings where user_id = ?")
+      .bind(userId)
+      .first<{ salary_amount: number | null; salary_day: number | null }>();
+    const salary =
+      prefs?.salary_amount && Number(prefs.salary_amount) > 0 && prefs.salary_day
+        ? { amount: Number(prefs.salary_amount), day: prefs.salary_day }
+        : null;
+
     const toPoint = (item: ReturnType<typeof detectRecurring>[number]) => ({
       amount: item.amount,
       charged_this_month: item.charged_this_month,
@@ -103,9 +113,10 @@ forecastRouter.get("/", async (req, res) => {
       recurringExpenses: detectRecurring(expenseRecurring, now).map(toPoint),
       recurringIncomes: detectRecurring(incomeRecurring, now).map(toPoint),
       cards: cardRows.results,
+      salary,
     });
 
-    res.json(forecast satisfies ForecastResponse);
+    res.json({ ...forecast, salary } satisfies ForecastResponse);
   } catch (error) {
     console.error("Falha ao calcular a previsão:", error);
     res.status(500).json({ error: "Falha ao calcular a previsão." });

@@ -99,6 +99,12 @@ importsRouter.post(
 
     const db = getDb();
 
+    // Fechamento e vencimento que o usuário informou ao se cadastrar: valem para cartões novos.
+    const prefs = await db
+      .prepare("select card_closing_day, card_due_day from user_settings where user_id = ?")
+      .bind(userId)
+      .first<{ card_closing_day: number | null; card_due_day: number | null }>();
+
     try {
       let imported = 0;
       let duplicates = 0;
@@ -108,11 +114,11 @@ importsRouter.post(
       for (const statement of statements) {
         // Fechamento da fatura = dia do DTEND. Só preenche quando ainda não há
         // valor, para não desfazer o que o usuário editou.
-        const closingDay =
-          statement.kind === "credit_card" && statement.periodEnd
-            ? Number(statement.periodEnd.slice(8, 10))
-            : null;
-        const dueDay = closingDay ? defaultDueDay(closingDay) : null;
+        const isCard = statement.kind === "credit_card";
+        const fromOfx = isCard && statement.periodEnd ? Number(statement.periodEnd.slice(8, 10)) : null;
+        // O que o usuário informou vale primeiro; sem isso, o fechamento vem do OFX e o vencimento é estimado.
+        const closingDay = isCard ? (prefs?.card_closing_day ?? fromOfx) : null;
+        const dueDay = isCard ? (prefs?.card_due_day ?? (closingDay ? defaultDueDay(closingDay) : null)) : null;
 
         const account = await db
           .prepare(

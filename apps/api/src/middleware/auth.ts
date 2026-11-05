@@ -38,6 +38,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     req.userId = session.user.id;
     req.userEmail = session.user.email;
+    req.userName = session.user.name;
     next();
   } catch (error) {
     console.error("falha ao validar sessão:", error);

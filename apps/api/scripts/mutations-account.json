@@ -17,5 +17,8 @@
   ["src/lib/account.ts","if (results.length < EXPORT_PAGE) break;","break;","exportação: só a primeira página de transações"],
   ["src/routes/account.ts","if (!(await consume(userId, \"export\", 1, limitOf(\"EXPORTS_PER_DAY\")))) {","if (false) {","limite diário de exportações"],
   ["src/lib/auth-options.ts","freshAge: 60 * 10,","freshAge: 60 * 60 * 24 * 365,","exclusão exige login recente"],
-  ["src/lib/auth-options.ts","await deps.purgeUserData(user.id);","void deps;","exclusão apaga os dados antes do usuário"]
+  ["src/lib/auth-options.ts","await deps.purgeUserData(user.id);","void deps;","exclusão apaga os dados antes do usuário"],
+  ["src/lib/account.ts","    db.prepare(\"delete from user_settings where user_id = ?\").bind(userId),\n","","D1: apagar preferências"],
+  ["src/lib/account.ts","    user_settings: await rows(db.prepare(\"select * from user_settings where user_id = ?\").bind(userId)),","    user_settings: [],","exportação: preferências ausentes"],
+  ["src/lib/account.ts","\"select * from user_settings where user_id = ?\"","\"select * from user_settings where ? is not null\"","exportação: preferências de todos"]
 ]

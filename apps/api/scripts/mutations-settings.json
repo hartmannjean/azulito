@@ -1,0 +1,18 @@
+[
+  ["src/lib/auth-options.ts", "if (name.length < 2 || name.length > 80) {", "if (false) {", "cadastro: nome deixa de ser obrigatório"],
+  ["src/lib/auth-options.ts", "if (name.length < 2 || name.length > 80) {", "if (name.length > 80) {", "cadastro: nome curto aceito"],
+  ["src/lib/auth-options.ts", "if (name.length < 2 || name.length > 80) {", "if (name.length < 2) {", "cadastro: nome longo aceito"],
+  ["src/lib/auth-options.ts", "const name = (user.name ?? \"\").trim();", "const name = user.name ?? \"\";", "cadastro: nome só de espaços aceito"],
+  ["src/lib/auth-options.ts", "code: \"SIGNUP_REQUIRED\",", "code: \"OUTRO\",", "cadastro: código do erro 'crie uma conta'"],
+  ["src/routes/settings.ts", "const amount = salary_amount === null || salary_amount === 0 ? null : Math.round(salary_amount * 100) / 100;", "const amount = salary_amount === null || salary_amount === 0 ? null : salary_amount;", "preferências: salário sem arredondar"],
+  ["src/routes/settings.ts", "const amount = salary_amount === null || salary_amount === 0 ? null : Math.round(salary_amount * 100) / 100;", "const amount = salary_amount === 0 ? null : Math.round((salary_amount ?? 0) * 100) / 100;", "preferências: sem salário vira zero"],
+  ["src/routes/settings.ts", ".bind(userId, amount, amount === null ? null : salary_day, card_closing_day, card_due_day),", ".bind(userId, amount, salary_day, card_closing_day, card_due_day),", "preferências: dia do salário sobra sem salário"],
+  ["src/routes/settings.ts", "closing_day is null and due_day is null and ", "", "preferências: sobrescreve o ciclo de cartão existente"],
+  ["src/routes/settings.ts", "where user_id = ? and kind = 'credit_card' and closing_day is null", "where ? is not null and kind = 'credit_card' and closing_day is null", "preferências: preenche cartões de todos"],
+  ["src/routes/settings.ts", "if (!parsed.success) return res.status(400)", "if (false) return res.status(400)", "preferências: validação desligada"],
+  ["src/routes/imports.ts", "const closingDay = isCard ? (prefs?.card_closing_day ?? fromOfx) : null;", "const closingDay = isCard ? (fromOfx ?? prefs?.card_closing_day) : null;", "importação: fechamento informado perde para o OFX"],
+  ["src/routes/imports.ts", "prefs?.card_due_day ?? (closingDay ? defaultDueDay(closingDay) : null)", "(closingDay ? defaultDueDay(closingDay) : null)", "importação: vencimento informado ignorado"],
+  ["src/routes/imports.ts", "\"select card_closing_day, card_due_day from user_settings where user_id = ?\"", "\"select card_closing_day, card_due_day from user_settings where ? is not null\"", "importação: preferência de cartão de outro usuário"],
+  ["src/routes/forecast.ts", "\"select salary_amount, salary_day from user_settings where user_id = ?\"", "\"select salary_amount, salary_day from user_settings where ? is not null\"", "previsão: salário de outro usuário"],
+  ["src/routes/forecast.ts", "      salary,\n    });", "    });", "previsão: salário não entra no cálculo"]
+]

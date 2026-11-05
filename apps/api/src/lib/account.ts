@@ -53,6 +53,7 @@ export async function purgeUserData(userId: string): Promise<void> {
     db.prepare("delete from transactions where user_id = ?").bind(userId),
     db.prepare("delete from imports where user_id = ?").bind(userId),
     db.prepare("delete from accounts where user_id = ?").bind(userId),
+    db.prepare("delete from user_settings where user_id = ?").bind(userId),
     db.prepare("delete from usage_counters where user_id = ?").bind(userId),
   ]);
 }
@@ -72,6 +73,7 @@ export type UserExport = {
   scheduled_items: Row[];
   ai_insights: Row[];
   action_log: Row[];
+  user_settings: Row[];
 };
 
 /**
@@ -112,5 +114,6 @@ export async function exportUserData(userId: string, email: string): Promise<Use
     action_log: await rows(
       db.prepare("select id, kind, meta, created_at, undone_at from action_log where user_id = ? order by id").bind(userId),
     ),
+    user_settings: await rows(db.prepare("select * from user_settings where user_id = ?").bind(userId)),
   };
 }

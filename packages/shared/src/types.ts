@@ -325,6 +325,18 @@ export type ForecastMonth = {
 export type ForecastResponse = {
   months: ForecastMonth[];
   items: ScheduledItem[];
+  /** Salário informado pelo usuário, se houver (já incluído na previsão de receitas). */
+  salary: { amount: number; day: number } | null;
+};
+
+/** Preferências financeiras do usuário (GET/PUT /settings). `null` = não informado. */
+export type UserSettings = {
+  salary_amount: number | null;
+  salary_day: number | null;
+  card_closing_day: number | null;
+  card_due_day: number | null;
+  /** Já respondeu (ou pulou) as perguntas iniciais. */
+  onboarded: boolean;
 };
 
 /** Compras no cartão: este mês até hoje × mês passado até o mesmo dia (GET /card/comparison). */

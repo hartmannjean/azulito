@@ -22,6 +22,7 @@ const DATA_TABLES = [
   "ai_insights",
   "action_log",
   "scheduled_items",
+  "user_settings",
 ];
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;

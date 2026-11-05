@@ -19,6 +19,7 @@ import { auditRouter } from "./routes/audit.js";
 import { forecastRouter, scheduledRouter } from "./routes/forecast.js";
 import { cardRouter } from "./routes/card.js";
 import { accountRouter } from "./routes/account.js";
+import { settingsRouter } from "./routes/settings.js";
 
 export function createApp() {
   const app = express();
@@ -69,7 +70,7 @@ export function createApp() {
   // rota reimplementa checagem de sessão por conta própria.
   // Identidade da sessão atual, para o web exibir o e-mail (a verificação
   // da sessão continua só aqui, nunca duplicada no web).
-  app.get("/me", requireAuth, (req, res) => res.json({ id: req.userId, email: req.userEmail }));
+  app.get("/me", requireAuth, (req, res) => res.json({ id: req.userId, email: req.userEmail, name: req.userName }));
 
   app.use("/transactions", requireAuth, transactionsRouter);
   app.use("/accounts", requireAuth, accountsRouter);
@@ -84,6 +85,7 @@ export function createApp() {
   app.use("/scheduled", requireAuth, scheduledRouter);
   app.use("/card", requireAuth, cardRouter);
   app.use("/account", requireAuth, accountRouter);
+  app.use("/settings", requireAuth, settingsRouter);
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 

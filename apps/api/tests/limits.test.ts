@@ -364,21 +364,22 @@ describe("códigos de login", () => {
 
 describe("cadastro: teto de usuários e interruptor", () => {
   let ipSeed = 100;
-  async function login(email: string) {
+  async function login(email: string, name?: string) {
     const ip = `192.0.2.${++ipSeed}`;
     const sent = await h.authCall("/email-otp/send-verification-otp", { email, type: "sign-in" }, ip);
     assert.equal(sent.status, 200, `pedir código: ${JSON.stringify(sent.body)}`);
     const otp = [...h.sentOtps].reverse().find((o) => o.to === email)?.otp;
     assert.ok(otp, "o código chegou ao mailer");
-    return h.authCall("/sign-in/email-otp", { email, otp }, ip);
+    // Só a tela de cadastro envia o nome; o login comum nunca cria conta.
+    return h.authCall("/sign-in/email-otp", { email, otp, ...(name ? { name } : {}) }, ip);
   }
   const users = () => (h.db.prepare('select count(*) as n from "user"').get() as { n: number }).n;
 
   test("no teto, quem já tem conta entra e quem é novo é barrado", async () => {
     h.setLimit("MAX_USERS", users() + 1);
     try {
-      assert.equal((await login("novo1@example.test")).status, 200, "cabe mais um");
-      const blocked = await login("novo2@example.test");
+      assert.equal((await login("novo1@example.test", "Novo Um")).status, 200, "cabe mais um");
+      const blocked = await login("novo2@example.test", "Novo Dois");
       assert.equal(blocked.status, 403);
       assert.equal(h.db.prepare('select count(*) as n from "user" where email = ?').get("novo2@example.test").n, 0, "a conta não foi criada");
       assert.equal((await login("novo1@example.test")).status, 200, "quem já tem conta continua entrando no teto");
@@ -390,12 +391,12 @@ describe("cadastro: teto de usuários e interruptor", () => {
   test("SIGNUPS_ENABLED=false fecha cadastros novos sem afetar quem já tem conta", async () => {
     (env as Record<string, unknown>).SIGNUPS_ENABLED = "false";
     try {
-      const blocked = await login("novo3@example.test");
+      const blocked = await login("novo3@example.test", "Novo Tres");
       assert.equal(blocked.status, 403);
       assert.equal((await login("novo1@example.test")).status, 200);
     } finally {
       delete (env as Record<string, unknown>).SIGNUPS_ENABLED;
     }
-    assert.equal((await login("novo3@example.test")).status, 200, "reaberto, o cadastro volta");
+    assert.equal((await login("novo3@example.test", "Novo Tres")).status, 200, "reaberto, o cadastro volta");
   });
 });

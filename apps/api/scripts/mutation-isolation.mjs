@@ -17,7 +17,9 @@
 //     Lista: scripts/mutations-account.json. Testes: account.test.ts.
 //   cutover: desfaz uma proteção do gerador de SQL da virada por vez.
 //     Lista: scripts/mutations-cutover.json. Testes: cutover.test.ts.
-// Uso: node scripts/mutation-isolation.mjs [isolation|limits|account|cutover]
+//   settings: desfaz uma proteção do cadastro explícito e das preferências por vez.
+//     Lista: scripts/mutations-settings.json. Testes: signup.test.ts e settings.test.ts.
+// Uso: node scripts/mutation-isolation.mjs [isolation|limits|account|cutover|settings]
 import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -28,6 +30,7 @@ const SUITES = {
   limits: { list: "mutations-limits.json", tests: ["tests/limits.test.ts", "tests/rate-limit.test.ts"] },
   account: { list: "mutations-account.json", tests: ["tests/account.test.ts"] },
   cutover: { list: "mutations-cutover.json", tests: ["tests/cutover.test.ts"] },
+  settings: { list: "mutations-settings.json", tests: ["tests/signup.test.ts", "tests/settings.test.ts"] },
 };
 const suiteName = process.argv[2] ?? "isolation";
 const suite = SUITES[suiteName];

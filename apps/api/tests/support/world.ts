@@ -5,6 +5,7 @@ import { buildOfx, type Harness, type TestUser } from "./harness.ts";
 // que respeita as chaves estrangeiras para apagar.
 export const USER_TABLES = [
   "usage_counters",
+  "user_settings",
   "action_log",
   "ai_insights",
   "scheduled_items",
@@ -39,7 +40,15 @@ export function snapshot(h: Harness, userId: string): string {
   return JSON.stringify(Object.fromEntries(USER_TABLES.map((t) => [t, rowsOf(h, t, userId)])));
 }
 
-type SeedOptions = { budgetCategory: string; month: string; limit: number; balance: number; salary: number };
+type SeedOptions = {
+  budgetCategory: string;
+  month: string;
+  limit: number;
+  balance: number;
+  salary: number;
+  /** Salário informado nas preferências (aparece em /settings e na previsão). */
+  declaredSalary: number;
+};
 
 async function seed(h: Harness, user: TestUser, tag: string, opts: SeedOptions): Promise<Seed> {
   const secretAmount = tag === "A" ? 777.77 : 333.33;
@@ -126,6 +135,16 @@ async function seed(h: Harness, user: TestUser, tag: string, opts: SeedOptions):
   const firstTx = (h.db.prepare("select id from transactions where user_id = ? and description like ?").get(user.id, `SEGREDO-${tag} mercado%`) as { id: string }).id;
   must(await h.call(user, "PATCH", `/transactions/${firstTx}`, { category: "Groceries" }), "corrigir categoria");
 
+  must(
+    await h.call(user, "PUT", "/settings", {
+      salary_amount: opts.declaredSalary,
+      salary_day: tag === "A" ? 5 : 6,
+      card_closing_day: tag === "A" ? 11 : 12,
+      card_due_day: tag === "A" ? 18 : 19,
+    }),
+    "salvar preferências",
+  );
+
   for (const kind of ["savings", "budget", "recurring"]) {
     h.db
       .prepare("insert into ai_insights (user_id, kind, content, created_at) values (?, ?, ?, ?)")
@@ -140,7 +159,7 @@ async function seed(h: Harness, user: TestUser, tag: string, opts: SeedOptions):
     user,
     tag,
     ids,
-    values: [secretAmount, opts.limit, opts.balance, opts.salary, recurringAmount, cardPrevious, cardCurrent].map(String),
+    values: [secretAmount, opts.limit, opts.balance, opts.salary, opts.declaredSalary, recurringAmount, cardPrevious, cardCurrent].map(String),
   };
 }
 
@@ -149,8 +168,8 @@ export async function buildWorld(h: Harness): Promise<World> {
   const a = await h.newUser("alice@example.test");
   const b = await h.newUser("bob@example.test");
   return {
-    alice: await seed(h, a, "A", { budgetCategory: "Groceries", month: "2026-01", limit: 501.11, balance: 1111.11, salary: 1000.55 }),
-    bob: await seed(h, b, "B", { budgetCategory: "Housing", month: "2026-02", limit: 602.22, balance: 2222.22, salary: 2000.66 }),
+    alice: await seed(h, a, "A", { budgetCategory: "Groceries", month: "2026-01", limit: 501.11, balance: 1111.11, salary: 1000.55, declaredSalary: 7777.77 }),
+    bob: await seed(h, b, "B", { budgetCategory: "Housing", month: "2026-02", limit: 602.22, balance: 2222.22, salary: 2000.66, declaredSalary: 8888.88 }),
   };
 }
 
@@ -171,6 +190,7 @@ export function markersOf(seed: Seed): string[] {
 /** Todas as leituras (GET) da api que devolvem dados do usuário. */
 export const READS = [
   "/me",
+  "/settings",
   "/transactions?limit=200",
   "/transactions?limit=200&q=SEGREDO",
   "/transactions/summary?month=2026-01",
