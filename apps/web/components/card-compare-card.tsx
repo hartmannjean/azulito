@@ -124,7 +124,7 @@ export function CardCompareCard({
       {data.categories.length > 0 ? (
         <>
           <h3 className="audit-sub">{t.byCategory}</h3>
-          <ul className="mini-list">
+          <ul className="mini-list compare-list">
             {data.categories.map((row) => {
               const rowMore = row.delta > 0;
               return (

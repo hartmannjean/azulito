@@ -4092,3 +4092,83 @@ details.forecast-fold[open] > summary { margin-bottom: 0.9rem; }
 .account-grid .account-item + .account-item { border-top: 1px solid var(--border); }
 .account-grid .card-cycle { order: 0; flex-basis: auto; width: 100%; padding-left: 0; }
 .account-grid .account-info { flex: none; }
+
+/* ==========================================================================
+   Refinamento mobile (por último para prevalecer)
+   ========================================================================== */
+
+/* Antes o mínimo de 18rem estourava telas de 320–340px. */
+.account-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
+}
+
+@media (max-width: 900px) {
+  /* A faixa da demonstração já tem "Entrar": um só botão, barra de cima menos apertada. */
+  .sidebar-actions .demo-login {
+    display: none;
+  }
+
+  .sidebar-footer {
+    min-width: 0;
+  }
+
+  .chart-legend {
+    flex-wrap: wrap;
+    row-gap: 0.3rem;
+  }
+
+  /* Comparação por categoria: nome numa linha, valores embaixo (antes cortava o nome). */
+  .compare-list .mini-row {
+    flex-wrap: wrap;
+    row-gap: 0.1rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compare-list .mini-row:last-child {
+    border-bottom: none;
+  }
+
+  .compare-list .mini-row-label {
+    flex: 1 1 100%;
+    font-weight: 600;
+  }
+
+  .compare-list .mini-row > .muted-cell {
+    margin-right: auto;
+  }
+
+  .import-item {
+    overflow-wrap: break-word;
+  }
+
+  .chart-card {
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (max-width: 560px) {
+  .summary-card .summary-value {
+    font-size: clamp(1rem, 5.2vw, 1.25rem);
+    overflow-wrap: anywhere;
+  }
+
+  .chart-card {
+    padding-inline: 1rem;
+  }
+
+  .page-header .page-subtitle {
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 420px) {
+  /* Filtros: uma coluna, campos de data e tipo com espaço para o texto. */
+  .filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar .brand-name {
+    display: none;
+  }
+}

@@ -62,7 +62,7 @@ export function AppShell({
             />
             <ThemeToggle label={dict.common.toggleTheme} />
             {demo ? (
-              <a href="/dash" className="button secondary small">
+              <a href="/dash" className="button secondary small demo-login">
                 {dict.landing.login}
               </a>
             ) : (
