@@ -12,12 +12,12 @@ const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
  * buscada para decidir o mês, para o chamador não pedi-la de novo.
  */
 export async function resolveMonthWithTrend(
-  accessJwt: string,
+  sessionCookie: string,
   param: string | undefined,
 ): Promise<{ month: string; trend: TransactionsTrend | null }> {
   if (param && MONTH_PATTERN.test(param)) return { month: param, trend: null };
   try {
-    const trend = await fetchTransactionsTrend(accessJwt, 6);
+    const trend = await fetchTransactionsTrend(sessionCookie, 6);
     const latest = [...trend.trend].reverse().find((point) => point.income + point.expenses > 0);
     return { month: latest?.month ?? currentMonth(), trend };
   } catch {
@@ -25,6 +25,6 @@ export async function resolveMonthWithTrend(
   }
 }
 
-export async function resolveMonth(accessJwt: string, param: string | undefined): Promise<string> {
-  return (await resolveMonthWithTrend(accessJwt, param)).month;
+export async function resolveMonth(sessionCookie: string, param: string | undefined): Promise<string> {
+  return (await resolveMonthWithTrend(sessionCookie, param)).month;
 }

@@ -1,6 +1,5 @@
 import "server-only";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { ACCESS_JWT_HEADER } from "@azulito/shared";
 import type {
   Transaction,
   Account,
@@ -26,13 +25,13 @@ import type {
 /**
  * Client HTTP para apps/api. Chamado SÓ do servidor da apps/web (Server
  * Components / Server Actions) — `import "server-only"` garante isso no
- * build. O JWT do Access nunca é exposto ao browser por aqui.
+ * build. O cookie de sessão só é repassado pelo servidor, nunca exposto ao browser.
  */
 /**
  * Em produção a chamada vai por service binding (`API`), sem passar pela
  * internet pública. Sem o binding (ex: `next dev`), cai em API_BASE_URL.
  */
-async function apiRequest(path: string, init: RequestInit): Promise<Response> {
+export async function apiRequest(path: string, init: RequestInit): Promise<Response> {
   try {
     const { env } = getCloudflareContext();
     const api = (env as { API?: { fetch: typeof fetch } }).API;
@@ -50,63 +49,72 @@ async function apiRequest(path: string, init: RequestInit): Promise<Response> {
   return fetch(`${baseUrl}${path}`, init);
 }
 
-async function apiFetch<T>(path: string, accessJwt: string, init?: RequestInit): Promise<T> {
+/** Resposta de erro da api; `status` permite tratar limites de uso (429/413) de forma amigável. */
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, path: string) {
+    super(`apps/api respondeu ${status} em ${path}`);
+    this.status = status;
+  }
+}
+
+async function apiFetch<T>(path: string, sessionCookie: string, init?: RequestInit): Promise<T> {
   const response = await apiRequest(path, {
     ...init,
     headers: {
       ...init?.headers,
-      [ACCESS_JWT_HEADER]: accessJwt,
+      cookie: sessionCookie,
     },
     cache: "no-store",
   });
 
   if (!response.ok) {
-    throw new Error(`apps/api respondeu ${response.status} em ${path}`);
+    throw new ApiError(response.status, path);
   }
 
   return response.json() as Promise<T>;
 }
 
-export async function fetchTransactions(accessJwt: string, month: string): Promise<Transaction[]> {
+export async function fetchTransactions(sessionCookie: string, month: string): Promise<Transaction[]> {
   const data = await apiFetch<{ transactions: Transaction[] }>(
     `/transactions?month=${month}&limit=200`,
-    accessJwt,
+    sessionCookie,
   );
   return data.transactions;
 }
 
 export async function fetchTransactionsSummary(
-  accessJwt: string,
+  sessionCookie: string,
   month: string,
 ): Promise<TransactionsSummary> {
-  return apiFetch<TransactionsSummary>(`/transactions/summary?month=${month}`, accessJwt);
+  return apiFetch<TransactionsSummary>(`/transactions/summary?month=${month}`, sessionCookie);
 }
 
 export async function fetchTransactionsCategories(
-  accessJwt: string,
+  sessionCookie: string,
   month: string,
 ): Promise<CategoriesSummary> {
-  return apiFetch<CategoriesSummary>(`/transactions/categories?month=${month}`, accessJwt);
+  return apiFetch<CategoriesSummary>(`/transactions/categories?month=${month}`, sessionCookie);
 }
 
 export async function fetchTransactionsTrend(
-  accessJwt: string,
+  sessionCookie: string,
   months = 6,
 ): Promise<TransactionsTrend> {
-  return apiFetch<TransactionsTrend>(`/transactions/trend?months=${months}`, accessJwt);
+  return apiFetch<TransactionsTrend>(`/transactions/trend?months=${months}`, sessionCookie);
 }
 
-export async function fetchAccounts(accessJwt: string): Promise<Account[]> {
-  const data = await apiFetch<{ accounts: Account[] }>("/accounts", accessJwt);
+export async function fetchAccounts(sessionCookie: string): Promise<Account[]> {
+  const data = await apiFetch<{ accounts: Account[] }>("/accounts", sessionCookie);
   return data.accounts;
 }
 
 export async function uploadOfx(
-  accessJwt: string,
+  sessionCookie: string,
   file: ArrayBuffer,
   fileName: string,
 ): Promise<ImportResult> {
-  return apiFetch<ImportResult>("/imports", accessJwt, {
+  return apiFetch<ImportResult>("/imports", sessionCookie, {
     method: "POST",
     body: file,
     headers: {
@@ -117,77 +125,77 @@ export async function uploadOfx(
 }
 
 export async function fetchTransactionsPage(
-  accessJwt: string,
+  sessionCookie: string,
   params: Record<string, string | number | undefined>,
 ): Promise<TransactionsPage> {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== "") query.set(key, String(value));
   }
-  return apiFetch<TransactionsPage>(`/transactions?${query.toString()}`, accessJwt);
+  return apiFetch<TransactionsPage>(`/transactions?${query.toString()}`, sessionCookie);
 }
 
 const JSON_HEADERS = { "content-type": "application/json" };
 
 export async function updateTransactionCategory(
-  accessJwt: string,
+  sessionCookie: string,
   id: string,
   category: string,
 ): Promise<void> {
-  await apiFetch(`/transactions/${encodeURIComponent(id)}`, accessJwt, {
+  await apiFetch(`/transactions/${encodeURIComponent(id)}`, sessionCookie, {
     method: "PATCH",
     headers: JSON_HEADERS,
     body: JSON.stringify({ category }),
   });
 }
 
-export async function categorizePendingTransactions(accessJwt: string): Promise<CategorizeResult> {
-  return apiFetch<CategorizeResult>("/transactions/categorize", accessJwt, { method: "POST" });
+export async function categorizePendingTransactions(sessionCookie: string): Promise<CategorizeResult> {
+  return apiFetch<CategorizeResult>("/transactions/categorize", sessionCookie, { method: "POST" });
 }
 
-export async function fetchBudgetsProgress(accessJwt: string, month: string): Promise<BudgetsProgress> {
-  return apiFetch<BudgetsProgress>(`/budgets/progress?month=${month}`, accessJwt);
+export async function fetchBudgetsProgress(sessionCookie: string, month: string): Promise<BudgetsProgress> {
+  return apiFetch<BudgetsProgress>(`/budgets/progress?month=${month}`, sessionCookie);
 }
 
-export async function saveBudget(accessJwt: string, category: string, monthlyLimit: number): Promise<void> {
-  await apiFetch("/budgets", accessJwt, {
+export async function saveBudget(sessionCookie: string, category: string, monthlyLimit: number): Promise<void> {
+  await apiFetch("/budgets", sessionCookie, {
     method: "PUT",
     headers: JSON_HEADERS,
     body: JSON.stringify({ category, monthly_limit: monthlyLimit }),
   });
 }
 
-export async function deleteBudget(accessJwt: string, category: string): Promise<void> {
-  await apiFetch(`/budgets/${encodeURIComponent(category)}`, accessJwt, { method: "DELETE" });
+export async function deleteBudget(sessionCookie: string, category: string): Promise<void> {
+  await apiFetch(`/budgets/${encodeURIComponent(category)}`, sessionCookie, { method: "DELETE" });
 }
 
-export async function fetchUserCategories(accessJwt: string): Promise<UserCategory[]> {
-  const data = await apiFetch<{ categories: UserCategory[] }>("/categories", accessJwt);
+export async function fetchUserCategories(sessionCookie: string): Promise<UserCategory[]> {
+  const data = await apiFetch<{ categories: UserCategory[] }>("/categories", sessionCookie);
   return data.categories;
 }
 
-export async function createUserCategory(accessJwt: string, name: string): Promise<void> {
-  await apiFetch("/categories", accessJwt, {
+export async function createUserCategory(sessionCookie: string, name: string): Promise<void> {
+  await apiFetch("/categories", sessionCookie, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ name }),
   });
 }
 
-export async function deleteUserCategory(accessJwt: string, id: string): Promise<void> {
-  await apiFetch(`/categories/${encodeURIComponent(id)}`, accessJwt, { method: "DELETE" });
+export async function deleteUserCategory(sessionCookie: string, id: string): Promise<void> {
+  await apiFetch(`/categories/${encodeURIComponent(id)}`, sessionCookie, { method: "DELETE" });
 }
 
-export async function fetchRecurring(accessJwt: string): Promise<RecurringSummary> {
-  return apiFetch<RecurringSummary>("/recurring", accessJwt);
+export async function fetchRecurring(sessionCookie: string): Promise<RecurringSummary> {
+  return apiFetch<RecurringSummary>("/recurring", sessionCookie);
 }
 
 export async function setTransactionsReferenceMonth(
-  accessJwt: string,
+  sessionCookie: string,
   ids: string[],
   month: string | null,
 ): Promise<void> {
-  await apiFetch("/transactions/reference-month", accessJwt, {
+  await apiFetch("/transactions/reference-month", sessionCookie, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ ids, month }),
@@ -195,77 +203,77 @@ export async function setTransactionsReferenceMonth(
 }
 
 export async function updateCardCycle(
-  accessJwt: string,
+  sessionCookie: string,
   accountId: string,
   closingDay: number,
   dueDay: number,
 ): Promise<void> {
-  await apiFetch(`/accounts/${encodeURIComponent(accountId)}`, accessJwt, {
+  await apiFetch(`/accounts/${encodeURIComponent(accountId)}`, sessionCookie, {
     method: "PATCH",
     headers: JSON_HEADERS,
     body: JSON.stringify({ closing_day: closingDay, due_day: dueDay }),
   });
 }
 
-export async function fetchSavings(accessJwt: string): Promise<SavingsOverview> {
-  return apiFetch<SavingsOverview>("/savings", accessJwt);
+export async function fetchSavings(sessionCookie: string): Promise<SavingsOverview> {
+  return apiFetch<SavingsOverview>("/savings", sessionCookie);
 }
 
-export async function saveSavingsSnapshot(accessJwt: string, month: string, balance: number): Promise<void> {
-  await apiFetch("/savings", accessJwt, {
+export async function saveSavingsSnapshot(sessionCookie: string, month: string, balance: number): Promise<void> {
+  await apiFetch("/savings", sessionCookie, {
     method: "PUT",
     headers: JSON_HEADERS,
     body: JSON.stringify({ month, balance }),
   });
 }
 
-export async function deleteSavingsSnapshot(accessJwt: string, month: string): Promise<void> {
-  await apiFetch(`/savings/${encodeURIComponent(month)}`, accessJwt, { method: "DELETE" });
+export async function deleteSavingsSnapshot(sessionCookie: string, month: string): Promise<void> {
+  await apiFetch(`/savings/${encodeURIComponent(month)}`, sessionCookie, { method: "DELETE" });
 }
 
-export async function requestSavingsInsight(accessJwt: string): Promise<{ content: string; created_at: string }> {
-  return apiFetch("/savings/insight", accessJwt, { method: "POST" });
+export async function requestSavingsInsight(sessionCookie: string): Promise<{ content: string; created_at: string }> {
+  return apiFetch("/savings/insight", sessionCookie, { method: "POST" });
 }
 
-export async function fetchHistory(accessJwt: string, limit = 30): Promise<HistoryResponse> {
-  return apiFetch<HistoryResponse>(`/history?limit=${limit}`, accessJwt);
+export async function fetchHistory(sessionCookie: string, limit = 30): Promise<HistoryResponse> {
+  return apiFetch<HistoryResponse>(`/history?limit=${limit}`, sessionCookie);
 }
 
-export async function undoHistoryAction(accessJwt: string, id: string): Promise<void> {
-  await apiFetch(`/history/${encodeURIComponent(id)}/undo`, accessJwt, { method: "POST" });
+export async function undoHistoryAction(sessionCookie: string, id: string): Promise<void> {
+  await apiFetch(`/history/${encodeURIComponent(id)}/undo`, sessionCookie, { method: "POST" });
 }
 
-export async function renameUserCategory(accessJwt: string, id: string, name: string): Promise<void> {
-  await apiFetch(`/categories/${encodeURIComponent(id)}`, accessJwt, {
+export async function renameUserCategory(sessionCookie: string, id: string, name: string): Promise<void> {
+  await apiFetch(`/categories/${encodeURIComponent(id)}`, sessionCookie, {
     method: "PATCH",
     headers: JSON_HEADERS,
     body: JSON.stringify({ name }),
   });
 }
 
-export async function fetchBudgetSuggestions(accessJwt: string): Promise<BudgetSuggestions> {
-  return apiFetch<BudgetSuggestions>("/budgets/suggestions", accessJwt);
+export async function fetchBudgetSuggestions(sessionCookie: string): Promise<BudgetSuggestions> {
+  return apiFetch<BudgetSuggestions>("/budgets/suggestions", sessionCookie);
 }
 
-export async function requestBudgetSuggestions(accessJwt: string): Promise<BudgetSuggestions> {
-  return apiFetch<BudgetSuggestions>("/budgets/suggestions", accessJwt, { method: "POST" });
+export async function requestBudgetSuggestions(sessionCookie: string): Promise<BudgetSuggestions> {
+  return apiFetch<BudgetSuggestions>("/budgets/suggestions", sessionCookie, { method: "POST" });
 }
 
-export async function dismissBudgetSuggestion(accessJwt: string, category: string): Promise<void> {
-  await apiFetch(`/budgets/suggestions/${encodeURIComponent(category)}`, accessJwt, { method: "DELETE" });
+export async function dismissBudgetSuggestion(sessionCookie: string, category: string): Promise<void> {
+  await apiFetch(`/budgets/suggestions/${encodeURIComponent(category)}`, sessionCookie, { method: "DELETE" });
 }
 
-export async function requestRecurringInsight(accessJwt: string): Promise<{ content: string; created_at: string }> {
-  return apiFetch("/recurring/insight", accessJwt, { method: "POST" });
+export async function requestRecurringInsight(sessionCookie: string): Promise<{ content: string; created_at: string }> {
+  return apiFetch("/recurring/insight", sessionCookie, { method: "POST" });
 }
 
-export async function fetchAudit(accessJwt: string): Promise<AuditResult | null> {
-  const data = await apiFetch<{ audit: AuditResult | null }>("/audit", accessJwt);
+export async function fetchAudit(sessionCookie: string): Promise<AuditResult | null> {
+  const data = await apiFetch<{ audit: AuditResult | null }>("/audit", sessionCookie);
   return data.audit;
 }
 
-export async function requestAudit(accessJwt: string, month: string): Promise<AuditResult> {
-  const data = await apiFetch<{ audit: AuditResult }>("/audit", accessJwt, {
+export async function requestAudit(sessionCookie: string, month: string): Promise<AuditResult> {
+  const data = await apiFetch<{ audit: AuditResult }>("/audit", sessionCookie, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ month }),
@@ -273,38 +281,38 @@ export async function requestAudit(accessJwt: string, month: string): Promise<Au
   return data.audit;
 }
 
-export async function fetchImports(accessJwt: string): Promise<ImportLogEntry[]> {
-  const data = await apiFetch<{ imports: ImportLogEntry[] }>("/imports", accessJwt);
+export async function fetchImports(sessionCookie: string): Promise<ImportLogEntry[]> {
+  const data = await apiFetch<{ imports: ImportLogEntry[] }>("/imports", sessionCookie);
   return data.imports;
 }
 
-export async function fetchImportDetails(accessJwt: string, id: string): Promise<ImportDetails> {
-  return apiFetch<ImportDetails>(`/imports/${encodeURIComponent(id)}`, accessJwt);
+export async function fetchImportDetails(sessionCookie: string, id: string): Promise<ImportDetails> {
+  return apiFetch<ImportDetails>(`/imports/${encodeURIComponent(id)}`, sessionCookie);
 }
 
-export async function fetchForecast(accessJwt: string): Promise<ForecastResponse> {
-  return apiFetch<ForecastResponse>("/forecast", accessJwt);
+export async function fetchForecast(sessionCookie: string): Promise<ForecastResponse> {
+  return apiFetch<ForecastResponse>("/forecast", sessionCookie);
 }
 
 export async function createScheduledItem(
-  accessJwt: string,
+  sessionCookie: string,
   item: { kind: "expense" | "income"; description: string; amount: number; due_date: string; category: string | null },
 ): Promise<void> {
-  await apiFetch("/scheduled", accessJwt, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(item) });
+  await apiFetch("/scheduled", sessionCookie, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(item) });
 }
 
-export async function setScheduledPaid(accessJwt: string, id: string, paid: boolean): Promise<void> {
-  await apiFetch(`/scheduled/${encodeURIComponent(id)}`, accessJwt, {
+export async function setScheduledPaid(sessionCookie: string, id: string, paid: boolean): Promise<void> {
+  await apiFetch(`/scheduled/${encodeURIComponent(id)}`, sessionCookie, {
     method: "PATCH",
     headers: JSON_HEADERS,
     body: JSON.stringify({ paid }),
   });
 }
 
-export async function deleteScheduledItem(accessJwt: string, id: string): Promise<void> {
-  await apiFetch(`/scheduled/${encodeURIComponent(id)}`, accessJwt, { method: "DELETE" });
+export async function deleteScheduledItem(sessionCookie: string, id: string): Promise<void> {
+  await apiFetch(`/scheduled/${encodeURIComponent(id)}`, sessionCookie, { method: "DELETE" });
 }
 
-export async function fetchCardComparison(accessJwt: string): Promise<CardComparison> {
-  return apiFetch<CardComparison>("/card/comparison", accessJwt);
+export async function fetchCardComparison(sessionCookie: string): Promise<CardComparison> {
+  return apiFetch<CardComparison>("/card/comparison", sessionCookie);
 }

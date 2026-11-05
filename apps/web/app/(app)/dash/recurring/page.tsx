@@ -1,5 +1,5 @@
 import { fetchRecurring } from "@/lib/api-client";
-import { requireAccess } from "@/lib/access";
+import { requireSession } from "@/lib/session";
 import { RecurringView } from "@/components/recurring-view";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
@@ -8,12 +8,12 @@ import type { RecurringSummary } from "@azulito/shared";
 export default async function RecurringPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const access = await requireAccess();
+  const session = await requireSession();
 
   let recurring: RecurringSummary | null = null;
   let loadError = false;
   try {
-    recurring = await fetchRecurring(access.jwt);
+    recurring = await fetchRecurring(session.cookie);
   } catch (err) {
     console.error("Falha ao carregar recorrências:", err);
     loadError = true;

@@ -1,8 +1,10 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { SidebarNav, type NavItem } from "@/components/sidebar-nav";
+import { SignOutButton } from "@/components/sign-out-button";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
@@ -47,7 +49,11 @@ export function AppShell({
         <SidebarNav items={items} label={dict.nav.label} moreLabel={dict.nav.more} />
         <div className="sidebar-footer">
           {demo ? <span className="sidebar-user">{dict.demo.badge}</span> : null}
-          {!demo && email ? <span className="sidebar-user">{email}</span> : null}
+          {!demo && email ? (
+            <Link href="/dash/account" className="sidebar-user">
+              {email}
+            </Link>
+          ) : null}
           <div className="sidebar-actions">
             <LanguageToggle
               locale={locale}
@@ -60,9 +66,7 @@ export function AppShell({
                 {dict.landing.login}
               </a>
             ) : (
-              <a href="/cdn-cgi/access/logout" className="button secondary small">
-                {dict.dashboard.logout}
-              </a>
+              <SignOutButton label={dict.dashboard.logout} />
             )}
           </div>
         </div>

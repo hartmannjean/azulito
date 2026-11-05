@@ -14,7 +14,7 @@
  * quando os dois estão presentes, `style-src` deixa de valer como fallback
  * para qualquer um deles.
  */
-export function buildCsp(nonce: string): string {
+export function buildCsp(nonce: string, options: { turnstile?: boolean } = {}): string {
   const directives = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
@@ -23,7 +23,8 @@ export function buildCsp(nonce: string): string {
     `img-src 'self' blob: data:`,
     `font-src 'self'`,
     `connect-src 'self'`,
-    `frame-src 'none'`,
+    // O widget do Turnstile (iframe da Cloudflare) só é liberado na página de login.
+    options.turnstile ? `frame-src https://challenges.cloudflare.com` : `frame-src 'none'`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

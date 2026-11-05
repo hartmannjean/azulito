@@ -1,5 +1,5 @@
 import { fetchBudgetsProgress, fetchBudgetSuggestions, fetchUserCategories } from "@/lib/api-client";
-import { requireAccess } from "@/lib/access";
+import { requireSession } from "@/lib/session";
 import { resolveMonth } from "@/lib/month";
 import { BudgetsView } from "@/components/budgets-view";
 import { getLocale } from "@/lib/i18n/get-locale";
@@ -14,8 +14,8 @@ export default async function BudgetsPage({
   const { month: monthParam } = await searchParams;
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const access = await requireAccess();
-  const month = await resolveMonth(access.jwt, monthParam);
+  const session = await requireSession();
+  const month = await resolveMonth(session.cookie, monthParam);
 
   let progress: BudgetsProgress | null = null;
   let customCategories: string[] = [];
@@ -23,9 +23,9 @@ export default async function BudgetsPage({
   let loadError = false;
   try {
     const [progressResult, categoriesResult, suggestionsResult] = await Promise.all([
-      fetchBudgetsProgress(access.jwt, month),
-      fetchUserCategories(access.jwt),
-      fetchBudgetSuggestions(access.jwt).catch(() => null),
+      fetchBudgetsProgress(session.cookie, month),
+      fetchUserCategories(session.cookie),
+      fetchBudgetSuggestions(session.cookie).catch(() => null),
     ]);
     suggestions = suggestionsResult;
     progress = progressResult;

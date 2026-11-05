@@ -1,5 +1,5 @@
 import { fetchSavings } from "@/lib/api-client";
-import { requireAccess } from "@/lib/access";
+import { requireSession } from "@/lib/session";
 import { SavingsView } from "@/components/savings-view";
 import { currentMonth } from "@/lib/format";
 import { getLocale } from "@/lib/i18n/get-locale";
@@ -9,12 +9,12 @@ import type { SavingsOverview } from "@azulito/shared";
 export default async function SavingsPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const access = await requireAccess();
+  const session = await requireSession();
 
   let overview: SavingsOverview | null = null;
   let loadError = false;
   try {
-    overview = await fetchSavings(access.jwt);
+    overview = await fetchSavings(session.cookie);
   } catch (err) {
     console.error("Falha ao carregar as caixinhas:", err);
     loadError = true;

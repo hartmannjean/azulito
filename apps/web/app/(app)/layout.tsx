@@ -1,36 +1,30 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { UndoBar } from "@/components/undo-bar";
 import { fetchHistory } from "@/lib/api-client";
 import { describeAction } from "@/lib/history-message";
-import { getAccess } from "@/lib/access";
+import { getSession } from "@/lib/session";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
- * O Cloudflare Access já barra quem não está logado antes de chegar aqui; o
- * `getAccess()` é defesa em profundidade (acesso que contorne o Access).
+ * Barreira de todas as rotas privadas (/dash/*): sem sessão válida, vai para o
+ * login. O `proxy.ts` só faz uma checagem otimista do cookie; quem de fato
+ * valida a sessão é a apps/api, via `getSession()`.
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const access = await getAccess();
+  const session = await getSession();
 
-  if (!access) {
-    return (
-      <main className="center-notice">
-        <p role="alert" className="form-error">
-          {dict.auth.errors.notAuthenticated}
-        </p>
-      </main>
-    );
-  }
+  if (!session) redirect("/login");
 
   // Última ação: todo Server Action revalida o layout, então este aviso aparece
   // sozinho depois de qualquer mudança, sem cada botão precisar conhecê-lo.
   let undo: { id: string; message: string; ageMs: number; undone: boolean } | null = null;
   try {
-    const { now, actions } = await fetchHistory(access.jwt, 1);
+    const { now, actions } = await fetchHistory(session.cookie, 1);
     const latest = actions[0];
     if (latest) {
       undo = {
@@ -45,7 +39,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppShell email={access.email} locale={locale} dict={dict}>
+    <AppShell email={session.email} locale={locale} dict={dict}>
       {children}
       {undo && undo.ageMs < 15_000 ? (
         <UndoBar

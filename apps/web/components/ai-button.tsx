@@ -20,7 +20,7 @@ export function AiButton({
   className?: string;
 }) {
   const [pending, startTransition] = useTransition();
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
 
   return (
     <div>
@@ -29,18 +29,18 @@ export function AiButton({
         className={className}
         disabled={pending}
         onClick={() => {
-          setFailed(false);
+          setFailure(null);
           startTransition(async () => {
             const result = await generateAiAction(kind, month);
-            if (!result.ok) setFailed(true);
+            if (!result.ok) setFailure(result.error ?? errorLabel);
           });
         }}
       >
         {pending ? runningLabel : label}
       </button>
-      {failed ? (
+      {failure ? (
         <p role="alert" className="form-error">
-          {errorLabel}
+          {failure}
         </p>
       ) : null}
     </div>

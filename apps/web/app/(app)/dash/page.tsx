@@ -9,7 +9,7 @@ import {
   fetchTransactionsSummary,
   fetchTransactionsTrend,
 } from "@/lib/api-client";
-import { requireAccess } from "@/lib/access";
+import { requireSession } from "@/lib/session";
 import { resolveMonthWithTrend } from "@/lib/month";
 import { DashboardView, type DashboardData } from "@/components/dashboard-view";
 import { getLocale } from "@/lib/i18n/get-locale";
@@ -24,13 +24,13 @@ export default async function DashboardPage({
   const { month: monthParam } = await searchParams;
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const access = await requireAccess();
+  const session = await requireSession();
 
-  const { month, trend: resolvedTrend } = await resolveMonthWithTrend(access.jwt, monthParam);
+  const { month, trend: resolvedTrend } = await resolveMonthWithTrend(session.cookie, monthParam);
   const previousMonth = shiftMonth(month, -1);
 
   const data: DashboardData = {
-    firstName: access.email?.split("@")[0] ?? "",
+    firstName: session.email?.split("@")[0] ?? "",
     month,
     accounts: [],
     summary: null,
@@ -45,21 +45,21 @@ export default async function DashboardPage({
   };
 
   try {
-    const jwt = access.jwt;
+    const sessionCookie = session.cookie;
     const [accounts, summary, previousSummary, categories, trend, budgets, recurring, recent, none, audit, cardComparison] =
       await Promise.all([
-        fetchAccounts(jwt),
-        fetchTransactionsSummary(jwt, month),
-        fetchTransactionsSummary(jwt, previousMonth),
-        fetchTransactionsCategories(jwt, month),
-        resolvedTrend ?? fetchTransactionsTrend(jwt, 6),
-        fetchBudgetsProgress(jwt, month),
-        fetchRecurring(jwt),
-        fetchTransactionsPage(jwt, { month, limit: 8 }),
-        fetchTransactionsPage(jwt, { category: "__none__", limit: 1 }),
+        fetchAccounts(sessionCookie),
+        fetchTransactionsSummary(sessionCookie, month),
+        fetchTransactionsSummary(sessionCookie, previousMonth),
+        fetchTransactionsCategories(sessionCookie, month),
+        resolvedTrend ?? fetchTransactionsTrend(sessionCookie, 6),
+        fetchBudgetsProgress(sessionCookie, month),
+        fetchRecurring(sessionCookie),
+        fetchTransactionsPage(sessionCookie, { month, limit: 8 }),
+        fetchTransactionsPage(sessionCookie, { category: "__none__", limit: 1 }),
         // A revisão da IA é um extra: se falhar, o resto do dashboard segue.
-        fetchAudit(jwt).catch(() => null),
-        fetchCardComparison(jwt).catch(() => null),
+        fetchAudit(sessionCookie).catch(() => null),
+        fetchCardComparison(sessionCookie).catch(() => null),
       ]);
     Object.assign(data, {
       accounts,

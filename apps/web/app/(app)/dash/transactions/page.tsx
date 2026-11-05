@@ -1,5 +1,5 @@
 import { fetchAccounts, fetchForecast, fetchTransactionsPage, fetchUserCategories } from "@/lib/api-client";
-import { requireAccess } from "@/lib/access";
+import { requireSession } from "@/lib/session";
 import {
   TransactionsView,
   TRANSACTIONS_PAGE_SIZE,
@@ -23,7 +23,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const raw = await searchParams;
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const access = await requireAccess();
+  const session = await requireSession();
 
   const page = Math.max(1, Math.min(2000, Number(raw.p) || 1));
   const search: TransactionsSearch = {
@@ -45,8 +45,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
   try {
     const [accountsResult, pageResult, categoriesResult, forecastResult] = await Promise.all([
-      fetchAccounts(access.jwt),
-      fetchTransactionsPage(access.jwt, {
+      fetchAccounts(session.cookie),
+      fetchTransactionsPage(session.cookie, {
         q: search.q,
         account_id: search.account,
         category: search.category,
@@ -56,9 +56,9 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         limit: TRANSACTIONS_PAGE_SIZE,
         offset: (page - 1) * TRANSACTIONS_PAGE_SIZE,
       }),
-      fetchUserCategories(access.jwt),
+      fetchUserCategories(session.cookie),
       // A previsão é um extra: se falhar, a lista de transações segue normal.
-      fetchForecast(access.jwt).catch(() => null),
+      fetchForecast(session.cookie).catch(() => null),
     ]);
     forecast = forecastResult;
     customCategories = categoriesResult.map((category) => category.name);

@@ -27,9 +27,16 @@ import {
 } from "@/lib/api-client";
 import type { ImportDetails } from "@azulito/shared";
 import { categoryNameSchema, isCategory, isReservedCategoryName } from "@azulito/shared";
-import { getAccess } from "@/lib/access";
+import { getSession } from "@/lib/session";
+import { ApiError } from "@/lib/api-client";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
+
+/** Mensagem amigável quando a api recusou por limite de uso (429); undefined para qualquer outro erro. */
+async function limitMessage(error: unknown): Promise<string | undefined> {
+  if (!(error instanceof ApiError) || error.status !== 429) return undefined;
+  return getDictionary(await getLocale()).common.limitReached;
+}
 
 /** Formato válido de categoria (fixa ou própria); a apps/api confere se a própria existe. */
 function isCategoryValue(value: string): boolean {
@@ -38,20 +45,20 @@ function isCategoryValue(value: string): boolean {
 
 export type ImportState = { message?: string; error?: string };
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 2 * 1024 * 1024;
 
 /**
  * Recebe o OFX enviado pelo `ImportOfxButton` (Client Component). Roda no
  * servidor da apps/web: lê o JWT do Cloudflare Access do request (verificado
- * em `getAccess`) e repassa os bytes do arquivo à apps/api — que é quem
+ * em `getSession`) e repassa os bytes do arquivo à apps/api — que é quem
  * valida o conteúdo de verdade. As checagens daqui (tipo/tamanho) só evitam
  * mandar lixo óbvio pela rede.
  */
 export async function importOfx(_prev: ImportState, formData: FormData): Promise<ImportState> {
   const dict = getDictionary(await getLocale());
 
-  const access = await getAccess();
-  if (!access) {
+  const session = await getSession();
+  if (!session) {
     return { error: dict.auth.errors.notAuthenticated };
   }
 
@@ -67,21 +74,23 @@ export async function importOfx(_prev: ImportState, formData: FormData): Promise
   }
 
   try {
-    const result = await uploadOfx(access.jwt, await file.arrayBuffer(), file.name);
+    const result = await uploadOfx(session.cookie, await file.arrayBuffer(), file.name);
     revalidatePath("/", "layout");
     return { message: dict.dashboard.importResult(result.imported, result.duplicates) };
   } catch (error) {
     console.error("Falha ao importar OFX:", error);
+    if (error instanceof ApiError && error.status === 429) return { error: dict.dashboard.importErrors.dailyLimit };
+    if (error instanceof ApiError && error.status === 413) return { error: dict.dashboard.importErrors.quota };
     return { error: dict.dashboard.importErrors.failed };
   }
 }
 
 /** Altera a categoria de uma transação (categoria fixa também vira regra para o estabelecimento). */
 export async function setCategory(id: string, category: string): Promise<{ ok: boolean }> {
-  const access = await getAccess();
-  if (!access || !isCategoryValue(category) || id.length === 0 || id.length > 64) return { ok: false };
+  const session = await getSession();
+  if (!session || !isCategoryValue(category) || id.length === 0 || id.length > 64) return { ok: false };
   try {
-    await updateTransactionCategory(access.jwt, id, category);
+    await updateTransactionCategory(session.cookie, id, category);
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
@@ -95,11 +104,11 @@ export type CategorizeState = { message?: string; error?: string };
 /** Categoriza (regras + IA) as transações ainda sem categoria. */
 export async function runCategorize(): Promise<CategorizeState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   try {
-    const result = await categorizePendingTransactions(access.jwt);
+    const result = await categorizePendingTransactions(session.cookie);
     revalidatePath("/", "layout");
     return { message: dict.accountsPage.aiResult(result.categorized, result.remaining) };
   } catch (error) {
@@ -113,8 +122,8 @@ export type BudgetState = { error?: string; saved?: boolean };
 /** Cria/atualiza o limite mensal de uma categoria. */
 export async function saveBudgetAction(_prev: BudgetState, formData: FormData): Promise<BudgetState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   const category = String(formData.get("category") ?? "");
   const limit = Number(String(formData.get("limit") ?? "").replace(",", "."));
@@ -123,7 +132,7 @@ export async function saveBudgetAction(_prev: BudgetState, formData: FormData): 
   }
 
   try {
-    await saveBudget(access.jwt, category, limit);
+    await saveBudget(session.cookie, category, limit);
     revalidatePath("/", "layout");
     return { saved: true };
   } catch (error) {
@@ -133,10 +142,10 @@ export async function saveBudgetAction(_prev: BudgetState, formData: FormData): 
 }
 
 export async function removeBudgetAction(category: string): Promise<void> {
-  const access = await getAccess();
-  if (!access || !isCategoryValue(category)) return;
+  const session = await getSession();
+  if (!session || !isCategoryValue(category)) return;
   try {
-    await deleteBudget(access.jwt, category);
+    await deleteBudget(session.cookie, category);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao remover orçamento:", error);
@@ -148,8 +157,8 @@ export type CategoryState = { error?: string };
 /** Cria uma categoria própria. */
 export async function createCategoryAction(_prev: CategoryState, formData: FormData): Promise<CategoryState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   const parsed = categoryNameSchema.safeParse(String(formData.get("name") ?? ""));
   if (!parsed.success || isReservedCategoryName(parsed.data)) {
@@ -157,7 +166,7 @@ export async function createCategoryAction(_prev: CategoryState, formData: FormD
   }
 
   try {
-    await createUserCategory(access.jwt, parsed.data);
+    await createUserCategory(session.cookie, parsed.data);
     revalidatePath("/", "layout");
     return {};
   } catch (error) {
@@ -168,10 +177,10 @@ export async function createCategoryAction(_prev: CategoryState, formData: FormD
 
 /** Remove uma categoria própria (as transações dela ficam sem categoria). */
 export async function removeCategoryAction(id: string): Promise<void> {
-  const access = await getAccess();
-  if (!access || !/^[0-9a-f]{32}$/.test(id)) return;
+  const session = await getSession();
+  if (!session || !/^[0-9a-f]{32}$/.test(id)) return;
   try {
-    await deleteUserCategory(access.jwt, id);
+    await deleteUserCategory(session.cookie, id);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao remover categoria:", error);
@@ -182,11 +191,11 @@ const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Define (ou, com `null`, volta ao automático) o mês em que uma transação conta nas somas. */
 export async function setReferenceMonth(id: string, month: string | null): Promise<{ ok: boolean }> {
-  const access = await getAccess();
-  if (!access || id.length === 0 || id.length > 64) return { ok: false };
+  const session = await getSession();
+  if (!session || id.length === 0 || id.length > 64) return { ok: false };
   if (month !== null && !MONTH_PATTERN.test(month)) return { ok: false };
   try {
-    await setTransactionsReferenceMonth(access.jwt, [id], month);
+    await setTransactionsReferenceMonth(session.cookie, [id], month);
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
@@ -200,8 +209,8 @@ export type CardCycleState = { error?: string; saved?: boolean };
 /** Ajusta o dia de fechamento e o de vencimento da fatura de um cartão. */
 export async function saveCardCycleAction(_prev: CardCycleState, formData: FormData): Promise<CardCycleState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   const accountId = String(formData.get("account_id") ?? "");
   const closing = Number(formData.get("closing_day"));
@@ -212,7 +221,7 @@ export async function saveCardCycleAction(_prev: CardCycleState, formData: FormD
   }
 
   try {
-    await updateCardCycle(access.jwt, accountId, closing, due);
+    await updateCardCycle(session.cookie, accountId, closing, due);
     revalidatePath("/", "layout");
     return { saved: true };
   } catch (error) {
@@ -233,8 +242,8 @@ function parseMoney(raw: string): number {
 /** Informa o saldo das caixinhas no fim de um mês. */
 export async function saveSavingsAction(_prev: SavingsState, formData: FormData): Promise<SavingsState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   const month = String(formData.get("month") ?? "");
   const balance = parseMoney(String(formData.get("balance") ?? ""));
@@ -243,7 +252,7 @@ export async function saveSavingsAction(_prev: SavingsState, formData: FormData)
   }
 
   try {
-    await saveSavingsSnapshot(access.jwt, month, balance);
+    await saveSavingsSnapshot(session.cookie, month, balance);
     revalidatePath("/", "layout");
     return { saved: true };
   } catch (error) {
@@ -253,10 +262,10 @@ export async function saveSavingsAction(_prev: SavingsState, formData: FormData)
 }
 
 export async function removeSavingsAction(month: string): Promise<void> {
-  const access = await getAccess();
-  if (!access || !MONTH_PATTERN.test(month)) return;
+  const session = await getSession();
+  if (!session || !MONTH_PATTERN.test(month)) return;
   try {
-    await deleteSavingsSnapshot(access.jwt, month);
+    await deleteSavingsSnapshot(session.cookie, month);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao remover o saldo das caixinhas:", error);
@@ -264,25 +273,25 @@ export async function removeSavingsAction(month: string): Promise<void> {
 }
 
 /** Gera a análise da IA (onde cortar gastos); fica salva e a página recarrega com ela. */
-export async function generateInsightAction(): Promise<{ ok: boolean }> {
-  const access = await getAccess();
-  if (!access) return { ok: false };
+export async function generateInsightAction(): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false };
   try {
-    await requestSavingsInsight(access.jwt);
+    await requestSavingsInsight(session.cookie);
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
     console.error("Falha ao gerar a análise:", error);
-    return { ok: false };
+    return { ok: false, error: await limitMessage(error) };
   }
 }
 
 /** Desfaz uma ação do histórico (volta ao estado de antes dela). */
 export async function undoActionAction(id: string): Promise<{ ok: boolean }> {
-  const access = await getAccess();
-  if (!access || !/^[0-9a-f]{32}$/.test(id)) return { ok: false };
+  const session = await getSession();
+  if (!session || !/^[0-9a-f]{32}$/.test(id)) return { ok: false };
   try {
-    await undoHistoryAction(access.jwt, id);
+    await undoHistoryAction(session.cookie, id);
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
@@ -296,8 +305,8 @@ export type RenameState = { error?: string; saved?: boolean };
 /** Renomeia uma categoria própria (transações, orçamento e regras acompanham). */
 export async function renameCategoryAction(_prev: RenameState, formData: FormData): Promise<RenameState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   const id = String(formData.get("id") ?? "");
   const parsed = categoryNameSchema.safeParse(String(formData.get("name") ?? ""));
@@ -306,7 +315,7 @@ export async function renameCategoryAction(_prev: RenameState, formData: FormDat
   }
 
   try {
-    await renameUserCategory(access.jwt, id, parsed.data);
+    await renameUserCategory(session.cookie, id, parsed.data);
     revalidatePath("/", "layout");
     return { saved: true };
   } catch (error) {
@@ -318,30 +327,30 @@ export async function renameCategoryAction(_prev: RenameState, formData: FormDat
 export type AiKind = "budget" | "recurring" | "audit";
 
 /** Gera uma análise da IA (sugestões de orçamento, recorrências ou revisão do mês). */
-export async function generateAiAction(kind: AiKind, month?: string): Promise<{ ok: boolean }> {
-  const access = await getAccess();
-  if (!access) return { ok: false };
+export async function generateAiAction(kind: AiKind, month?: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false };
   try {
-    if (kind === "budget") await requestBudgetSuggestions(access.jwt);
-    else if (kind === "recurring") await requestRecurringInsight(access.jwt);
-    else if (kind === "audit" && month && MONTH_PATTERN.test(month)) await requestAudit(access.jwt, month);
+    if (kind === "budget") await requestBudgetSuggestions(session.cookie);
+    else if (kind === "recurring") await requestRecurringInsight(session.cookie);
+    else if (kind === "audit" && month && MONTH_PATTERN.test(month)) await requestAudit(session.cookie, month);
     else return { ok: false };
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
     console.error("Falha ao gerar a análise (" + kind + "):", error);
-    return { ok: false };
+    return { ok: false, error: await limitMessage(error) };
   }
 }
 
 /** Aplica uma sugestão da IA: vira o limite do orçamento (com desfazer) e some da lista. */
 export async function acceptBudgetSuggestionAction(category: string, limit: number): Promise<void> {
-  const access = await getAccess();
-  if (!access || !isCategoryValue(category) || category === "Income") return;
+  const session = await getSession();
+  if (!session || !isCategoryValue(category) || category === "Income") return;
   if (!Number.isFinite(limit) || limit <= 0 || limit > 10_000_000) return;
   try {
-    await saveBudget(access.jwt, category, limit);
-    await dismissBudgetSuggestion(access.jwt, category);
+    await saveBudget(session.cookie, category, limit);
+    await dismissBudgetSuggestion(session.cookie, category);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao aplicar a sugestão:", error);
@@ -349,10 +358,10 @@ export async function acceptBudgetSuggestionAction(category: string, limit: numb
 }
 
 export async function dismissBudgetSuggestionAction(category: string): Promise<void> {
-  const access = await getAccess();
-  if (!access || !isCategoryValue(category)) return;
+  const session = await getSession();
+  if (!session || !isCategoryValue(category)) return;
   try {
-    await dismissBudgetSuggestion(access.jwt, category);
+    await dismissBudgetSuggestion(session.cookie, category);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao dispensar a sugestão:", error);
@@ -361,10 +370,10 @@ export async function dismissBudgetSuggestionAction(category: string): Promise<v
 
 /** Conteúdo de um arquivo OFX já importado (relido do original guardado). */
 export async function loadImportDetailsAction(id: string): Promise<ImportDetails | null> {
-  const access = await getAccess();
-  if (!access || !/^[0-9a-f]{32}$/.test(id)) return null;
+  const session = await getSession();
+  if (!session || !/^[0-9a-f]{32}$/.test(id)) return null;
   try {
-    return await fetchImportDetails(access.jwt, id);
+    return await fetchImportDetails(session.cookie, id);
   } catch (error) {
     console.error("Falha ao abrir a importação:", error);
     return null;
@@ -376,8 +385,8 @@ export type ScheduledState = { error?: string; saved?: boolean };
 /** Cadastra um boleto a pagar ou uma entrada prevista. */
 export async function createScheduledAction(_prev: ScheduledState, formData: FormData): Promise<ScheduledState> {
   const dict = getDictionary(await getLocale());
-  const access = await getAccess();
-  if (!access) return { error: dict.auth.errors.notAuthenticated };
+  const session = await getSession();
+  if (!session) return { error: dict.auth.errors.notAuthenticated };
 
   const kind = String(formData.get("kind") ?? "");
   const description = String(formData.get("description") ?? "").trim();
@@ -398,7 +407,7 @@ export async function createScheduledAction(_prev: ScheduledState, formData: For
   }
 
   try {
-    await createScheduledItem(access.jwt, { kind, description, amount, due_date: dueDate, category: category || null });
+    await createScheduledItem(session.cookie, { kind, description, amount, due_date: dueDate, category: category || null });
     revalidatePath("/", "layout");
     return { saved: true };
   } catch (error) {
@@ -408,10 +417,10 @@ export async function createScheduledAction(_prev: ScheduledState, formData: For
 }
 
 export async function markScheduledPaidAction(id: string, paid: boolean): Promise<void> {
-  const access = await getAccess();
-  if (!access || !/^[0-9a-f]{32}$/.test(id)) return;
+  const session = await getSession();
+  if (!session || !/^[0-9a-f]{32}$/.test(id)) return;
   try {
-    await setScheduledPaid(access.jwt, id, paid);
+    await setScheduledPaid(session.cookie, id, paid);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao marcar o lançamento:", error);
@@ -419,10 +428,10 @@ export async function markScheduledPaidAction(id: string, paid: boolean): Promis
 }
 
 export async function removeScheduledAction(id: string): Promise<void> {
-  const access = await getAccess();
-  if (!access || !/^[0-9a-f]{32}$/.test(id)) return;
+  const session = await getSession();
+  if (!session || !/^[0-9a-f]{32}$/.test(id)) return;
   try {
-    await deleteScheduledItem(access.jwt, id);
+    await deleteScheduledItem(session.cookie, id);
     revalidatePath("/", "layout");
   } catch (error) {
     console.error("Falha ao remover o lançamento:", error);

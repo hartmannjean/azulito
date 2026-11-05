@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -82,7 +83,9 @@ export default async function LandingPage() {
         </section>
       </main>
 
-      <footer className="landing-footer">{dict.landing.privacy}</footer>
+      <footer className="landing-footer">
+        {dict.landing.privacy} <Link href="/privacidade">{dict.common.privacy}</Link>
+      </footer>
     </div>
   );
 }
