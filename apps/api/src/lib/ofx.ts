@@ -23,7 +23,7 @@ export type OfxStatement = {
 
 export class OfxParseError extends Error {}
 
-const MAX_TRANSACTIONS = 20_000;
+const MAX_TRANSACTIONS = 5_000;
 const MAX_DESCRIPTION = 200;
 const INSTALLMENT = /parcela [0-9]+\/[0-9]+/i;
 

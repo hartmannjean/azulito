@@ -11,6 +11,7 @@ import { isInvestmentFlow } from "../lib/classify.js";
 import { generateSavingsPlan } from "../lib/insight.js";
 import { loadSpendRows } from "../lib/ai-facts.js";
 import { logAction } from "../lib/history.js";
+import { AI_LIMIT_MESSAGE, reserveAi, snapshotAllowed } from "../lib/limits.js";
 
 export const savingsRouter = Router();
 
@@ -77,6 +78,9 @@ savingsRouter.put("/", async (req, res) => {
   }
 
   try {
+    if (!(await snapshotAllowed(req.userId!, parsed.data.month))) {
+      return res.status(413).json({ error: "Limite de meses de saldo guardado atingido." });
+    }
     const previous = await getDb()
       .prepare("select balance from savings_snapshots where user_id = ? and month = ?")
       .bind(req.userId!, parsed.data.month)
@@ -147,6 +151,9 @@ savingsRouter.post("/insight", async (req, res) => {
       return res.status(429).json({ error: "Aguarde alguns segundos para gerar outra análise." });
     }
 
+    // 1 resumo + até 4 seções (MAX_SECTIONS em lib/insight.ts): reserva o pior caso.
+    const ai = await reserveAi(userId, "insight", 5);
+    if (!ai.ok) return res.status(429).json({ error: AI_LIMIT_MESSAGE[ai.reason] });
     const current = currentMonth();
     const since = addMonths(current, -3);
     const [overview, spend] = await Promise.all([loadOverview(userId), loadSpendRows(userId, since)]);

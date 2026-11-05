@@ -1,6 +1,9 @@
 import { getDb } from "./db.js";
 import { merchantKey } from "./merchant.js";
 import { categorizeMerchants, type MerchantSample } from "./ai.js";
+import { reserveAi } from "./limits.js";
+
+class AiBudgetExceeded extends Error {}
 
 const BATCH_SIZE = 50;
 const MAX_AI_MERCHANTS = 40;
@@ -79,6 +82,11 @@ export async function categorizePending(
 
   try {
     const picked = [...samples.values()].slice(0, MAX_AI_MERCHANTS);
+    // Sem cota de IA (do usuário ou do disjuntor global), segue só com as regras:
+    // o que sobrar fica sem categoria até a cota voltar.
+    if (picked.length > 0 && !(await reserveAi(userId, "categorize")).ok) {
+      throw new AiBudgetExceeded();
+    }
     const categories = await categorizeMerchants(picked);
     const updates: D1PreparedStatement[] = [];
     for (const [key, category] of categories) {
@@ -92,7 +100,8 @@ export async function categorizePending(
     }
     await runBatches(updates);
   } catch (error) {
-    console.error("Falha na categorização por IA (seguindo sem ela):", error);
+    if (error instanceof AiBudgetExceeded) console.warn("Cota de IA esgotada: categorização seguiu sem IA.");
+    else console.error("Falha na categorização por IA (seguindo sem ela):", error);
   }
 
   // Quem estava sem categoria e agora tem: é o que o desfazer precisa limpar.

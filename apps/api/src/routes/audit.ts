@@ -2,6 +2,7 @@ import { Router } from "express";
 import { auditRequestSchema, type AuditResult } from "@azulito/shared";
 import { generateAudit } from "../lib/audit.js";
 import { cooldownActive, getInsight, saveInsight } from "../lib/insight-store.js";
+import { AI_LIMIT_MESSAGE, reserveAi } from "../lib/limits.js";
 
 export const auditRouter = Router();
 
@@ -39,6 +40,8 @@ auditRouter.post("/", async (req, res) => {
     if (cooldownActive(previous)) {
       return res.status(429).json({ error: "Aguarde alguns segundos para gerar outra revisão." });
     }
+    const ai = await reserveAi(userId, "insight", 1);
+    if (!ai.ok) return res.status(429).json({ error: AI_LIMIT_MESSAGE[ai.reason] });
     const audit = await generateAudit(userId, parsed.data.month);
     await saveInsight(userId, "audit", JSON.stringify(audit), "ai_audit", previous);
     res.json({ audit });

@@ -12,10 +12,16 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply azulito --local",
-    "db:migrate:remote": "wrangler d1 migrations apply azulito --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply azulito --remote",
+    "test": "node --experimental-strip-types --no-warnings --import ./tests/support/register.mjs --test tests/*.test.ts",
+    "check:sql": "node --experimental-strip-types --no-warnings scripts/check-sql-scope.mts",
+    "test:mutation": "node scripts/mutation-isolation.mjs isolation && node scripts/mutation-isolation.mjs limits && node scripts/mutation-isolation.mjs account && node scripts/mutation-isolation.mjs cutover"
   },
   "dependencies": {
     "@azulito/shared": "0.1.0",
+    "@better-auth/core": "1.7.14",
+    "@better-auth/passkey": "1.7.14",
+    "better-auth": "1.7.14",
     "cors": "2.8.6",
     "express": "5.2.1",
     "helmet": "8.3.0",

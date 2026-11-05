@@ -5,6 +5,7 @@ import { isExcludedFromTotals } from "../lib/classify.js";
 import { merchantKey } from "../lib/merchant.js";
 import { categorizePending } from "../lib/categorizer.js";
 import { defaultDueDay } from "../lib/refmonth.js";
+import { LIMITS, consume, limitOf, pruneCounters } from "../lib/limits.js";
 import { logAction, type UndoOp } from "../lib/history.js";
 import type { ImportDetails, ImportLogEntry } from "@azulito/shared";
 
@@ -24,7 +25,7 @@ const BATCH_SIZE = 50;
  */
 importsRouter.post(
   "/",
-  express.raw({ type: () => true, limit: "5mb" }),
+  express.raw({ type: () => true, limit: LIMITS.MAX_OFX_BYTES }),
   async (req, res) => {
     const body: unknown = req.body;
     if (!Buffer.isBuffer(body) || body.length === 0) {
@@ -48,6 +49,21 @@ importsRouter.post(
 
     const userId = req.userId!;
 
+    // Limites de uso (cota gratuita compartilhada): importações por dia e
+    // transações guardadas por usuário. O arquivo já foi lido e é válido, então
+    // só uma importação real gasta o contador do dia.
+    if (!(await consume(userId, "imports", 1, limitOf("IMPORTS_PER_DAY")))) {
+      return res.status(429).json({ error: "Limite diário de importações atingido. Ele reinicia às 21h (horário de Brasília)." });
+    }
+    void pruneCounters().catch(() => {});
+    const stored = await getDb()
+      .prepare("select count(*) as n from transactions where user_id = ?")
+      .bind(userId)
+      .first<{ n: number }>();
+    if (Number(stored?.n ?? 0) >= limitOf("MAX_TRANSACTIONS_PER_USER")) {
+      return res.status(413).json({ error: "Limite de transações guardadas atingido." });
+    }
+
     // Arquiva o arquivo ORIGINAL antes de gravar qualquer linha: se o R2
     // falhar, a importação falha inteira em vez de existir sem cópia. A chave
     // é <user_id>/<sha256 do conteúdo>.ofx — reimportar o MESMO arquivo cai na
@@ -61,6 +77,16 @@ importsRouter.post(
 
       const bucket = getOfxBucket();
       if (!(await bucket.head(r2Key))) {
+        // Armazenamento por usuário: soma dos arquivos distintos já guardados.
+        const used = await getDb()
+          .prepare(
+            "select coalesce(sum(b), 0) as total from (select max(bytes) as b from imports where user_id = ? and r2_key is not null group by r2_key)",
+          )
+          .bind(userId)
+          .first<{ total: number }>();
+        if (Number(used?.total ?? 0) + body.length > limitOf("MAX_R2_BYTES_PER_USER")) {
+          return res.status(413).json({ error: "Limite de armazenamento de arquivos atingido." });
+        }
         await bucket.put(r2Key, body, {
           httpMetadata: { contentType: "application/x-ofx" },
           customMetadata: { fileName: fileName ?? "" },
@@ -146,9 +172,9 @@ importsRouter.post(
 
         const importRow = await db
           .prepare(
-            "insert into imports (user_id, account_id, file_name, r2_key, imported, duplicates) values (?, ?, ?, ?, ?, ?) returning id",
+            "insert into imports (user_id, account_id, file_name, r2_key, imported, duplicates, bytes) values (?, ?, ?, ?, ?, ?, ?) returning id",
           )
-          .bind(userId, account.id, fileName, r2Key, inserted, skipped)
+          .bind(userId, account.id, fileName, r2Key, inserted, skipped, body.length)
           .first<{ id: string }>();
         if (importRow) importRowIds.push(importRow.id);
       }

@@ -16,9 +16,10 @@ import { getClientIp } from "../lib/request.js";
  */
 export async function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
   const limiter = env.RATE_LIMITER;
-  if (limiter) {
+  const ip = getClientIp(req);
+  if (limiter && ip) {
     try {
-      const { success } = await limiter.limit({ key: `api:${getClientIp(req)}` });
+      const { success } = await limiter.limit({ key: `api:${ip}` });
       if (!success) {
         res.setHeader("Retry-After", "60");
         return res.status(429).json({ error: "Muitas requisições. Tente novamente em instantes." });

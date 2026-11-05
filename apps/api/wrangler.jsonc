@@ -4,7 +4,10 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
-  "routes": [{ "pattern": "azulito-api.hartmanns.com.br", "custom_domain": true }],
+  // A api NÃO tem endereço público: só o web a alcança, por service binding. Isso é
+  // parte da segurança (o IP e a sessão que o web repassa só são confiáveis assim).
+  "workers_dev": false,
+  "preview_urls": false,
   "observability": { "enabled": true },
   "d1_databases": [
     {
@@ -15,11 +18,14 @@
     }
   ],
   "ai": { "binding": "AI" },
-  "ratelimits": [{ "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 300, "period": 60 } }],
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 300, "period": 60 } },
+    { "name": "RATE_LIMITER_USER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } }
+  ],
   "r2_buckets": [{ "binding": "OFX_BUCKET", "bucket_name": "azulito-ofx" }],
   "vars": {
     "WEB_APP_URL": "https://azulito.hartmanns.com.br",
-    "CF_ACCESS_TEAM_DOMAIN": "wild-night-aa2a.cloudflareaccess.com",
-    "CF_ACCESS_AUD": "0a95046b1ea248cd5fffedc53a39de526e796643455ad894472eefe50a8d8485"
+    "MAIL_FROM": "Azulito <login@hartmanns.com.br>",
+    "SIGNUPS_ENABLED": "true"
   }
 }

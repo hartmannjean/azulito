@@ -3,6 +3,7 @@ import { addMonths, type RecurringSummary } from "@azulito/shared";
 import { currentMonthUtc, loadSpendRows, round2 } from "../lib/ai-facts.js";
 import { cooldownActive, getInsight, saveInsight } from "../lib/insight-store.js";
 import { detectRecurring, generateRecurringInsight, loadRecurringRows } from "../lib/recurring.js";
+import { AI_LIMIT_MESSAGE, reserveAi } from "../lib/limits.js";
 
 export const recurringRouter = Router();
 
@@ -53,6 +54,8 @@ recurringRouter.post("/insight", async (req, res) => {
     const items = detectRecurring(rows, now);
     if (items.length === 0) return res.status(422).json({ error: "Ainda não há recorrências detectadas." });
 
+    const ai = await reserveAi(userId, "insight", 1);
+    if (!ai.ok) return res.status(429).json({ error: AI_LIMIT_MESSAGE[ai.reason] });
     const months = [addMonths(current, -3), addMonths(current, -2), addMonths(current, -1)];
     const incomes = months.map((m) => spend.filter((r) => r.month === m).reduce((sum, r) => sum + r.income, 0));
     const withIncome = incomes.filter((v) => v > 0);

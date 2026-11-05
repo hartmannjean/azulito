@@ -11,6 +11,7 @@ import { resolveCategory } from "../lib/categories.js";
 import { categorizePending } from "../lib/categorizer.js";
 import { EFFECTIVE_MONTH } from "../lib/refmonth.js";
 import { chunks, logAction, type TxFieldRow, type UndoOp } from "../lib/history.js";
+import { ruleAllowed } from "../lib/limits.js";
 
 export const transactionsRouter = Router();
 
@@ -34,11 +35,12 @@ transactionsRouter.get("/", async (req, res) => {
   const { limit, offset, category, month, q, account_id, type, show_excluded, sort, order } = parsed.data;
 
   // Sem RLS no D1: o filtro por user_id (vindo do JWT, nunca do cliente) é a
-  // única barreira de isolamento entre usuários. Todo valor do cliente entra
+  // única barreira de isolamento entre usuários; ele fica escrito direto na SQL
+  // (não em `filters`) para ser verificável. Todo valor do cliente entra
   // como parâmetro (?), nunca concatenado; colunas de ordenação vêm de uma
   // lista fixa.
-  const conditions = ["t.user_id = ?"];
-  const params: unknown[] = [req.userId!];
+  const conditions: string[] = [];
+  const params: unknown[] = [];
 
   if (month) {
     conditions.push(`${EFFECTIVE_MONTH} = ?`);
@@ -65,7 +67,7 @@ transactionsRouter.get("/", async (req, res) => {
     params.push(`%${q.replace(/[!%_]/g, "!$&")}%`);
   }
 
-  const where = conditions.join(" and ");
+  const filters = conditions.length > 0 ? ` and ${conditions.join(" and ")}` : "";
   const direction = order === "asc" ? "asc" : "desc";
   const orderBy =
     sort === "amount"
@@ -82,11 +84,11 @@ transactionsRouter.get("/", async (req, res) => {
                   t.reference_month, ${EFFECTIVE_MONTH} as effective_month,
                   a.institution_name, a.kind as account_kind
            from transactions t join accounts a on a.id = t.account_id
-           where ${where}
+           where t.user_id = ?${filters}
            order by ${orderBy}
            limit ? offset ?`,
         )
-        .bind(...params, limit, offset)
+        .bind(req.userId!, ...params, limit, offset)
         .all<{ excluded: number }>(),
       db
         .prepare(
@@ -94,9 +96,9 @@ transactionsRouter.get("/", async (req, res) => {
                   coalesce(sum(case when t.excluded = 0 and t.amount > 0 then t.amount end), 0) as income,
                   coalesce(sum(case when t.excluded = 0 and t.amount < 0 then -t.amount end), 0) as expenses
            from transactions t join accounts a on a.id = t.account_id
-           where ${where}`,
+           where t.user_id = ?${filters}`,
         )
-        .bind(...params)
+        .bind(req.userId!, ...params)
         .first<{ n: number; income: number; expenses: number }>(),
     ]);
     const income = Number(count?.income ?? 0);
@@ -146,11 +148,15 @@ transactionsRouter.patch("/:id", async (req, res) => {
       }>();
     if (!row) return res.status(404).json({ error: "Transação não encontrada." });
 
+    // Regra por estabelecimento: só vale até o teto por usuário (uma regra que já existe sempre pode ser atualizada).
+    const ruleOk =
+      Boolean(row.merchant_key) && !resolved.custom && (await ruleAllowed(userId, row.merchant_key as string));
+
     // Estado anterior, para o desfazer (a regra e as outras transações do mesmo lugar também mudam).
     const undo: UndoOp[] = [
       { op: "tx_fields", rows: [{ id: req.params.id, category: row.category, category_source: row.category_source }] },
     ];
-    if (row.merchant_key && !resolved.custom) {
+    if (ruleOk && row.merchant_key) {
       const oldRule = await db
         .prepare("select category from merchant_rules where user_id = ? and merchant_key = ?")
         .bind(userId, row.merchant_key)
@@ -175,7 +181,7 @@ transactionsRouter.patch("/:id", async (req, res) => {
       .run();
 
     let updated = 1;
-    if (row.merchant_key && !resolved.custom) {
+    if (ruleOk && row.merchant_key) {
       await db
         .prepare(
           `insert into merchant_rules (user_id, merchant_key, category) values (?, ?, ?)

@@ -22,6 +22,12 @@ interface D1Database {
 }
 
 interface R2Bucket {
+  delete(keys: string | string[]): Promise<void>;
+  list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<{
+    objects: { key: string }[];
+    truncated: boolean;
+    cursor?: string;
+  }>;
   head(key: string): Promise<{ key: string } | null>;
   get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
   put(
@@ -39,6 +45,19 @@ declare module "cloudflare:workers" {
     DB: D1Database;
     OFX_BUCKET: R2Bucket;
     RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
+    /** Limite por USUÁRIO (chave `u:<user_id>`), aplicado depois da autenticação. */
+    RATE_LIMITER_USER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
+    /** "false" fecha novos cadastros sem mexer em quem já tem conta. */
+    SIGNUPS_ENABLED?: string;
     AI: { run(model: string, input: unknown): Promise<unknown> };
+    WEB_APP_URL: string;
+    MAIL_FROM: string;
+    // Secrets (wrangler secret put) — nunca em `vars` nem no repositório.
+    BETTER_AUTH_SECRET?: string;
+    TURNSTILE_SECRET_KEY?: string;
+    RESEND_API_KEY?: string;
+    /** Só no .dev.vars local: loga o OTP em vez de enviar e-mail. */
+    DEV_LOG_OTP?: string;
   };
+  export function waitUntil(promise: Promise<unknown>): void;
 }

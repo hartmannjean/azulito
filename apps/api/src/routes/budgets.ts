@@ -8,6 +8,7 @@ import { addMonths, type BudgetSuggestion, type BudgetSuggestions } from "@azuli
 import { currentMonthUtc, loadSpendRows } from "../lib/ai-facts.js";
 import { polishReasons, proposeBudgets } from "../lib/budget-advice.js";
 import { cooldownActive, getInsight, rewriteInsight, saveInsight } from "../lib/insight-store.js";
+import { AI_LIMIT_MESSAGE, reserveAi } from "../lib/limits.js";
 
 export const budgetsRouter = Router();
 
@@ -104,6 +105,8 @@ budgetsRouter.post("/suggestions", async (req, res) => {
     if (cooldownActive(previous)) {
       return res.status(429).json({ error: "Aguarde alguns segundos para gerar novas sugestões." });
     }
+    const ai = await reserveAi(userId, "insight", 1);
+    if (!ai.ok) return res.status(429).json({ error: AI_LIMIT_MESSAGE[ai.reason] });
     const current = currentMonthUtc();
     const [rows, limits] = await Promise.all([loadSpendRows(userId, addMonths(current, -3)), currentLimits(userId)]);
     const suggestions = await polishReasons(proposeBudgets(rows, limits, current));

@@ -1,6 +1,9 @@
 import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import { toNodeHandler } from "better-auth/node";
+
+import { getAuth } from "./lib/auth.js";
 
 import { requireAuth } from "./middleware/auth.js";
 import { rateLimitMiddleware } from "./middleware/rateLimit.js";
@@ -15,14 +18,14 @@ import { historyRouter } from "./routes/history.js";
 import { auditRouter } from "./routes/audit.js";
 import { forecastRouter, scheduledRouter } from "./routes/forecast.js";
 import { cardRouter } from "./routes/card.js";
+import { accountRouter } from "./routes/account.js";
 
 export function createApp() {
   const app = express();
 
   app.disable("x-powered-by");
-  // Necessário atrás da borda da Cloudflare: sem isso, `req.ip` e
-  // `x-forwarded-for` não são confiáveis para rate limiting.
-  app.set("trust proxy", 1);
+  // Sem `trust proxy` de propósito: nada aqui usa `req.ip`/`x-forwarded-for`
+  // (falsificáveis). O IP vem só de headers confiáveis, ver lib/request.ts.
 
   app.use(
     helmet({
@@ -45,12 +48,29 @@ export function createApp() {
     }),
   );
 
-  app.use(express.json({ limit: "100kb" }));
-
   app.use(rateLimitMiddleware);
+
+  // Endpoints de login (Better Auth). Precisam vir ANTES de express.json: o
+  // handler lê o corpo da requisição por conta própria. O web faz proxy de
+  // /api/auth/* para cá, então o cookie de sessão pertence ao domínio do web.
+  let authHandler: ReturnType<typeof toNodeHandler> | undefined;
+  app.all("/api/auth/*splat", (req, res, next) => {
+    try {
+      authHandler ??= toNodeHandler(getAuth());
+    } catch (error) {
+      return next(error);
+    }
+    return authHandler(req, res);
+  });
+
+  app.use(express.json({ limit: "100kb" }));
 
   // Daqui pra baixo, tudo passa pelo middleware CENTRAL de auth. Nenhuma
   // rota reimplementa checagem de sessão por conta própria.
+  // Identidade da sessão atual, para o web exibir o e-mail (a verificação
+  // da sessão continua só aqui, nunca duplicada no web).
+  app.get("/me", requireAuth, (req, res) => res.json({ id: req.userId, email: req.userEmail }));
+
   app.use("/transactions", requireAuth, transactionsRouter);
   app.use("/accounts", requireAuth, accountsRouter);
   app.use("/imports", requireAuth, importsRouter);
@@ -63,6 +83,7 @@ export function createApp() {
   app.use("/forecast", requireAuth, forecastRouter);
   app.use("/scheduled", requireAuth, scheduledRouter);
   app.use("/card", requireAuth, cardRouter);
+  app.use("/account", requireAuth, accountRouter);
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
@@ -71,6 +92,11 @@ export function createApp() {
   // responder: em produção ele pode incluir stack trace no corpo da
   // resposta, o que vaza detalhes internos para quem está do outro lado.
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+    // Falhas de leitura do corpo (JSON inválido, arquivo acima do limite) já
+    // trazem o 4xx correto; o resto é erro interno, sem detalhe no corpo.
+    const status = typeof err?.status === "number" && err.status >= 400 && err.status < 500 ? err.status : 500;
+    if (status === 413) return res.status(413).json({ error: "Arquivo grande demais." });
+    if (status < 500) return res.status(status).json({ error: "Requisição inválida." });
     console.error(err);
     res.status(500).json({ error: "Erro interno." });
   };
