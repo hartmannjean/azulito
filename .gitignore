@@ -57,3 +57,6 @@ Thumbs.db
 .open-next/
 .wrangler/
 .dev.vars
+
+# Cópia temporária do teste de mutação (apps/api/scripts/mutation-isolation.mjs)
+.mutation-tmp/

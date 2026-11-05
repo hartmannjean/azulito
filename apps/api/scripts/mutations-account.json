@@ -1,0 +1,21 @@
+[
+  ["src/lib/account.ts","for (const row of stored.results) keys.add(row.r2_key);","void stored;","R2: arquivos achados pelo import (prefixo antigo)"],
+  ["src/lib/account.ts","for (const object of page.objects) keys.add(object.key);","void page;","R2: arquivos achados pelo prefixo do usuário"],
+  ["src/lib/account.ts","await bucket.delete(all.slice(i, i + R2_DELETE_CHUNK));","void all;","R2: apagar os arquivos"],
+  ["src/lib/account.ts","prefix: `${userId}/`","prefix: \"\"","R2: prefixo amplo apagaria arquivos de todos"],
+  ["src/lib/account.ts","    db.prepare(\"delete from transactions where user_id = ?\").bind(userId),\n","","D1: apagar transações (redundante, cascata de accounts)"],
+  ["src/lib/account.ts","    db.prepare(\"delete from imports where user_id = ?\").bind(userId),\n","","D1: apagar importações (redundante, cascata de accounts)"],
+  ["src/lib/account.ts","    db.prepare(\"delete from accounts where user_id = ?\").bind(userId),\n","","D1: apagar contas bancárias"],
+  ["src/lib/account.ts","    db.prepare(\"delete from budgets where user_id = ?\").bind(userId),\n","","D1: apagar orçamentos"],
+  ["src/lib/account.ts","    db.prepare(\"delete from action_log where user_id = ?\").bind(userId),\n","","D1: apagar histórico"],
+  ["src/lib/account.ts","    db.prepare(\"delete from usage_counters where user_id = ?\").bind(userId),\n","","D1: apagar contadores de uso"],
+  ["src/lib/account.ts","db.prepare(\"delete from budgets where user_id = ?\").bind(userId),","db.prepare(\"delete from budgets where ? is not null\").bind(userId),","D1: apagar orçamentos de TODOS"],
+  ["src/lib/account.ts","db.prepare(\"delete from transactions where user_id = ?\").bind(userId),","db.prepare(\"delete from transactions where ? is not null\").bind(userId),","D1: apagar transações de TODOS"],
+  ["src/lib/account.ts","\"select * from transactions where user_id = ? and id > ? order by id limit ?\"","\"select * from transactions where ? is not null and id > ? order by id limit ?\"","exportação: transações de todos"],
+  ["src/lib/account.ts","\"select * from budgets where user_id = ? order by category\"","\"select * from budgets where ? is not null order by category\"","exportação: orçamentos de todos"],
+  ["src/lib/account.ts","\"select id, kind, meta, created_at, undone_at from action_log where user_id = ? order by id\"","\"select * from action_log where user_id = ? order by id\"","exportação: expõe o payload interno de desfazer"],
+  ["src/lib/account.ts","if (results.length < EXPORT_PAGE) break;","break;","exportação: só a primeira página de transações"],
+  ["src/routes/account.ts","if (!(await consume(userId, \"export\", 1, limitOf(\"EXPORTS_PER_DAY\")))) {","if (false) {","limite diário de exportações"],
+  ["src/lib/auth-options.ts","freshAge: 60 * 10,","freshAge: 60 * 60 * 24 * 365,","exclusão exige login recente"],
+  ["src/lib/auth-options.ts","await deps.purgeUserData(user.id);","void deps;","exclusão apaga os dados antes do usuário"]
+]

@@ -1,0 +1,10 @@
+[
+  ["scripts/cutover-owner.mjs", "  \"action_log\",\n  \"scheduled_items\",\n];", "  \"action_log\",\n];", "virada: tabela scheduled_items esquecida"],
+  ["scripts/cutover-owner.mjs", "  \"accounts\",\n  \"imports\",", "  \"imports\",", "virada: tabela accounts esquecida"],
+  ["scripts/cutover-owner.mjs", "  \"merchant_rules\",\n", "", "virada: tabela merchant_rules esquecida"],
+  ["scripts/cutover-owner.mjs", "const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;", "const ID_PATTERN = /^.*$/;", "virada: validação dos ids afrouxada"],
+  ["scripts/cutover-owner.mjs", "if (oldId === newId) throw new Error(\"O id antigo e o novo são iguais.\");", "", "virada: ids iguais aceitos"],
+  ["scripts/cutover-owner.mjs", "    `select abs(-9223372036854775808) where ${DATA_TABLES.map((t) => `exists (select 1 from ${t} where user_id = '${newId}')`).join(\"\\n   or \")};`,", "    \"select 1 where 0;\",", "virada: trava de segurança desligada"],
+  ["scripts/cutover-owner.mjs", "    `delete from usage_counters where user_id = '${oldId}';`,", "    \"select 1 where 0;\",", "virada: contadores do id antigo não removidos"],
+  ["scripts/cutover-owner.mjs", "`update ${t} set user_id = '${newId}' where user_id = '${oldId}';`", "`update ${t} set user_id = '${newId}';`", "virada: UPDATE sem filtro (moveria dados de todos)"]
+]
