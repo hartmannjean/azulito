@@ -29,10 +29,11 @@ export default async function DashboardPage({
   const session = await requireSession();
 
   // Quem ainda não respondeu (nem pulou) as perguntas iniciais vai para elas, uma única vez.
-  const settings = await fetchSettings(session.cookie).catch(() => null);
+  const [settings, { month, trend: resolvedTrend }] = await Promise.all([
+    fetchSettings(session.cookie).catch(() => null),
+    resolveMonthWithTrend(session.cookie, monthParam),
+  ]);
   if (settings && !settings.onboarded) redirect("/dash/welcome");
-
-  const { month, trend: resolvedTrend } = await resolveMonthWithTrend(session.cookie, monthParam);
   const previousMonth = shiftMonth(month, -1);
 
   const data: DashboardData = {
