@@ -29,7 +29,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  response.headers.set("Content-Security-Policy", buildCsp(nonce, { turnstile: pathname === "/login" }));
+  response.headers.set("Content-Security-Policy", buildCsp(nonce, { turnstile: pathname === "/login" || pathname === "/cadastro" }));
   return response;
 }
 

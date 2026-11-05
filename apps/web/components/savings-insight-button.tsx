@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { generateInsightAction } from "@/app/(app)/actions";
+import { AiBot } from "@/components/ai-bot";
 
 /** Pede à IA a análise de onde cortar gastos; a página recarrega com o texto novo. */
 export function SavingsInsightButton({
@@ -30,6 +31,7 @@ export function SavingsInsightButton({
           });
         }}
       >
+        <AiBot size={18} animated={false} className="btn-bot" />
         {pending ? runningLabel : label}
       </button>
       {failure ? (

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { generateAiAction, type AiKind } from "@/app/(app)/actions";
+import { AiBot } from "@/components/ai-bot";
 
 /** Botão genérico de "gerar com IA" (sugestões de orçamento, recorrências, revisão do mês). */
 export function AiButton({
@@ -36,6 +37,7 @@ export function AiButton({
           });
         }}
       >
+        <AiBot size={18} animated={false} className="btn-bot" />
         {pending ? runningLabel : label}
       </button>
       {failure ? (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { AuditItem, AuditResult } from "@azulito/shared";
 import { AiButton } from "@/components/ai-button";
+import { AiSays } from "@/components/ai-bot";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -56,7 +57,9 @@ export function AuditCard({
             {t.reviewed(formatMonthLabel(audit.month, locale), formatDate(audit.created_at, locale))}
             {sameMonth ? "" : ` ${t.otherMonth}`}
           </p>
-          <p className="insight-text">{audit.verdict}</p>
+          <AiSays>
+            <p className="insight-text">{audit.verdict}</p>
+          </AiSays>
 
           {audit.ai_items.length > 0 ? (
             <>

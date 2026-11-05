@@ -66,8 +66,8 @@ export function SavingsChart({
       <h2 className="chart-heading">{t.savingsHeading}</h2>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={t.savingsHeading} className="line-chart">
         <line x1={PAD_X} x2={WIDTH - PAD_X} y1={PAD_TOP + plotHeight} y2={PAD_TOP + plotHeight} className="chart-axis" />
-        <path d={path(actualCoords)} className="line-actual" fill="none" />
-        {dashedCoords.length > 1 ? <path d={path(dashedCoords)} className="line-forecast" fill="none" /> : null}
+        <path d={path(actualCoords)} pathLength={1} className="line-actual draw-line" fill="none" />
+        {dashedCoords.length > 1 ? <path d={path(dashedCoords)} className="line-forecast fade-area" fill="none" /> : null}
         {coords.map((c) => (
           <g key={c.p.month}>
             <title>{`${formatMonthShort(c.p.month, locale)}: ${formatCurrency(c.p.value, locale)}`}</title>

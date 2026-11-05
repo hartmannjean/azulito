@@ -71,11 +71,17 @@ export function CategoriesView({
             ) : (
               <CategoryForm labels={{ name: t.name, create: t.create }} />
             )}
+          </section>
+
+          <section className="chart-card cat-fixed">
             <h2 className="chart-heading">{t.fixedHeading}</h2>
-            <ul className="chip-list">
+            <ul className="cat-tiles">
               {CATEGORIES.map((category) => (
-                <li key={category} className="chip">
-                  {getCategoryIcon(category)} {translateCategory(category, locale)}
+                <li key={category} className="cat-tile">
+                  <span className="cat-tile-icon" aria-hidden="true">
+                    {getCategoryIcon(category)}
+                  </span>
+                  <span>{translateCategory(category, locale)}</span>
                 </li>
               ))}
             </ul>

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { BudgetForm } from "@/components/budget-form";
+import { MonthNav } from "@/components/month-nav";
 import { RemoveBudgetButton } from "@/components/remove-budget-button";
 import { AiButton } from "@/components/ai-button";
-import { BudgetSuggestionCard } from "@/components/budget-suggestions";
+import { BudgetSuggestionCard, BudgetSuggestionStrip, type SuggestionCardData } from "@/components/budget-suggestions";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { formatCurrency, formatMonthLabel, shiftMonth } from "@/lib/format";
@@ -45,6 +46,34 @@ export function BudgetsView({
       ? (progress.totalSpent / progress.totalLimit) * 100
       : 0;
 
+  // Sugestões da IA por categoria: as de categoria sem orçamento viram cards
+  // "fantasma" no grid; as de orçamento existente viram uma faixa no próprio card.
+  const budgeted = new Set(progress?.budgets.map((b) => b.category) ?? []);
+  const toData = (suggestion: BudgetSuggestions["suggestions"][number]): SuggestionCardData => ({
+    category: suggestion.category,
+    limit: suggestion.suggested,
+    title: `${getCategoryIcon(suggestion.category) ?? ""} ${translateCategory(suggestion.category, locale) ?? suggestion.category}`.trim(),
+    change:
+      suggestion.current === null
+        ? dict.budgetAi.create(formatCurrency(suggestion.suggested, locale))
+        : dict.budgetAi.change(
+            formatCurrency(suggestion.current, locale),
+            formatCurrency(suggestion.suggested, locale),
+          ),
+    reason: suggestion.reason,
+    average: dict.budgetAi.average(formatCurrency(suggestion.average, locale)),
+  });
+  const allSuggestions = suggestions?.suggestions ?? [];
+  const suggestionByCategory = new Map(
+    allSuggestions.filter((x) => budgeted.has(x.category)).map((x) => [x.category, x]),
+  );
+  const ghostSuggestions = allSuggestions.filter((x) => !budgeted.has(x.category));
+  const suggestionLabels = {
+    accept: dict.budgetAi.accept,
+    dismiss: dict.budgetAi.dismiss,
+    badge: dict.budgetAi.badge,
+  };
+
   return (
     <main className="page">
       <header className="page-header">
@@ -52,22 +81,32 @@ export function BudgetsView({
           <h1 className="page-title">{dict.nav.budgets}</h1>
           <p className="page-subtitle">{dict.budgetsPage.heading}</p>
         </div>
-        <div className="month-nav inline">
-          <Link
-            href={`${basePath}?month=${shiftMonth(month, -1)}`}
-            className={`month-nav-arrow${demo ? " disabled" : ""}`}
-            aria-label={dict.dashboard.previousMonth}
-          >
-            ‹
-          </Link>
-          <h2>{formatMonthLabel(month, locale)}</h2>
-          <Link
-            href={`${basePath}?month=${shiftMonth(month, 1)}`}
-            className={`month-nav-arrow${demo ? " disabled" : ""}`}
-            aria-label={dict.dashboard.nextMonth}
-          >
-            ›
-          </Link>
+        <div className="page-actions">
+          {demo ? (
+            <button type="button" className="button secondary" disabled title={dict.demo.disabledHint}>
+              {dict.budgetAi.button}
+            </button>
+          ) : (
+            <AiButton
+              kind="budget"
+              label={dict.budgetAi.button}
+              runningLabel={dict.budgetAi.running}
+              errorLabel={dict.budgetAi.failed}
+              className="button secondary"
+            />
+          )}
+        <MonthNav
+          month={month}
+          basePath={basePath}
+          locale={locale}
+          navigable={!demo}
+          labels={{
+            previous: dict.dashboard.previousMonth,
+            next: dict.dashboard.nextMonth,
+            current: dict.dashboard.currentMonth,
+            pick: dict.dashboard.pickMonth,
+          }}
+        />
         </div>
       </header>
 
@@ -78,70 +117,6 @@ export function BudgetsView({
       ) : (
         <div className="grid-side">
           <div className="stack">
-            <section className="chart-card">
-              <h2 className="chart-heading">{dict.budgetAi.heading}</h2>
-              <p className="muted-cell block">{dict.budgetAi.help}</p>
-              {suggestions && suggestions.suggestions.length > 0 ? (
-                <div className="suggestion-list">
-                  {suggestions.suggestions.map((suggestion) => {
-                    const name =
-                      `${getCategoryIcon(suggestion.category) ?? ""} ${translateCategory(suggestion.category, locale) ?? suggestion.category}`.trim();
-                    return (
-                      <BudgetSuggestionCard
-                        key={suggestion.category}
-                        data={{
-                          category: suggestion.category,
-                          limit: suggestion.suggested,
-                          title: name,
-                          change:
-                            suggestion.current === null
-                              ? dict.budgetAi.create(
-                                  formatCurrency(suggestion.suggested, locale),
-                                )
-                              : dict.budgetAi.change(
-                                  formatCurrency(suggestion.current, locale),
-                                  formatCurrency(suggestion.suggested, locale),
-                                ),
-                          reason: suggestion.reason,
-                          average: dict.budgetAi.average(
-                            formatCurrency(suggestion.average, locale),
-                          ),
-                        }}
-                        labels={{
-                          accept: dict.budgetAi.accept,
-                          dismiss: dict.budgetAi.dismiss,
-                        }}
-                        disabled={demo}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="muted-cell block">
-                  {suggestions?.created_at
-                    ? dict.budgetAi.empty
-                    : dict.budgetAi.none}
-                </p>
-              )}
-              {demo ? (
-                <button
-                  type="button"
-                  className="button secondary"
-                  disabled
-                  title={dict.demo.disabledHint}
-                >
-                  {dict.budgetAi.button}
-                </button>
-              ) : (
-                <AiButton
-                  kind="budget"
-                  label={dict.budgetAi.button}
-                  runningLabel={dict.budgetAi.running}
-                  errorLabel={dict.budgetAi.failed}
-                  className="button secondary"
-                />
-              )}
-            </section>
             {progress.budgets.length > 0 ? (
               <section className="chart-card">
                 <h2 className="chart-heading">
@@ -162,8 +137,10 @@ export function BudgetsView({
               </section>
             ) : null}
 
-            {progress.budgets.length === 0 ? (
-              <p className="empty-state">{dict.budgetsPage.empty}</p>
+            {progress.budgets.length === 0 && ghostSuggestions.length === 0 ? (
+              <p className="empty-state">
+                {suggestions?.created_at ? dict.budgetAi.empty : dict.budgetsPage.empty}
+              </p>
             ) : (
               <div className="budget-grid">
                 {progress.budgets.map((budget) => {
@@ -223,50 +200,71 @@ export function BudgetsView({
                           />
                         )}
                       </div>
+                      {suggestionByCategory.has(budget.category) ? (
+                        <BudgetSuggestionStrip
+                          data={toData(suggestionByCategory.get(budget.category)!)}
+                          labels={suggestionLabels}
+                          disabled={demo}
+                        />
+                      ) : null}
                     </section>
                   );
                 })}
+                {ghostSuggestions.map((suggestion) => (
+                  <BudgetSuggestionCard
+                    key={suggestion.category}
+                    data={toData(suggestion)}
+                    labels={suggestionLabels}
+                    disabled={demo}
+                  />
+                ))}
               </div>
             )}
 
             {progress.unbudgeted.length > 0 ? (
-              <section className="chart-card">
-                <div className="budget-card-top">
-                  <h2 className="chart-heading">
-                    {dict.budgetsPage.unbudgetedHeading}
-                  </h2>
-                  <span className="card-highlight">
-                    {formatCurrency(progress.unbudgetedTotal, locale)}
-                  </span>
+              <section className="chart-card unbudgeted">
+                <div className="unbudgeted-head">
+                  <div>
+                    <h2 className="chart-heading">{dict.budgetsPage.unbudgetedHeading}</h2>
+                    <p className="muted-cell">{dict.budgetsPage.unbudgetedHelp}</p>
+                  </div>
+                  <span className="unbudgeted-total">{formatCurrency(progress.unbudgetedTotal, locale)}</span>
                 </div>
-                <p className="muted-cell">{dict.budgetsPage.unbudgetedHelp}</p>
-                <ul className="mini-list">
-                  {progress.unbudgeted.map((item) => {
-                    const params = new URLSearchParams({
-                      type: "expense",
-                      month,
-                    });
+                {(() => {
+                  const top = Math.max(...progress.unbudgeted.map((item) => item.spent), 1);
+                  const row = (item: (typeof progress.unbudgeted)[number]) => {
+                    const params = new URLSearchParams({ type: "expense", month });
                     params.set("category", item.category ?? "__none__");
                     return (
-                      <li
-                        key={item.category ?? "__none__"}
-                        className="mini-row"
-                      >
-                        <Link
-                          href={`${transactionsPath}?${params.toString()}`}
-                          className="mini-row-label"
-                        >
-                          {item.category
-                            ? `${getCategoryIcon(item.category) ?? ""} ${translateCategory(item.category, locale)}`.trim()
-                            : dict.txPage.uncategorized}
+                      <li key={item.category ?? "__none__"}>
+                        <Link href={`${transactionsPath}?${params.toString()}`} className="unbudgeted-row">
+                          <span className="unbudgeted-label">
+                            {item.category
+                              ? `${getCategoryIcon(item.category) ?? ""} ${translateCategory(item.category, locale)}`.trim()
+                              : dict.txPage.uncategorized}
+                          </span>
+                          <span className="unbudgeted-value">{formatCurrency(item.spent, locale)}</span>
+                          <span className="unbudgeted-bar" aria-hidden="true">
+                            <span style={{ width: `${Math.max(3, (item.spent / top) * 100)}%` }} />
+                          </span>
                         </Link>
-                        <span className="muted-cell">
-                          {formatCurrency(item.spent, locale)}
-                        </span>
                       </li>
                     );
-                  })}
-                </ul>
+                  };
+                  const head = progress.unbudgeted.slice(0, 6);
+                  const rest = progress.unbudgeted.slice(6);
+                  return (
+                    <>
+                      <ul className="unbudgeted-list">{head.map(row)}</ul>
+                      {rest.length > 0 ? (
+                        <details className="unbudgeted-more">
+                          <summary>{dict.budgetsPage.unbudgetedMore(rest.length)}</summary>
+                          <ul className="unbudgeted-list">{rest.map(row)}</ul>
+                        </details>
+                      ) : null}
+                    </>
+                  );
+                })()}
               </section>
             ) : null}
           </div>

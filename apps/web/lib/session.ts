@@ -3,7 +3,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { apiRequest } from "@/lib/api-client";
 
-export type Session = { userId: string; email: string | null; cookie: string };
+export type Session = { userId: string; email: string | null; name: string | null; cookie: string };
 
 /**
  * Só os cookies de sessão do Azulito seguem para a apps/api (nunca os demais
@@ -33,9 +33,14 @@ export const getSession = cache(async (): Promise<Session | null> => {
   try {
     const response = await apiRequest("/me", { headers: { cookie }, cache: "no-store" });
     if (!response.ok) return null;
-    const body = (await response.json()) as { id?: unknown; email?: unknown };
+    const body = (await response.json()) as { id?: unknown; email?: unknown; name?: unknown };
     if (typeof body.id !== "string" || body.id.length === 0) return null;
-    return { userId: body.id, email: typeof body.email === "string" ? body.email : null, cookie };
+    return {
+      userId: body.id,
+      email: typeof body.email === "string" ? body.email : null,
+      name: typeof body.name === "string" && body.name.trim() ? body.name.trim() : null,
+      cookie,
+    };
   } catch (error) {
     console.error("Falha ao validar a sessão:", error);
     return null;

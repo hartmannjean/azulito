@@ -1,4 +1,5 @@
 import { ImportOfxButton } from "@/components/import-ofx-button";
+import { AiBot } from "@/components/ai-bot";
 import { CategorizeButton } from "@/components/categorize-button";
 import { CardCycleForm } from "@/components/card-cycle-form";
 import { ImportDetailsToggle } from "@/components/import-log";
@@ -32,7 +33,12 @@ export function AccountsView({
       </header>
 
       <div className="grid-two">
-        <section className="chart-card">
+        <section className="chart-card import-hero">
+          <span className="import-hero-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26">
+              <path d="M12 16V4m0 0-4 4m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
           <h2 className="chart-heading">{dict.accountsPage.importHeading}</h2>
           <p className="muted-cell block">{dict.accountsPage.importHelp}</p>
           {demo ? (
@@ -47,7 +53,8 @@ export function AccountsView({
           )}
         </section>
 
-        <section className="chart-card">
+        <section className="chart-card import-hero ai">
+          <AiBot size={56} />
           <h2 className="chart-heading">{dict.accountsPage.aiHeading}</h2>
           <p className="muted-cell block">{dict.accountsPage.aiHelp}</p>
           {demo ? (
@@ -115,7 +122,7 @@ export function AccountsView({
         ) : accounts.length === 0 ? (
           <p className="empty-state">{dict.accountsPage.empty}</p>
         ) : (
-          <ul className="account-list">
+          <ul className="account-list account-grid">
             {accounts.map((account) => (
               <li key={account.id} className="account-item">
                 <span className="account-icon" aria-hidden="true">

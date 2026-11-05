@@ -1,5 +1,6 @@
 import type { MonthlyTrendPoint } from "@azulito/shared";
-import { formatCurrency, formatMonthShort } from "@/lib/format";
+import { formatCurrency, formatMonthLabel, formatMonthShort } from "@/lib/format";
+import { TrendChartClient, type TrendColumn } from "@/components/trend-chart-client";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
@@ -40,10 +41,15 @@ export function TrendChart({
   trend,
   locale,
   dict,
+  basePath = null,
+  selectedMonth = "",
 }: {
   trend: MonthlyTrendPoint[];
   locale: Locale;
   dict: Dictionary;
+  /** "/dash": clicar num mês abre o painel daquele mês. null = só passar o mouse. */
+  basePath?: string | null;
+  selectedMonth?: string;
 }) {
   const trendDict = dict.trend;
 
@@ -69,80 +75,58 @@ export function TrendChart({
   const incomeArea = `${buildSmoothPath(incomePoints)} L ${incomePoints[incomePoints.length - 1]!.x} ${HEIGHT} L ${incomePoints[0]!.x} ${HEIGHT} Z`;
   const expenseLine = buildSmoothPath(expensePoints);
 
+  const compact = new Intl.NumberFormat(locale, { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+  const gridFractions = [0.25, 0.5, 0.75];
+  const gridLabels = gridFractions.map((fraction) => ({
+    y: ((PADDING_Y + (HEIGHT - PADDING_Y * 2) * fraction) / HEIGHT) * 100,
+    text: locale.startsWith("pt") ? compact.format(max * (1 - fraction)).replace(/(d).(d)/, "$1,$2") : compact.format(max * (1 - fraction)),
+  }));
+  const averageBalance = trend.reduce((sum, point) => sum + point.income - point.expenses, 0) / trend.length;
+
+  const columns: TrendColumn[] = trend.map((point, index) => {
+    const balance = point.income - point.expenses;
+    const title = formatMonthLabel(point.month, locale);
+    return {
+      month: point.month,
+      short: formatMonthShort(point.month, locale),
+      title,
+      x: (incomePoints[index]!.x / WIDTH) * 100,
+      incomeY: (incomePoints[index]!.y / HEIGHT) * 100,
+      expenseY: (expensePoints[index]!.y / HEIGHT) * 100,
+      incomeText: formatCurrency(point.income, locale),
+      expenseText: formatCurrency(point.expenses, locale),
+      balanceText: formatCurrency(balance, locale),
+      balancePositive: balance >= 0,
+      href: basePath ? `${basePath}?month=${point.month}` : null,
+      ariaLabel: `${title}: ${trendDict.incomeTooltip(title, formatCurrency(point.income, locale))}; ${trendDict.expenseTooltip(title, formatCurrency(point.expenses, locale))}`,
+    };
+  });
+
   return (
     <section className="chart-card">
-      <h2 className="chart-heading">{trendDict.heading(trend.length)}</h2>
-      <svg
-        className="trend-svg"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={trendDict.ariaLabel}
-      >
-        <defs>
-          <linearGradient id="trend-income-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--positive)" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="var(--positive)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {[0.25, 0.5, 0.75].map((fraction) => (
-          <line
-            key={fraction}
-            className="trend-gridline"
-            x1={PADDING_X}
-            x2={WIDTH - PADDING_X}
-            y1={PADDING_Y + (HEIGHT - PADDING_Y * 2) * fraction}
-            y2={PADDING_Y + (HEIGHT - PADDING_Y * 2) * fraction}
-          />
-        ))}
-
-        <path d={incomeArea} fill="url(#trend-income-fill)" stroke="none" />
-        <path
-          d={buildSmoothPath(incomePoints)}
-          fill="none"
-          stroke="var(--positive)"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <path
-          d={expenseLine}
-          fill="none"
-          stroke="var(--danger)"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-
-        {incomePoints.map((point, index) => (
-          <circle key={`income-${trend[index]!.month}`} cx={point.x} cy={point.y} r="3" fill="var(--positive)">
-            <title>
-              {trendDict.incomeTooltip(
-                formatMonthShort(trend[index]!.month, locale),
-                formatCurrency(trend[index]!.income, locale),
-              )}
-            </title>
-          </circle>
-        ))}
-        {expensePoints.map((point, index) => (
-          <circle key={`expense-${trend[index]!.month}`} cx={point.x} cy={point.y} r="3" fill="var(--danger)">
-            <title>
-              {trendDict.expenseTooltip(
-                formatMonthShort(trend[index]!.month, locale),
-                formatCurrency(trend[index]!.expenses, locale),
-              )}
-            </title>
-          </circle>
-        ))}
-      </svg>
-      <div className="trend-labels">
-        {trend.map((point) => (
-          <span key={point.month} className="trend-label">
-            {formatMonthShort(point.month, locale)}
-          </span>
-        ))}
+      <div className="trend-head">
+        <h2 className="chart-heading">{trendDict.heading(trend.length)}</h2>
+        <span className={`trend-chip ${averageBalance >= 0 ? "positive" : "negative"}`}>
+          {trendDict.average} <b>{formatCurrency(averageBalance, locale)}</b>
+        </span>
       </div>
+      <TrendChartClient
+        columns={columns}
+        selectedMonth={selectedMonth}
+        incomeLine={buildSmoothPath(incomePoints)}
+        incomeArea={incomeArea}
+        expenseLine={expenseLine}
+        gridLabels={gridLabels}
+        gridLines={gridFractions.map((fraction) => PADDING_Y + (HEIGHT - PADDING_Y * 2) * fraction)}
+        viewBox={{ width: WIDTH, height: HEIGHT }}
+        labels={{
+          income: dict.summary.income,
+          expenses: dict.summary.expenses,
+          balance: dict.summary.balance,
+          hint: trendDict.hint,
+          ariaLabel: trendDict.ariaLabel,
+        }}
+      />
       <div className="chart-legend">
         <span className="legend-item">
           <span className="legend-dot income" aria-hidden="true" /> {dict.summary.income}

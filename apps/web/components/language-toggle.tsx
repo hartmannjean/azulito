@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { FlagBR, FlagUS } from "@/components/flags";
 import { LOCALE_COOKIE, type Locale } from "@/lib/i18n/locale";
 
 /**
- * Troca o cookie de idioma e força um refresh — o idioma é lido nos Server
- * Components (`getLocale()`), então só um `router.refresh()` faz o resto da
- * árvore recarregar com o dicionário certo, sem precisar de contexto de
- * React nem duplicar o dicionário inteiro no client.
+ * Dois botões com bandeira: escolhe o idioma direto. Troca o cookie de idioma e
+ * força um refresh — o idioma é lido nos Server Components (`getLocale()`), então
+ * só um `router.refresh()` faz o resto da árvore recarregar com o dicionário
+ * certo, sem precisar de contexto de React nem duplicar o dicionário no client.
  */
 export function LanguageToggle({
   locale,
@@ -19,23 +20,35 @@ export function LanguageToggle({
   switchToPortugueseLabel: string;
 }) {
   const router = useRouter();
-  const isPortuguese = locale === "pt-BR";
 
-  function toggle() {
-    const next: Locale = isPortuguese ? "en" : "pt-BR";
+  function choose(next: Locale) {
+    if (next === locale) return;
     document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; SameSite=Lax`;
     router.refresh();
   }
 
   return (
-    <button
-      type="button"
-      className="theme-toggle lang-toggle"
-      onClick={toggle}
-      aria-label={isPortuguese ? switchToEnglishLabel : switchToPortugueseLabel}
-    >
-      <span className={`lang-option${isPortuguese ? " active" : ""}`}>PT</span>
-      <span className={`lang-option${isPortuguese ? "" : " active"}`}>EN</span>
-    </button>
+    <div className="theme-toggle lang-toggle" role="group" aria-label="Idioma / Language">
+      <button
+        type="button"
+        className={`lang-option${locale === "pt-BR" ? " active" : ""}`}
+        onClick={() => choose("pt-BR")}
+        aria-pressed={locale === "pt-BR"}
+        aria-label={switchToPortugueseLabel}
+        title="Português (Brasil)"
+      >
+        <FlagBR />
+      </button>
+      <button
+        type="button"
+        className={`lang-option${locale === "en" ? " active" : ""}`}
+        onClick={() => choose("en")}
+        aria-pressed={locale === "en"}
+        aria-label={switchToEnglishLabel}
+        title="English"
+      >
+        <FlagUS />
+      </button>
+    </div>
   );
 }

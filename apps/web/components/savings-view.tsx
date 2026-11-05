@@ -1,4 +1,5 @@
 import type { SavingsOverview } from "@azulito/shared";
+import { AiSays } from "@/components/ai-bot";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import { SavingsForm } from "@/components/savings-form";
 import { SavingsChart } from "@/components/savings-chart";
@@ -174,7 +175,9 @@ export function SavingsView({
             <p className="muted-cell block">{t.aiHelp}</p>
             {overview.insight ? (
               <>
-                <p className="insight-text">{plan?.summary}</p>
+                <AiSays>
+                  <p className="insight-text">{plan?.summary}</p>
+                </AiSays>
                 <p className="muted-cell block">{t.aiUpdated(formatDate(overview.insight.created_at, locale))}</p>
               </>
             ) : (
@@ -198,7 +201,9 @@ export function SavingsView({
                     <h3 className="plan-title">
                       {dict.plan.section(section.category, money(section.average), money(section.saving))}
                     </h3>
-                    <p className="insight-text">{section.text}</p>
+                    <AiSays>
+                      <p className="insight-text">{section.text}</p>
+                    </AiSays>
                   </section>
                 ))}
               </div>

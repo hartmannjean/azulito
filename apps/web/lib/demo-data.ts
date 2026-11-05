@@ -294,6 +294,8 @@ export function getDemoImports(now: Date = new Date()): ImportLogEntry[] {
 
 /** Previsão FICTÍCIA da demonstração (mesmo cálculo do app real). */
 export function getDemoForecast(now: Date = new Date()): ForecastResponse {
+  // Salário fictício informado: é a receita esperada que a previsão mostra todo mês.
+  const salary = { amount: 9500, day: 5 };
   const pad = (value: number) => String(value).padStart(2, "0");
   const today = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
   const current = today.slice(0, 7);
@@ -303,7 +305,8 @@ export function getDemoForecast(now: Date = new Date()): ForecastResponse {
     { month: at(delta), kind: "credit_card" as const, spent: 3000 - delta * 60, income: 0 },
   ]);
 
-  return buildForecast({
+  return {
+    ...buildForecast({
     today,
     spend: [
       ...history,
@@ -318,9 +321,12 @@ export function getDemoForecast(now: Date = new Date()): ForecastResponse {
     ],
     transactions: [],
     recurringExpenses: [{ amount: 2400, charged_this_month: false, account_kind: "checking" }],
-    recurringIncomes: [{ amount: 9500, charged_this_month: false, account_kind: "checking" }],
+    recurringIncomes: [],
     cards: [{ closing_day: 2, due_day: 9 }],
-  });
+    salary,
+  }),
+    salary,
+  };
 }
 
 /** Comparativo do cartão FICTÍCIO da demonstração (mesmo cálculo do app real). */

@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import {
   fetchAccounts,
+  fetchSettings,
   fetchAudit,
   fetchCardComparison,
   fetchBudgetsProgress,
@@ -26,11 +28,15 @@ export default async function DashboardPage({
   const dict = getDictionary(locale);
   const session = await requireSession();
 
+  // Quem ainda não respondeu (nem pulou) as perguntas iniciais vai para elas, uma única vez.
+  const settings = await fetchSettings(session.cookie).catch(() => null);
+  if (settings && !settings.onboarded) redirect("/dash/welcome");
+
   const { month, trend: resolvedTrend } = await resolveMonthWithTrend(session.cookie, monthParam);
   const previousMonth = shiftMonth(month, -1);
 
   const data: DashboardData = {
-    firstName: session.email?.split("@")[0] ?? "",
+    firstName: session.name?.split(" ")[0] ?? session.email?.split("@")[0] ?? "",
     month,
     accounts: [],
     summary: null,

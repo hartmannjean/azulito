@@ -56,6 +56,7 @@ export function TransactionsView({
   readOnly?: boolean;
 }) {
   const pages = Math.max(1, Math.ceil(total / TRANSACTIONS_PAGE_SIZE));
+  const activeFilters = [search.q, search.account, search.category, search.type, search.month, search.excluded].filter(Boolean).length;
 
   function pageHref(target: number): string {
     const params = new URLSearchParams();
@@ -79,18 +80,7 @@ export function TransactionsView({
         </div>
       </header>
 
-      {forecast ? (
-        <ForecastSection
-          forecast={forecast}
-          customCategories={customCategories}
-          today={today}
-          locale={locale}
-          dict={dict}
-          demo={readOnly}
-        />
-      ) : null}
-
-      <AutoSubmitForm basePath={basePath} className="filter-bar" clearLabel={dict.txPage.clear}>
+      <AutoSubmitForm basePath={basePath} className="filter-bar filter-sticky" clearLabel={dict.txPage.clear}>
         <input
           type="search"
           name="q"
@@ -145,6 +135,27 @@ export function TransactionsView({
           {dict.txPage.showExcluded}
         </label>
       </AutoSubmitForm>
+
+      {activeFilters > 0 ? (
+        <div className="filter-summary">
+          <span>{dict.txPage.showing(total)}</span>
+          <span className="filter-active-count chip muted">{dict.txPage.activeFilters(activeFilters)}</span>
+        </div>
+      ) : null}
+
+      {forecast ? (
+        <details className="forecast-fold">
+          <summary>{dict.txPage.forecastFold}</summary>
+          <ForecastSection
+            forecast={forecast}
+            customCategories={customCategories}
+            today={today}
+            locale={locale}
+            dict={dict}
+            demo={readOnly}
+          />
+        </details>
+      ) : null}
 
       {loadError ? (
         <p role="alert" className="form-error">

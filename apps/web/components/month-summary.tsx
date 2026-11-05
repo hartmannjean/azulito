@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import type { MonthlyTrendPoint, TransactionsSummary } from "@azulito/shared";
 import { formatCurrency, formatMonthLabel, percentChange, shiftMonth } from "@/lib/format";
 import { Sparkline } from "@/components/sparkline";
+import { MonthNav } from "@/components/month-nav";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
@@ -59,23 +60,18 @@ export function MonthSummary({
 
   return (
     <section className="month-summary">
-      <div className="month-nav">
-        <Link
-          href={`${basePath}?month=${previousMonth}`}
-          className={`month-nav-arrow${navigable ? "" : " disabled"}`}
-          aria-label={dict.dashboard.previousMonth}
-        >
-          ‹
-        </Link>
-        <h2>{formatMonthLabel(summary.month, locale)}</h2>
-        <Link
-          href={`${basePath}?month=${nextMonth}`}
-          className={`month-nav-arrow${navigable ? "" : " disabled"}`}
-          aria-label={dict.dashboard.nextMonth}
-        >
-          ›
-        </Link>
-      </div>
+      <MonthNav
+        month={summary.month}
+        basePath={basePath}
+        locale={locale}
+        navigable={navigable}
+        labels={{
+          previous: dict.dashboard.previousMonth,
+          next: dict.dashboard.nextMonth,
+          current: dict.dashboard.currentMonth,
+          pick: dict.dashboard.pickMonth,
+        }}
+      />
       <div className="summary-cards">
         <Link
           href={`${basePath}/transactions?type=income&month=${summary.month}`}

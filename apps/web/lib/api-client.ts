@@ -20,6 +20,8 @@ import type {
   ImportDetails,
   ForecastResponse,
   CardComparison,
+  UserSettings,
+  UpsertSettingsInput,
 } from "@azulito/shared";
 
 /**
@@ -315,4 +317,23 @@ export async function deleteScheduledItem(sessionCookie: string, id: string): Pr
 
 export async function fetchCardComparison(sessionCookie: string): Promise<CardComparison> {
   return apiFetch<CardComparison>("/card/comparison", sessionCookie);
+}
+
+export async function fetchSettings(sessionCookie: string): Promise<UserSettings> {
+  const data = await apiFetch<{ settings: UserSettings }>("/settings", sessionCookie);
+  return data.settings;
+}
+
+export async function saveSettings(sessionCookie: string, input: UpsertSettingsInput): Promise<UserSettings> {
+  const data = await apiFetch<{ settings: UserSettings }>("/settings", sessionCookie, {
+    method: "PUT",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(input),
+  });
+  return data.settings;
+}
+
+export async function skipSettings(sessionCookie: string): Promise<UserSettings> {
+  const data = await apiFetch<{ settings: UserSettings }>("/settings/skip", sessionCookie, { method: "POST" });
+  return data.settings;
 }

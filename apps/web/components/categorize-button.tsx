@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { runCategorize, type CategorizeState } from "@/app/(app)/actions";
+import { AiBot } from "@/components/ai-bot";
 
 export function CategorizeButton({
   label,
@@ -23,6 +24,7 @@ export function CategorizeButton({
         disabled={pending}
         onClick={() => startTransition(async () => setState(await runCategorize()))}
       >
+        <AiBot size={18} animated={false} className="btn-bot" />
         {pending ? runningLabel : label}
       </button>
       {state.message ? <p className="transaction-meta">{state.message}</p> : null}

@@ -110,7 +110,7 @@ export function DashboardView({
           ) : null}
 
           <div className="grid-main">
-            <TrendChart trend={trend} locale={locale} dict={dict} />
+            <TrendChart trend={trend} locale={locale} dict={dict} basePath={demo ? null : base} selectedMonth={data.month} />
             {categories ? (
               <CategoryBreakdown categories={categories.categories} locale={locale} dict={dict.categories} />
             ) : null}

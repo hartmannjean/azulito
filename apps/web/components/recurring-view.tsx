@@ -1,4 +1,5 @@
 import { getCategoryIcon } from "@/lib/category-icons";
+import { AiSays } from "@/components/ai-bot";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AiButton } from "@/components/ai-button";
@@ -37,16 +38,32 @@ export function RecurringView({
         <p className="empty-state">{dict.recurringPage.empty}</p>
       ) : (
         <>
-          <div className="summary-cards two">
-            <div className="summary-card">
-              <span className="summary-label">{dict.recurringPage.monthlyTotal}</span>
-              <span className="summary-value">{formatCurrency(recurring.monthly_total, locale)}</span>
-            </div>
-            <div className="summary-card">
-              <span className="summary-label">{dict.recurringPage.pendingTotal}</span>
-              <span className="summary-value negative">{formatCurrency(recurring.pending_total, locale)}</span>
-            </div>
-          </div>
+          {(() => {
+            const charged = Math.max(0, recurring.monthly_total - recurring.pending_total);
+            const pct = recurring.monthly_total > 0 ? Math.min(100, (charged / recurring.monthly_total) * 100) : 0;
+            return (
+              <section className="chart-card rec-hero">
+                <div className="rec-hero-main">
+                  <span className="summary-label">{dict.recurringPage.monthlyTotal}</span>
+                  <span className="rec-hero-total">{formatCurrency(recurring.monthly_total, locale)}</span>
+                </div>
+                <div className="rec-hero-meter">
+                  <div className="progress-track large">
+                    <div className="progress-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="rec-hero-legend">
+                    <span>
+                      <i className="legend-dot income" /> {dict.recurringPage.charged} <b>{formatCurrency(charged, locale)}</b>
+                    </span>
+                    <span>
+                      <i className="legend-dot expense" /> {dict.recurringPage.pendingTotal}{" "}
+                      <b className="negative">{formatCurrency(recurring.pending_total, locale)}</b>
+                    </span>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
 
           <section className="chart-card flush">
             <div className="table-scroll">
@@ -96,7 +113,9 @@ export function RecurringView({
               <p className="muted-cell block">{dict.recurringAi.help}</p>
               {recurring.insight ? (
                 <>
-                  <p className="insight-text">{recurring.insight.content}</p>
+                  <AiSays>
+                    <p className="insight-text">{recurring.insight.content}</p>
+                  </AiSays>
                   <p className="muted-cell block">{dict.recurringAi.updated(formatDate(recurring.insight.created_at, locale))}</p>
                 </>
               ) : (

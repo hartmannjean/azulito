@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
+import { fetchSettings } from "@/lib/api-client";
+import { SettingsForm } from "@/components/settings-form";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { DeleteAccountForm, PasskeysPanel, RevokeOthersButton } from "@/components/account-panels";
@@ -10,6 +12,7 @@ export default async function AccountPage() {
   const dict = getDictionary(locale);
   const session = await requireSession();
   const t = dict.accountPage;
+  const settings = await fetchSettings(session.cookie).catch(() => null);
 
   return (
     <main className="page">
@@ -19,6 +22,22 @@ export default async function AccountPage() {
           <p className="page-subtitle">{t.subtitle}</p>
         </div>
       </header>
+
+      <section className="chart-card">
+        <h2>{t.settingsTitle}</h2>
+        <p>{t.settingsText}</p>
+        <SettingsForm
+          mode="account"
+          locale={locale}
+          initial={{
+            salary_amount: settings?.salary_amount ?? null,
+            salary_day: settings?.salary_day ?? null,
+            card_closing_day: settings?.card_closing_day ?? null,
+            card_due_day: settings?.card_due_day ?? null,
+          }}
+          labels={{ ...dict.welcome, save: t.settingsSave, saving: t.settingsSaving, saved: t.settingsSaved }}
+        />
+      </section>
 
       <section className="chart-card">
         <h2>{t.exportTitle}</h2>
