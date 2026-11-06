@@ -66,7 +66,7 @@ export async function importOfx(_prev: ImportState, formData: FormData): Promise
   if (!(file instanceof File) || file.size === 0) {
     return { error: dict.dashboard.importErrors.missingFile };
   }
-  if (!/\.(ofx|qfx)$/i.test(file.name)) {
+  if (!/\.(ofx|qfx|csv)$/i.test(file.name)) {
     return { error: dict.dashboard.importErrors.invalidType };
   }
   if (file.size > MAX_BYTES) {

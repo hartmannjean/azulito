@@ -1,6 +1,7 @@
 import express, { Router } from "express";
 import { getDb, getOfxBucket } from "../lib/db.js";
-import { decodeOfx, parseOfx, OfxParseError } from "../lib/ofx.js";
+import { OfxParseError } from "../lib/ofx.js";
+import { parseStatementFile, type StatementFormat } from "../lib/statements.js";
 import { isExcludedFromTotals } from "../lib/classify.js";
 import { merchantKey } from "../lib/merchant.js";
 import { categorizePending } from "../lib/categorizer.js";
@@ -15,7 +16,8 @@ export const importsRouter = Router();
 const BATCH_SIZE = 50;
 
 /**
- * POST /imports — recebe os BYTES de um arquivo OFX (Content-Type
+ * POST /imports — recebe os BYTES de um arquivo OFX ou do CSV de extrato do
+ * PicPay (formato reconhecido pelo conteúdo; Content-Type
  * application/octet-stream; nome em `x-file-name`) e grava as transações do
  * usuário autenticado. Montada com `requireAuth` em src/app.ts.
  *
@@ -37,14 +39,15 @@ importsRouter.post(
       typeof fileNameHeader === "string" ? decodeURIComponent(fileNameHeader).slice(0, 200) : null;
 
     let statements;
+    let format: StatementFormat;
     try {
-      statements = parseOfx(decodeOfx(body));
+      ({ statements, format } = parseStatementFile(body));
     } catch (error) {
       if (error instanceof OfxParseError) {
         return res.status(400).json({ error: error.message });
       }
-      console.error("Falha ao ler OFX:", error);
-      return res.status(400).json({ error: "Arquivo OFX inválido." });
+      console.error("Falha ao ler o arquivo:", error);
+      return res.status(400).json({ error: "Arquivo inválido. Envie um OFX ou o CSV de extrato do PicPay." });
     }
 
     const userId = req.userId!;
@@ -66,14 +69,14 @@ importsRouter.post(
 
     // Arquiva o arquivo ORIGINAL antes de gravar qualquer linha: se o R2
     // falhar, a importação falha inteira em vez de existir sem cópia. A chave
-    // é <user_id>/<sha256 do conteúdo>.ofx — reimportar o MESMO arquivo cai na
+    // é <user_id>/<sha256 do conteúdo>.<ofx|csv> — reimportar o MESMO arquivo cai na
     // mesma chave e não gera outra cópia. O user_id vem do JWT e o nome do
     // arquivo do cliente só vai como metadado, nunca compõe o caminho.
     let r2Key: string;
     try {
       const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(body));
       const hash = Buffer.from(digest).toString("hex");
-      r2Key = `${userId}/${hash}.ofx`;
+      r2Key = `${userId}/${hash}.${format}`;
 
       const bucket = getOfxBucket();
       if (!(await bucket.head(r2Key))) {
@@ -88,7 +91,7 @@ importsRouter.post(
           return res.status(413).json({ error: "Limite de armazenamento de arquivos atingido." });
         }
         await bucket.put(r2Key, body, {
-          httpMetadata: { contentType: "application/x-ofx" },
+          httpMetadata: { contentType: format === "csv" ? "text/csv" : "application/x-ofx" },
           customMetadata: { fileName: fileName ?? "" },
         });
       }
@@ -161,7 +164,7 @@ importsRouter.post(
               statement.currency,
               tx.date,
               merchantKey(tx.description),
-              isExcludedFromTotals(statement.kind, tx.description, tx.amount) ? 1 : 0,
+              (tx.excluded ?? isExcludedFromTotals(statement.kind, tx.description, tx.amount)) ? 1 : 0,
             ),
         );
 
@@ -253,7 +256,7 @@ const MAX_DETAIL_ROWS = 500;
 
 /**
  * GET /imports/:id — o que aquele arquivo trouxe: relê o OFX original
- * guardado no R2 (a chave é <user_id>/<hash>.ofx e só chega aqui via linha de
+ * guardado no R2 (a chave é <user_id>/<hash>.<ofx|csv> e só chega aqui via linha de
  * `imports` do próprio usuário) e cruza com o que está no app agora.
  */
 importsRouter.get("/:id", async (req, res) => {
@@ -276,7 +279,7 @@ importsRouter.get("/:id", async (req, res) => {
     const object = await getOfxBucket().get(row.r2_key);
     if (!object) return res.status(404).json({ error: "Arquivo original não encontrado." });
 
-    const statements = parseOfx(decodeOfx(new Uint8Array(await object.arrayBuffer())));
+    const { statements } = parseStatementFile(new Uint8Array(await object.arrayBuffer()));
     const statement =
       statements.find((s) => s.kind === row.kind && s.accountId === row.ofx_account && s.bankId === row.bank_id) ??
       statements.find((s) => s.kind === row.kind) ??

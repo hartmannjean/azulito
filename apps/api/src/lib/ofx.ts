@@ -6,6 +6,8 @@ export type OfxTransaction = {
   date: string;
   amount: number;
   description: string;
+  /** Já decidido pelo leitor do arquivo (CSV). Sem isso vale a heurística por descrição. */
+  excluded?: boolean;
 };
 
 export type OfxStatement = {

@@ -77,7 +77,7 @@ export const en: typeof ptBR = {
     sessionsFailed: "We couldn't sign out the other devices.",
     dangerTitle: "Delete my account",
     dangerText:
-      "Permanently deletes your account and everything it holds: transactions, original OFX files, budgets, categories, savings, bills and analyses. This can't be undone. Export a copy first if you want to keep one.",
+      "Permanently deletes your account and everything it holds: transactions, original files (OFX/CSV), budgets, categories, savings, bills and analyses. This can't be undone. Export a copy first if you want to keep one.",
     dangerConfirm: "To confirm, type your email:",
     dangerButton: "Delete my account forever",
     dangerDeleting: "Deleting...",
@@ -95,14 +95,14 @@ export const en: typeof ptBR = {
       {
         title: "What Azulito is",
         paragraphs: [
-          "Azulito is a personal finance app run by an individual, with no commercial purpose. You import your bank statements (OFX files) and the app organizes income, expenses, budgets and recurring charges.",
+          "Azulito is a personal finance app run by an individual, with no commercial purpose. You import your bank statements (OFX files, or the PicPay CSV) and the app organizes income, expenses, budgets and recurring charges.",
         ],
       },
       {
         title: "What data we keep",
         paragraphs: [
           "Your email, used to sign in. There is no password: access is by a code sent to your email or by passkey (we only store the public key, never your biometrics).",
-          "The OFX files you import (the original copy) and the transactions read from them: date, amount, description and category.",
+          "The files you import (OFX or CSV, the original copy) and the transactions read from them: date, amount, description and category.",
           "What you create: budgets, custom categories, savings balances, scheduled bills and the history of your actions in the app.",
           "Security data: login sessions (with the IP address and browser used) and usage counters that limit abuse. The email in the counters is stored only as a scrambled code (hash).",
           "Cookies: only the session cookie (needed to keep you signed in) and your theme and language preferences. There are no ads or third-party trackers.",
@@ -127,7 +127,7 @@ export const en: typeof ptBR = {
       {
         title: "How long we keep it",
         paragraphs: [
-          "As long as your account exists. When you delete the account we immediately erase transactions, original OFX files, budgets, categories, savings, bills, history and usage counters.",
+          "As long as your account exists. When you delete the account we immediately erase transactions, original files (OFX/CSV), budgets, categories, savings, bills, history and usage counters.",
           "Backups kept by the infrastructure provider may exist for a limited period, set by the provider, until they are discarded.",
         ],
       },
@@ -182,17 +182,17 @@ export const en: typeof ptBR = {
     accountsImported: (count: number) =>
       count === 1 ? "1 account imported" : `${count} accounts imported`,
     noAccounts: "No accounts imported",
-    importButton: "Import OFX",
+    importButton: "Import statement",
     importing: "Importing...",
     importResult: (imported: number, duplicates: number) =>
       `${imported} new transactions imported, ${duplicates} already existed.`,
     importErrors: {
-      missingFile: "Select an OFX file.",
-      invalidType: "Upload a .ofx or .qfx file.",
+      missingFile: "Select a statement file.",
+      invalidType: "Upload a .ofx, .qfx or the PicPay statement .csv file.",
       tooLarge: "The file is over 2 MB.",
       dailyLimit: "Daily import limit reached. It resets at 9 pm (Brasília time).",
       quota: "Storage or stored-transactions limit reached.",
-      failed: "Couldn't import the file. Check that it is a valid OFX.",
+      failed: "Couldn't import the file. Check that it is a valid OFX or the PicPay statement CSV.",
     },
     loadError: "Couldn't load your data right now. Please try again shortly.",
     transactionsHeading: "Transactions",
@@ -263,7 +263,7 @@ export const en: typeof ptBR = {
     uncategorizedAlert: (count: number) =>
       count === 1 ? "1 uncategorized transaction" : `${count} uncategorized transactions`,
     uncategorizedCta: "Categorize with AI",
-    emptyState: "Import an OFX file to get started.",
+    emptyState: "Import a statement (OFX or PicPay CSV) to get started.",
   },
   txPage: {
     searchPlaceholder: "Search description…",
@@ -487,7 +487,7 @@ export const en: typeof ptBR = {
   },
   importLog: {
     heading: "Import history",
-    help: "Every OFX file you uploaded. Open one to see what it brought.",
+    help: "Every file you uploaded (OFX or CSV). Open one to see what it brought.",
     empty: "No imports yet.",
     unnamed: "Unnamed file",
     counts: (imported: number, duplicates: number) => `${imported} new, ${duplicates} already existed`,
@@ -577,7 +577,7 @@ export const en: typeof ptBR = {
     empty: "No accounts imported yet.",
     importHeading: "Import statement",
     importHelp:
-      "Export the OFX from your bank app (checking account and card bill) and upload it here. Re-uploading an overlapping file never duplicates anything.",
+      "Export the OFX from your bank app (checking account and card bill) and upload it here. For PicPay, which does not export OFX, upload the account statement CSV: card bill payments, savings pots, refunds and returned Pix stay out of the totals, and card purchases only show up if they are in the statement. Re-uploading an overlapping file never duplicates anything.",
     aiHeading: "AI categorization",
     aiHelp:
       "New transactions are categorized on import. Fixing a category by hand becomes a rule for that merchant.",

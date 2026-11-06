@@ -77,7 +77,9 @@ export async function startHarness(options: HarnessOptions = {}): Promise<Harnes
         truncated: false,
       }),
       put: async (key: string, value: ArrayBuffer | ArrayBufferView) => {
-        bucket.set(key, new Uint8Array(value instanceof ArrayBuffer ? value : (value.buffer as ArrayBuffer)));
+        // Um Buffer do Node é uma fatia de um bloco maior: copiar `value.buffer` inteiro guardaria bytes de outros arquivos.
+        const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+        bucket.set(key, bytes.slice());
       },
     },
     AI: {

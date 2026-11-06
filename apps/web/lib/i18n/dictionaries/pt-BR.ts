@@ -76,7 +76,7 @@ export const ptBR = {
     sessionsFailed: "Não foi possível desconectar os outros dispositivos.",
     dangerTitle: "Excluir minha conta",
     dangerText:
-      "Apaga de forma definitiva sua conta e tudo o que ela guarda: transações, arquivos OFX originais, orçamentos, categorias, caixinhas, boletos e análises. Não dá para desfazer. Faça antes uma exportação se quiser guardar uma cópia.",
+      "Apaga de forma definitiva sua conta e tudo o que ela guarda: transações, arquivos originais (OFX/CSV), orçamentos, categorias, caixinhas, boletos e análises. Não dá para desfazer. Faça antes uma exportação se quiser guardar uma cópia.",
     dangerConfirm: "Para confirmar, digite seu e-mail:",
     dangerButton: "Excluir minha conta para sempre",
     dangerDeleting: "Excluindo...",
@@ -94,14 +94,14 @@ export const ptBR = {
       {
         title: "O que é o Azulito",
         paragraphs: [
-          "O Azulito é um app de controle financeiro pessoal, mantido por uma pessoa física, sem fins comerciais. Você importa os extratos (arquivos OFX) do seu banco e o app organiza receitas, despesas, orçamentos e recorrências.",
+          "O Azulito é um app de controle financeiro pessoal, mantido por uma pessoa física, sem fins comerciais. Você importa os extratos (arquivos OFX, ou o CSV do PicPay) do seu banco e o app organiza receitas, despesas, orçamentos e recorrências.",
         ],
       },
       {
         title: "Quais dados guardamos",
         paragraphs: [
           "Seu e-mail, usado para entrar. Não há senha: o acesso é por um código enviado ao e-mail ou por passkey (guardamos só a chave pública, nunca a sua biometria).",
-          "Os arquivos OFX que você importa (a cópia original) e as transações lidas deles: data, valor, descrição e categoria.",
+          "Os arquivos que você importa (OFX ou CSV, a cópia original) e as transações lidas deles: data, valor, descrição e categoria.",
           "O que você cadastra: orçamentos, categorias próprias, saldos de caixinhas, boletos agendados e o histórico das suas ações no app.",
           "Dados técnicos de segurança: sessões de login (com o endereço IP e o navegador usados) e contadores de uso que limitam abusos. O e-mail nos contadores é guardado só como um código embaralhado (hash).",
           "Cookies: apenas o cookie de sessão (necessário para você continuar logado) e suas preferências de tema e idioma. Não há anúncios nem rastreadores de terceiros.",
@@ -126,7 +126,7 @@ export const ptBR = {
       {
         title: "Por quanto tempo guardamos",
         paragraphs: [
-          "Enquanto a sua conta existir. Ao excluir a conta, apagamos na hora as transações, os arquivos OFX originais, os orçamentos, as categorias, as caixinhas, os boletos, o histórico e os contadores de uso.",
+          "Enquanto a sua conta existir. Ao excluir a conta, apagamos na hora as transações, os arquivos originais (OFX/CSV), os orçamentos, as categorias, as caixinhas, os boletos, o histórico e os contadores de uso.",
           "Cópias de segurança mantidas pelo provedor de infraestrutura podem existir por um período limitado, definido por ele, até serem descartadas.",
         ],
       },
@@ -181,17 +181,17 @@ export const ptBR = {
     accountsImported: (count: number) =>
       count === 1 ? "1 conta importada" : `${count} contas importadas`,
     noAccounts: "Nenhuma conta importada",
-    importButton: "Importar OFX",
+    importButton: "Importar extrato",
     importing: "Importando...",
     importResult: (imported: number, duplicates: number) =>
       `${imported} novas transações importadas, ${duplicates} já existiam.`,
     importErrors: {
-      missingFile: "Selecione um arquivo OFX.",
-      invalidType: "Envie um arquivo .ofx ou .qfx.",
+      missingFile: "Selecione um arquivo de extrato.",
+      invalidType: "Envie um arquivo .ofx, .qfx ou o .csv do extrato do PicPay.",
       tooLarge: "O arquivo passa de 2 MB.",
       dailyLimit: "Limite diário de importações atingido. Ele reinicia às 21h (horário de Brasília).",
       quota: "Limite de armazenamento ou de transações guardadas atingido.",
-      failed: "Não foi possível importar o arquivo. Confira se é um OFX válido.",
+      failed: "Não foi possível importar o arquivo. Confira se é um OFX válido ou o CSV de extrato do PicPay.",
     },
     loadError: "Não foi possível carregar seus dados agora. Tente novamente em instantes.",
     transactionsHeading: "Transações",
@@ -262,7 +262,7 @@ export const ptBR = {
     uncategorizedAlert: (count: number) =>
       count === 1 ? "1 transação sem categoria" : `${count} transações sem categoria`,
     uncategorizedCta: "Categorizar com IA",
-    emptyState: "Importe um arquivo OFX para começar.",
+    emptyState: "Importe um extrato (OFX ou CSV do PicPay) para começar.",
   },
   txPage: {
     searchPlaceholder: "Buscar na descrição…",
@@ -486,7 +486,7 @@ export const ptBR = {
   },
   importLog: {
     heading: "Histórico de importações",
-    help: "Cada arquivo OFX que você enviou. Abra um para ver o que ele trouxe.",
+    help: "Cada arquivo que você enviou (OFX ou CSV). Abra um para ver o que ele trouxe.",
     empty: "Nenhuma importação ainda.",
     unnamed: "Arquivo sem nome",
     counts: (imported: number, duplicates: number) => `${imported} novas, ${duplicates} já existiam`,
@@ -576,7 +576,7 @@ export const ptBR = {
     empty: "Nenhuma conta importada ainda.",
     importHeading: "Importar extrato",
     importHelp:
-      "Exporte o OFX no app do seu banco (conta corrente e fatura do cartão) e envie aqui. Reenviar um arquivo que se sobrepõe a outro não duplica nada.",
+      "Exporte o OFX no app do seu banco (conta corrente e fatura do cartão) e envie aqui. Para o PicPay, que não exporta OFX, envie o CSV do extrato da conta: fatura do cartão, cofrinhos, estornos e devoluções ficam fora das somas, e as compras feitas no cartão só aparecem se constarem no extrato. Reenviar um arquivo que se sobrepõe a outro não duplica nada.",
     aiHeading: "Categorização por IA",
     aiHelp:
       "As transações novas são categorizadas na importação. Corrigir uma categoria à mão vira regra para aquele estabelecimento.",

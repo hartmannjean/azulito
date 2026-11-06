@@ -25,7 +25,7 @@ export function ImportOfxButton({
         ref={inputRef}
         type="file"
         name="file"
-        accept=".ofx,.qfx"
+        accept=".ofx,.qfx,.csv"
         hidden
         onChange={() => formRef.current?.requestSubmit()}
       />
