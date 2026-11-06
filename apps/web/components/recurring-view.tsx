@@ -1,5 +1,6 @@
 import { getCategoryIcon } from "@/lib/category-icons";
-import { AiSays } from "@/components/ai-bot";
+import { AiSays } from "@/components/ai-says";
+import { AiHelp } from "@/components/ai-help";
 import { translateCategory } from "@/lib/i18n/category-names";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AiButton } from "@/components/ai-button";
@@ -110,10 +111,10 @@ export function RecurringView({
           {demo ? null : (
             <section className="chart-card">
               <h2 className="chart-heading">{dict.recurringAi.heading}</h2>
-              <p className="muted-cell block">{dict.recurringAi.help}</p>
+              <AiHelp label={dict.common.howItWorks}>{dict.recurringAi.help}</AiHelp>
               {recurring.insight ? (
                 <>
-                  <AiSays>
+                  <AiSays moreLabel={dict.common.readMore} lessLabel={dict.common.readLess}>
                     <p className="insight-text">{recurring.insight.content}</p>
                   </AiSays>
                   <p className="muted-cell block">{dict.recurringAi.updated(formatDate(recurring.insight.created_at, locale))}</p>

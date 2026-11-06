@@ -8,6 +8,11 @@ export function formatCurrency(amount: number, locale: Locale, currencyCode = "B
   }).format(amount);
 }
 
+/** Valor curto para rótulos de gráfico no celular: "2,7 mil", "-499". Sem símbolo da moeda (o título já diz). */
+export function formatCompactNumber(amount: number, locale: Locale) {
+  return numberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(amount);
+}
+
 export function formatDate(dateIso: string, locale: Locale) {
   return dateFormat(locale, { dateStyle: "medium" }).format(new Date(dateIso));
 }

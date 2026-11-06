@@ -8,6 +8,9 @@ export const en: typeof ptBR = {
     limitReached: "Usage limit reached. It resets at 9 pm (Brasília time); try again later.",
     privacy: "Privacy policy",
     skipToContent: "Skip to content",
+    readMore: "Read more",
+    readLess: "Read less",
+    howItWorks: "How it works",
     appDescription: "Personal finance tracker integrated with Nubank via Open Finance.",
   },
   auth: {
@@ -288,6 +291,7 @@ export const en: typeof ptBR = {
     typeAll: "All",
     typeLabel: "Type",
     moreFilters: "More filters",
+    moreDetails: "More details",
     viewLabel: "View",
     viewList: "List",
     viewGroups: "By category",

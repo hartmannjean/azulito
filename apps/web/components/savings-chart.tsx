@@ -1,5 +1,6 @@
 import { addMonths, type SavingsOverview } from "@azulito/shared";
-import { formatCurrency, formatMonthShort } from "@/lib/format";
+import { DualChart } from "@/components/dual-chart";
+import { formatCompactNumber, formatCurrency, formatMonthShort } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
@@ -47,42 +48,56 @@ export function SavingsChart({
   for (let month = first; month <= last; month = addMonths(month, 1)) axis.push(month);
 
   const max = Math.max(1, ...points.map((p) => p.value));
-  const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM;
-  const step = axis.length > 1 ? (WIDTH - PAD_X * 2) / (axis.length - 1) : 0;
-  const coord = (p: Point) => ({
-    x: PAD_X + axis.indexOf(p.month) * step,
-    y: PAD_TOP + plotHeight - (p.value / max) * plotHeight,
-    p,
-  });
-  const coords = points.map(coord);
-  const path = (items: typeof coords) => items.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x} ${c.y}`).join(" ");
 
-  const actualCoords = coords.filter((c) => c.p.kind === "actual");
-  // O tracejado (estimativa e previsão) parte do último ponto real, para a linha não ficar quebrada.
-  const dashedCoords = [actualCoords[actualCoords.length - 1]!, ...coords.filter((c) => c.p.kind !== "actual")];
+  const svg = (width: number, height: number, compact: boolean) => {
+    const padX = compact ? 26 : PAD_X;
+    const plotHeight = height - PAD_TOP - PAD_BOTTOM;
+    const step = axis.length > 1 ? (width - padX * 2) / (axis.length - 1) : 0;
+    const coord = (p: Point) => ({
+      x: padX + axis.indexOf(p.month) * step,
+      y: PAD_TOP + plotHeight - (p.value / max) * plotHeight,
+      p,
+    });
+    const coords = points.map(coord);
+    const path = (items: typeof coords) => items.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x} ${c.y}`).join(" ");
+    const actualCoords = coords.filter((c) => c.p.kind === "actual");
+    // O tracejado (estimativa e previsão) parte do último ponto real, para a linha não ficar quebrada.
+    const dashedCoords = [actualCoords[actualCoords.length - 1]!, ...coords.filter((c) => c.p.kind !== "actual")];
+    // No celular não cabe um valor por ponto: mostra a cada tantos pontos, e sempre o último.
+    const every = compact ? Math.ceil(coords.length / 4) : 1;
+    const labelAxis = compact ? Math.ceil(axis.length / 6) : 1;
+
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t.savingsHeading} className="line-chart">
+        <line x1={padX} x2={width - padX} y1={PAD_TOP + plotHeight} y2={PAD_TOP + plotHeight} className="chart-axis" />
+        <path d={path(actualCoords)} pathLength={1} className="line-actual draw-line" fill="none" />
+        {dashedCoords.length > 1 ? <path d={path(dashedCoords)} className="line-forecast fade-area" fill="none" /> : null}
+        {coords.map((c, index) => (
+          <g key={c.p.month}>
+            <title>{`${formatMonthShort(c.p.month, locale)}: ${formatCurrency(c.p.value, locale)}`}</title>
+            <circle cx={c.x} cy={c.y} r={compact ? 4 : 4.5} className={c.p.kind === "actual" ? "dot-actual" : "dot-forecast"} />
+            {index % every === 0 || index === coords.length - 1 ? (
+              <text x={c.x} y={c.y - 10} textAnchor="middle" className="chart-value">
+                {compact ? formatCompactNumber(c.p.value, locale) : formatCurrency(c.p.value, locale)}
+              </text>
+            ) : null}
+          </g>
+        ))}
+        {axis.map((month, index) =>
+          index % labelAxis === 0 ? (
+            <text key={month} x={padX + index * step} y={height - 10} textAnchor="middle" className="chart-label">
+              {formatMonthShort(month, locale)}
+            </text>
+          ) : null,
+        )}
+      </svg>
+    );
+  };
 
   return (
     <section className="chart-card">
       <h2 className="chart-heading">{t.savingsHeading}</h2>
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={t.savingsHeading} className="line-chart">
-        <line x1={PAD_X} x2={WIDTH - PAD_X} y1={PAD_TOP + plotHeight} y2={PAD_TOP + plotHeight} className="chart-axis" />
-        <path d={path(actualCoords)} pathLength={1} className="line-actual draw-line" fill="none" />
-        {dashedCoords.length > 1 ? <path d={path(dashedCoords)} className="line-forecast fade-area" fill="none" /> : null}
-        {coords.map((c) => (
-          <g key={c.p.month}>
-            <title>{`${formatMonthShort(c.p.month, locale)}: ${formatCurrency(c.p.value, locale)}`}</title>
-            <circle cx={c.x} cy={c.y} r={4.5} className={c.p.kind === "actual" ? "dot-actual" : "dot-forecast"} />
-            <text x={c.x} y={c.y - 10} textAnchor="middle" className="chart-value">
-              {formatCurrency(c.p.value, locale)}
-            </text>
-          </g>
-        ))}
-        {axis.map((month, index) => (
-          <text key={month} x={PAD_X + index * step} y={HEIGHT - 10} textAnchor="middle" className="chart-label">
-            {formatMonthShort(month, locale)}
-          </text>
-        ))}
-      </svg>
+      <DualChart desktop={svg(WIDTH, HEIGHT, false)} mobile={svg(340, 250, true)} />
       <p className="chart-legend">
         <span className="legend-line actual" /> {t.actualLegend} <span className="legend-line forecast" /> {t.forecastLegend}
       </p>

@@ -1,18 +1,33 @@
 import type { CardComparison } from "@azulito/shared";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { translateCategory } from "@/lib/i18n/category-names";
+import { DualChart } from "@/components/dual-chart";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 
-const WIDTH = 900;
-const HEIGHT = 220;
-const PAD_X = 40;
 const PAD_TOP = 24;
 const PAD_BOTTOM = 30;
 
 /** Acumulado de compras por dia: este mês (até o corte) × mês passado (inteiro, tracejado depois do corte). */
-function Chart({ data, locale, label }: { data: CardComparison; locale: Locale; label: string }) {
+function Chart({
+  data,
+  locale,
+  label,
+  width,
+  height,
+  compact,
+}: {
+  data: CardComparison;
+  locale: Locale;
+  label: string;
+  width: number;
+  height: number;
+  compact: boolean;
+}) {
+  const WIDTH = width;
+  const HEIGHT = height;
+  const PAD_X = compact ? 24 : 40;
   const days = Math.max(data.daily.previous.length, data.cutoff_day);
   const max = Math.max(1, ...data.daily.previous, ...data.daily.current);
   const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM;
@@ -28,7 +43,7 @@ function Chart({ data, locale, label }: { data: CardComparison; locale: Locale; 
   const cutoff = data.cutoff_day;
   const lastCurrent = data.daily.current[data.daily.current.length - 1] ?? 0;
   const lastPreviousAtCutoff = data.daily.previous[Math.min(cutoff, data.daily.previous.length) - 1] ?? 0;
-  const ticks = [1, 5, 10, 15, 20, 25, days].filter((d, i, arr) => d <= days && arr.indexOf(d) === i);
+  const ticks = (compact ? [1, 10, 20, days] : [1, 5, 10, 15, 20, 25, days]).filter((d, i, arr) => d <= days && arr.indexOf(d) === i);
 
   return (
     <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={label} className="line-chart">
@@ -116,7 +131,10 @@ export function CardCompareCard({
         </div>
       </div>
 
-      <Chart data={data} locale={locale} label={t.chartLabel} />
+      <DualChart
+        desktop={<Chart data={data} locale={locale} label={t.chartLabel} width={900} height={220} compact={false} />}
+        mobile={<Chart data={data} locale={locale} label={t.chartLabel} width={340} height={230} compact />}
+      />
       <p className="chart-legend">
         <span className="legend-line actual" /> {currentLabel} <span className="legend-line previous" /> {previousLabel}
       </p>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { AuditItem, AuditResult } from "@azulito/shared";
 import { AiButton } from "@/components/ai-button";
-import { AiSays } from "@/components/ai-bot";
+import { AiSays } from "@/components/ai-says";
+import { AiHelp } from "@/components/ai-help";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -49,7 +50,7 @@ export function AuditCard({
   return (
     <section className="chart-card">
       <h2 className="chart-heading">{t.heading}</h2>
-      <p className="muted-cell block">{t.help}</p>
+      <AiHelp label={dict.common.howItWorks}>{t.help}</AiHelp>
 
       {audit ? (
         <>
@@ -57,7 +58,7 @@ export function AuditCard({
             {t.reviewed(formatMonthLabel(audit.month, locale), formatDate(audit.created_at, locale))}
             {sameMonth ? "" : ` ${t.otherMonth}`}
           </p>
-          <AiSays>
+          <AiSays moreLabel={dict.common.readMore} lessLabel={dict.common.readLess}>
             <p className="insight-text">{audit.verdict}</p>
           </AiSays>
 

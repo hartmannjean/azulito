@@ -5,6 +5,7 @@ import { translateCategory } from "@/lib/i18n/category-names";
 import { CategorySelect } from "@/components/category-select";
 import { CategoryOptionsProvider } from "@/components/category-options-context";
 import { ReferenceMonthSelect } from "@/components/reference-month-select";
+import { TxRowToggle } from "@/components/tx-row-toggle";
 import { buildCategoryOptions } from "@/lib/category-options";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -33,6 +34,7 @@ export function TransactionTable({
 
   return (
     <CategoryOptionsProvider options={options}>
+    <TxRowToggle />
     <div className="table-scroll">
       <table className="tx-table" role="table">
         <thead role="rowgroup">
@@ -77,6 +79,11 @@ export function TransactionTable({
                 {!readOnly && tx.category_source ? (
                   <span className={`chip source-${tx.category_source}`}>{sourceLabel[tx.category_source]}</span>
                 ) : null}
+                <button type="button" className="tx-more" aria-expanded="false" aria-label={dict.moreDetails}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
               </td>
               <td role="cell" className="nowrap tx-ref">
                 {readOnly || tx.excluded ? (

@@ -4791,3 +4791,216 @@ details.forecast-fold[open] > summary { margin-bottom: 0.9rem; }
     color: #fff;
   }
 }
+
+/* ==========================================================================
+   Gráficos: uma versão para cada tela (ver DualChart) e tooltip dentro da tela
+   ========================================================================== */
+
+.chart-mobile {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .chart-desktop {
+    display: none;
+  }
+
+  .chart-mobile {
+    display: block;
+  }
+
+  .chart-mobile .bar-chart,
+  .chart-mobile .line-chart {
+    max-height: none;
+  }
+
+  .chart-mobile .chart-value {
+    font-size: 12px;
+  }
+
+  .chart-mobile .chart-label {
+    font-size: 12.5px;
+  }
+}
+
+/* Tooltip do gráfico de tendência: nunca passa da área do gráfico (antes alargava a página no celular). */
+/* A borda esquerda é calculada (centrada na coluna, mas presa dentro do gráfico); a animação
+   antiga mexia no transform e desfazia o centralizado. */
+.trend-tip {
+  left: clamp(0px, calc(var(--x, 50%) - 6.1rem), calc(100% - 12.2rem));
+  width: 12.2rem;
+  min-width: 0;
+  max-width: 100%;
+  transform: none;
+  animation: tip-fade 0.15s ease both;
+}
+
+@keyframes tip-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Qualquer coisa que estoure um cartão é cortada nele, em vez de empurrar a página para o lado. */
+.chart-card {
+  overflow-x: clip;
+}
+
+/* Aviso "Desfazer": com left:50% o texto só tinha metade da tela e quebrava letra por letra. */
+.undo-bar {
+  left: 0;
+  right: 0;
+  transform: none;
+  width: fit-content;
+  margin-inline: auto;
+}
+
+.undo-message {
+  overflow-wrap: break-word;
+}
+
+.undo-bar .button {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .undo-bar {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(6.25rem + env(safe-area-inset-bottom));
+    width: auto;
+    max-width: 30rem;
+    justify-content: space-between;
+  }
+
+  .undo-message {
+    flex: 1;
+  }
+}
+
+/* ==========================================================================
+   IA mais direta: balão resumido, ajuda recolhida, robô menor
+   ========================================================================== */
+
+.ai-says {
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.7rem;
+}
+
+.ai-says > .ai-bot {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.ai-says-bubble {
+  min-width: 0;
+  padding: 0.65rem 0.85rem;
+}
+
+.ai-says-text.clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.ai-says.compact .ai-says-bubble {
+  border-radius: var(--radius-md);
+}
+
+.ai-says.compact .ai-says-text.clamped {
+  -webkit-line-clamp: 3;
+}
+
+.ai-says-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin: 0.1rem 0 -0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-help {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ai-help > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ai-help > p {
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+/* Extrato no celular: o mês de referência só aparece ao tocar no card. */
+.tx-more {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .tx-table td.tx-ref {
+    display: none;
+  }
+
+  .tx-table tr.is-open td.tx-ref {
+    display: block;
+    grid-column: 1 / -1;
+  }
+
+  .tx-table tbody tr {
+    cursor: pointer;
+  }
+
+  .tx-more {
+    display: inline-grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .tx-more svg {
+    transition: transform 0.2s ease;
+  }
+
+  .tx-table tr.is-open .tx-more svg {
+    transform: rotate(180deg);
+  }
+}
+
+.ai-help > summary::after {
+  content: "▾";
+  margin-left: 0.35rem;
+  transition: transform 0.2s ease;
+}
+
+.ai-help[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 700px) {
+  .tx-table td.tx-ref select {
+    width: 100%;
+  }
+}

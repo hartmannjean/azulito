@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 export type TrendColumn = {
@@ -150,8 +150,8 @@ export function TrendChartClient({
 
         {focused && active ? (
           <div
-            className={`trend-tip${focused.x < 18 ? " left" : focused.x > 82 ? " right" : ""}`}
-            style={{ left: `${focused.x}%` }}
+            className="trend-tip"
+            style={{ "--x": `${focused.x}%` } as CSSProperties}
             role="status"
           >
             <b>{focused.title}</b>

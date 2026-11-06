@@ -1,5 +1,6 @@
 import type { SavingsOverview } from "@azulito/shared";
-import { AiSays } from "@/components/ai-bot";
+import { AiSays } from "@/components/ai-says";
+import { AiHelp } from "@/components/ai-help";
 import { formatCurrency, formatDate, formatMonthLabel } from "@/lib/format";
 import { SavingsForm } from "@/components/savings-form";
 import { SavingsChart } from "@/components/savings-chart";
@@ -173,10 +174,10 @@ export function SavingsView({
 
           <section className="chart-card">
             <h2 className="chart-heading">{t.aiHeading}</h2>
-            <p className="muted-cell block">{t.aiHelp}</p>
+            <AiHelp label={dict.common.howItWorks}>{t.aiHelp}</AiHelp>
             {overview.insight ? (
               <>
-                <AiSays>
+                <AiSays moreLabel={dict.common.readMore} lessLabel={dict.common.readLess}>
                   <p className="insight-text">{plan?.summary}</p>
                 </AiSays>
                 <p className="muted-cell block">{t.aiUpdated(formatDate(overview.insight.created_at, locale))}</p>
@@ -202,7 +203,7 @@ export function SavingsView({
                     <h3 className="plan-title">
                       {dict.plan.section(section.category, money(section.average), money(section.saving))}
                     </h3>
-                    <AiSays>
+                    <AiSays compact moreLabel={dict.common.readMore} lessLabel={dict.common.readLess}>
                       <p className="insight-text">{section.text}</p>
                     </AiSays>
                   </section>

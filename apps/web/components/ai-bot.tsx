@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 /**
  * Robozinho do Azulito: marca tudo o que vem da IA (falas, sugestões, botões).
  * SVG puro, sem imagem externa; os olhos piscam só por CSS (desligado com
@@ -41,18 +39,5 @@ export function AiBot({ size = 28, animated = true, className = "" }: { size?: n
       <rect x="13" y="38.5" width="22" height="8" rx="4" fill="url(#ai-bot-chest)" />
       <path d="M19.5 44l3-3 2 2 4-4.2" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-/** Fala da IA: o robozinho ao lado de um balão com o texto. */
-export function AiSays({ children, label }: { children: ReactNode; label?: string }) {
-  return (
-    <div className="ai-says">
-      <AiBot size={52} />
-      <div className="ai-says-bubble">
-        {label ? <span className="ai-says-label">{label}</span> : null}
-        {children}
-      </div>
-    </div>
   );
 }
