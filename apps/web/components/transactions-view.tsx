@@ -58,6 +58,13 @@ export function TransactionsView({
   const pages = Math.max(1, Math.ceil(total / TRANSACTIONS_PAGE_SIZE));
   const activeFilters = [search.q, search.account, search.category, search.type, search.month, search.excluded].filter(Boolean).length;
 
+  const extraActive = [search.q, search.account, search.category, search.excluded].filter(Boolean).length;
+  const typeOptions = [
+    { value: "", label: dict.txPage.typeAll },
+    { value: "income", label: dict.txPage.income },
+    { value: "expense", label: dict.txPage.expense },
+  ];
+
   function pageHref(target: number): string {
     const params = new URLSearchParams();
     if (search.q) params.set("q", search.q);
@@ -80,60 +87,56 @@ export function TransactionsView({
         </div>
       </header>
 
-      <AutoSubmitForm basePath={basePath} className="filter-bar filter-sticky" clearLabel={dict.txPage.clear}>
-        <input
-          type="search"
-          name="q"
-          defaultValue={search.q ?? ""}
-          placeholder={dict.txPage.searchPlaceholder}
-          maxLength={80}
-          className="filter-search"
-        />
-        <select
-          name="account"
-          defaultValue={search.account ?? ""}
-          aria-label={dict.txPage.columns.account}
-        >
-          <option value="">{dict.txPage.allAccounts}</option>
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.institution_name} ·{" "}
-              {dict.accountsPage.kind[account.kind]}
-            </option>
+      <AutoSubmitForm
+        basePath={basePath}
+        className="filter-bar filter-sticky"
+        clearLabel={dict.txPage.clear}
+        moreLabel={dict.txPage.moreFilters}
+        extraActive={extraActive}
+        extra={
+          <>
+            <input
+              type="search"
+              name="q"
+              defaultValue={search.q ?? ""}
+              placeholder={dict.txPage.searchPlaceholder}
+              aria-label={dict.txPage.searchPlaceholder}
+              maxLength={80}
+              className="filter-search"
+            />
+            <select name="account" defaultValue={search.account ?? ""} aria-label={dict.txPage.columns.account}>
+              <option value="">{dict.txPage.allAccounts}</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.institution_name} · {dict.accountsPage.kind[account.kind]}
+                </option>
+              ))}
+            </select>
+            <select name="category" defaultValue={search.category ?? ""} aria-label={dict.txPage.columns.category}>
+              <option value="">{dict.txPage.allCategories}</option>
+              <option value="__none__">{dict.txPage.uncategorized}</option>
+              {buildCategoryOptions(locale, customCategories).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <label className="filter-check">
+              <input type="checkbox" name="excluded" value="1" defaultChecked={search.excluded ?? false} />
+              {dict.txPage.showExcluded}
+            </label>
+          </>
+        }
+      >
+        <div className="filter-seg" role="radiogroup" aria-label={dict.txPage.typeLabel}>
+          {typeOptions.map((option) => (
+            <label key={option.value || "all"} className="filter-seg-opt">
+              <input type="radio" name="type" value={option.value} defaultChecked={(search.type ?? "") === option.value} />
+              <span>{option.label}</span>
+            </label>
           ))}
-        </select>
-        <select
-          name="category"
-          defaultValue={search.category ?? ""}
-          aria-label={dict.txPage.columns.category}
-        >
-          <option value="">{dict.txPage.allCategories}</option>
-          <option value="__none__">{dict.txPage.uncategorized}</option>
-          {buildCategoryOptions(locale, customCategories).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select
-          name="type"
-          defaultValue={search.type ?? ""}
-          aria-label={dict.txPage.allTypes}
-        >
-          <option value="">{dict.txPage.allTypes}</option>
-          <option value="income">{dict.txPage.income}</option>
-          <option value="expense">{dict.txPage.expense}</option>
-        </select>
-        <input
-          type="month"
-          name="month"
-          defaultValue={search.month ?? ""}
-          aria-label={dict.txPage.month}
-        />
-        <label className="filter-check">
-          <input type="checkbox" name="excluded" value="1" defaultChecked={search.excluded ?? false} />
-          {dict.txPage.showExcluded}
-        </label>
+        </div>
+        <input type="month" name="month" defaultValue={search.month ?? ""} aria-label={dict.txPage.month} className="filter-month" />
       </AutoSubmitForm>
 
       {activeFilters > 0 ? (
