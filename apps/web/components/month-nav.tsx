@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DetailsDismiss } from "@/components/details-dismiss";
 import { shiftMonth } from "@/lib/format";
 import { dateFormat } from "@/lib/intl-cache";
 import type { Locale } from "@/lib/i18n/locale";
@@ -83,6 +84,8 @@ export function MonthNav({
           </svg>
         </Link>
       </div>
+
+      {navigable ? <DetailsDismiss selector=".mnav-pick" /> : null}
 
       {navigable && month !== today ? (
         <Link href={href(today)} className="mnav-today">

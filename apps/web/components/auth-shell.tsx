@@ -52,9 +52,9 @@ export function AuthShell({
             <ThemeToggle label={dict.common.toggleTheme} />
           </div>
         </div>
-        <div className="auth-main-body">
+        <main className="auth-main-body">
           <div className="auth-card">{children}</div>
-        </div>
+        </main>
       </div>
     </div>
   );

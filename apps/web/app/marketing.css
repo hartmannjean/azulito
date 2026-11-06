@@ -1112,7 +1112,7 @@
 }
 
 .auth-check a {
-  color: var(--accent-strong);
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -1522,5 +1522,43 @@
   .mk-kpi {
     min-width: 0;
     padding: 0.5rem 0.45rem;
+  }
+}
+
+/* ---------- Alvos de toque e leitura (segunda rodada) ---------- */
+
+.mk-footer a,
+.mk-security a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.mk-footer nav {
+  gap: 0.25rem 1.2rem;
+}
+
+.mk-kpi small {
+  font-size: 0.72rem;
+}
+
+@media (max-width: 860px) {
+  /* Também em tablet: cartões flutuantes cobriam KPIs do mock. */
+  .mk-scene-in {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .mk-window {
+    transform: none;
+  }
+
+  .mk-float {
+    position: static;
+    animation: none;
+    max-width: 26rem;
+    width: 100%;
+    margin-inline: auto;
   }
 }
