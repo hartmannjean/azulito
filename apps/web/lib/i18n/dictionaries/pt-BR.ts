@@ -235,6 +235,7 @@ export const ptBR = {
     recurring: "Recorrências",
     accounts: "Contas e importação",
     history: "Histórico",
+    admin: "Administração",
     label: "Principal",
     more: "Mais",
     short: {
@@ -246,6 +247,19 @@ export const ptBR = {
       recurring: "Fixos",
       accounts: "Contas",
       history: "Histórico",
+      admin: "Admin",
+    },
+  },
+  adminPage: {
+    title: "Administração",
+    subtitle: "Orçamentos, categorias, contas e segurança num só lugar.",
+    account: "Minha conta",
+    cards: {
+      budgets: "Defina um limite mensal por categoria e acompanhe quanto já gastou.",
+      categories: "Crie e organize as categorias usadas para classificar os gastos.",
+      accounts: "Envie extratos (OFX ou CSV), veja suas contas e o histórico de arquivos.",
+      history: "Veja o que foi alterado no app e desfaça se precisar.",
+      account: "Exportar seus dados, passkeys, sair de outros aparelhos e excluir a conta.",
     },
   },
   overview: {
@@ -273,6 +287,15 @@ export const ptBR = {
     typeAll: "Todas",
     typeLabel: "Tipo",
     moreFilters: "Mais filtros",
+    viewLabel: "Visualização",
+    viewList: "Lista",
+    viewGroups: "Por categoria",
+    others: "Outros",
+    groupCount: (n: number) => (n === 1 ? "1 lançamento" : `${n} lançamentos`),
+    groupShare: (pct: string) => pct,
+    groupsTruncated: (shown: number, total: number) =>
+      `Mostrando ${shown} de ${total} lançamentos. Escolha um mês ou use os filtros para ver o restante.`,
+    groupsNoSpend: "Sem gastos",
     income: "Entradas",
     expense: "Saídas",
     month: "Mês",

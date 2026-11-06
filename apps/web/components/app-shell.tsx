@@ -24,17 +24,30 @@ export function AppShell({
 }) {
   const base = demo ? "/demo" : "/dash";
   const short = dict.nav.short;
+  // Orçamentos, categorias, contas e histórico ficam dentro da administração: um item só
+  // no menu principal (e na barra de baixo do celular) em vez de oito.
+  const admin: NavItem[] = [
+    { href: `${base}/budgets`, label: dict.nav.budgets, short: short.budgets, icon: "target", child: true },
+    { href: `${base}/categories`, label: dict.nav.categories, short: short.categories, icon: "tag", child: true },
+    { href: `${base}/accounts`, label: dict.nav.accounts, short: short.accounts, icon: "wallet", child: true },
+    ...(demo
+      ? []
+      : [{ href: `${base}/history`, label: dict.nav.history, short: short.history, icon: "history" as const, child: true }]),
+  ];
   const items: NavItem[] = [
     { href: base, label: dict.nav.overview, short: short.overview, icon: "home", exact: true },
     { href: `${base}/transactions`, label: dict.nav.transactions, short: short.transactions, icon: "list" },
-    { href: `${base}/budgets`, label: dict.nav.budgets, short: short.budgets, icon: "target" },
     { href: `${base}/savings`, label: dict.nav.savings, short: short.savings, icon: "piggy" },
-    { href: `${base}/categories`, label: dict.nav.categories, short: short.categories, icon: "tag", secondary: true },
-    { href: `${base}/recurring`, label: dict.nav.recurring, short: short.recurring, icon: "repeat", secondary: true },
-    { href: `${base}/accounts`, label: dict.nav.accounts, short: short.accounts, icon: "wallet", secondary: true },
-    ...(demo
-      ? []
-      : [{ href: `${base}/history`, label: dict.nav.history, short: short.history, icon: "history" as const, secondary: true }]),
+    { href: `${base}/recurring`, label: dict.nav.recurring, short: short.recurring, icon: "repeat" },
+    {
+      href: `${base}/admin`,
+      label: dict.nav.admin,
+      short: short.admin,
+      icon: "sliders",
+      hub: true,
+      alsoActive: [...admin.map((item) => item.href), ...(demo ? [] : [`${base}/account`])],
+    },
+    ...admin,
   ];
 
   return (

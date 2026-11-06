@@ -16,8 +16,13 @@ type Search = {
   type?: string;
   month?: string;
   excluded?: string;
+  view?: string;
   p?: string;
 };
+
+// A api entrega no máximo 200 por página; o agrupamento junta várias, com teto.
+const API_PAGE = 200;
+const GROUP_CAP = 800;
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const raw = await searchParams;
@@ -33,7 +38,11 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     type: raw.type === "income" || raw.type === "expense" ? raw.type : undefined,
     month: raw.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw.month) ? raw.month : undefined,
     excluded: raw.excluded === "1",
+    view: raw.view === "groups" ? "groups" : undefined,
   };
+  const grouped = search.view === "groups";
+  // Agrupar um histórico inteiro não ajuda: por padrão olha o mês corrente.
+  if (grouped && !search.month) search.month = new Date().toISOString().slice(0, 7);
 
   let accounts: Account[] = [];
   let transactions: Transaction[] = [];
@@ -42,20 +51,37 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   let totals: TransactionsPage["totals"] = { income: 0, expenses: 0, balance: 0 };
   let forecast: ForecastResponse | null = null;
   let loadError = false;
+  let truncated = false;
 
   try {
+    const filters = {
+      q: search.q,
+      account_id: search.account,
+      category: search.category,
+      type: search.type,
+      month: search.month,
+      show_excluded: search.excluded ? "1" : undefined,
+    };
+    const loadTransactions = async (): Promise<TransactionsPage> => {
+      if (!grouped) {
+        return fetchTransactionsPage(session.cookie, {
+          ...filters,
+          limit: TRANSACTIONS_PAGE_SIZE,
+          offset: (page - 1) * TRANSACTIONS_PAGE_SIZE,
+        });
+      }
+      const first = await fetchTransactionsPage(session.cookie, { ...filters, limit: API_PAGE, offset: 0 });
+      const more: Promise<TransactionsPage>[] = [];
+      for (let offset = API_PAGE; offset < Math.min(first.total, GROUP_CAP); offset += API_PAGE) {
+        more.push(fetchTransactionsPage(session.cookie, { ...filters, limit: API_PAGE, offset }));
+      }
+      const rest = await Promise.all(more);
+      return { ...first, transactions: [...first.transactions, ...rest.flatMap((result) => result.transactions)] };
+    };
+
     const [accountsResult, pageResult, categoriesResult, forecastResult] = await Promise.all([
       fetchAccounts(session.cookie),
-      fetchTransactionsPage(session.cookie, {
-        q: search.q,
-        account_id: search.account,
-        category: search.category,
-        type: search.type,
-        month: search.month,
-        show_excluded: search.excluded ? "1" : undefined,
-        limit: TRANSACTIONS_PAGE_SIZE,
-        offset: (page - 1) * TRANSACTIONS_PAGE_SIZE,
-      }),
+      loadTransactions(),
       fetchUserCategories(session.cookie),
       // A previsão é um extra: se falhar, a lista de transações segue normal.
       fetchForecast(session.cookie).catch(() => null),
@@ -65,6 +91,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     accounts = accountsResult;
     transactions = pageResult.transactions;
     total = pageResult.total;
+    truncated = grouped && pageResult.total > GROUP_CAP;
     totals = pageResult.totals;
   } catch (err) {
     console.error("Falha ao carregar transações:", err);
@@ -84,6 +111,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       locale={locale}
       dict={dict}
       loadError={loadError}
+      truncated={truncated}
       forecast={forecast}
       today={new Date().toISOString().slice(0, 10)}
     />

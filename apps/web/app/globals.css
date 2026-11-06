@@ -4518,3 +4518,276 @@ details.forecast-fold[open] > summary { margin-bottom: 0.9rem; }
     background: var(--surface);
   }
 }
+
+/* ==========================================================================
+   Administração, extrato por categoria e menu agrupado
+   ========================================================================== */
+
+/* Menu: Administração e seus filhos (no celular só a aba "Admin" aparece). */
+.side-nav-link.is-child {
+  margin-left: 1.4rem;
+  padding: 0.42rem 0.8rem;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.side-nav-link.is-child .side-nav-icon {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .side-nav-link.is-child {
+    display: none;
+  }
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.3rem;
+  min-height: 2.75rem;
+  margin: -0.4rem 0 -0.5rem -0.3rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+.admin-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(21rem, 100%), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 4.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.admin-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.admin-card-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.admin-card-icon .nav-svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.admin-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-card-body strong {
+  font-size: 1rem;
+}
+
+.admin-card-body span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.admin-card-chevron {
+  flex: none;
+  color: var(--muted);
+}
+
+/* Alternador Lista / Por categoria */
+.view-toggle {
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.view-toggle a {
+  display: grid;
+  place-items: center;
+  min-height: 2.5rem;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.view-toggle a:hover {
+  color: var(--text);
+}
+
+.view-toggle a.active {
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.groups-note {
+  margin: 0;
+  padding: 0.8rem 1rem 0;
+}
+
+.cat-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+}
+
+.cat-group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.cat-group > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cat-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cat-group > summary:hover {
+  background: var(--accent-soft);
+}
+
+.cat-group-icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 1.15rem;
+}
+
+.cat-group-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cat-group-main strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.98rem;
+}
+
+.cat-group-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.cat-group-bar {
+  display: block;
+  height: 4px;
+  margin-top: 0.2rem;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.cat-group-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-strong);
+}
+
+.cat-group-total {
+  font-size: 0.98rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cat-group-chevron {
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.cat-group[open] > summary .cat-group-chevron {
+  transform: rotate(180deg);
+}
+
+.cat-group[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .cat-groups {
+    padding: 0.5rem;
+  }
+
+  .cat-group > summary {
+    gap: 0.6rem;
+    padding: 0.65rem 0.7rem;
+  }
+
+  .back-link {
+    margin-bottom: -0.3rem;
+  }
+}
+
+.cat-group-main strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 901px) {
+  /* Dentro de uma tela da administração só o item filho fica em destaque. */
+  .side-nav-link.is-hub.active[aria-current="true"] {
+    background: transparent;
+    box-shadow: none;
+    color: #fff;
+  }
+}

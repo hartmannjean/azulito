@@ -1,4 +1,5 @@
 import { CATEGORIES, type UserCategory } from "@azulito/shared";
+import { AdminBack } from "@/components/admin-back";
 import { CategoryForm, RemoveCategoryButton } from "@/components/category-manager";
 import { RenameCategory } from "@/components/rename-category";
 import { getCategoryIcon } from "@/lib/category-icons";
@@ -24,6 +25,7 @@ export function CategoriesView({
 
   return (
     <main className="page">
+      <AdminBack href={demo ? "/demo/admin" : "/dash/admin"} label={dict.nav.admin} />
       <header className="page-header">
         <div>
           <h1 className="page-title">{dict.nav.categories}</h1>

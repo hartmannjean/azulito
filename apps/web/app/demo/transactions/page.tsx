@@ -14,6 +14,7 @@ type Search = {
   type?: string;
   month?: string;
   excluded?: string;
+  view?: string;
   p?: string;
 };
 
@@ -31,7 +32,10 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
     type: raw.type === "income" || raw.type === "expense" ? raw.type : undefined,
     month: raw.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw.month) ? raw.month : undefined,
     excluded: raw.excluded === "1",
+    view: raw.view === "groups" ? "groups" : undefined,
   };
+  const grouped = search.view === "groups";
+  if (grouped && !search.month) search.month = new Date().toISOString().slice(0, 7);
 
   // Filtros aplicados em memória sobre os dados fictícios.
   const needle = search.q?.toLowerCase();
@@ -61,7 +65,7 @@ export default async function DemoTransactionsPage({ searchParams }: { searchPar
 
   return (
     <TransactionsView
-      transactions={filtered.slice(start, start + TRANSACTIONS_PAGE_SIZE)}
+      transactions={grouped ? filtered : filtered.slice(start, start + TRANSACTIONS_PAGE_SIZE)}
       total={filtered.length}
       totals={totals}
       accounts={demo.accounts}

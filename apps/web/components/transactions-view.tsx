@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TransactionTable } from "@/components/transaction-table";
+import { CategoryGroups } from "@/components/category-groups";
 import { AutoSubmitForm } from "@/components/auto-submit-form";
 import { ForecastSection } from "@/components/forecast-section";
 import { buildCategoryOptions } from "@/lib/category-options";
@@ -18,6 +19,8 @@ export type TransactionsSearch = {
   month?: string;
   /** Mostra também o que está fora das somas (fatura paga, aplicação/resgate). */
   excluded?: boolean;
+  /** "groups" = extrato agrupado por categoria (padrão: lista). */
+  view?: "groups";
 };
 
 /** Listagem filtrável; só apresentação (dados e filtros chegam prontos). */
@@ -36,7 +39,10 @@ export function TransactionsView({
   readOnly = false,
   forecast = null,
   today = "",
+  truncated = false,
 }: {
+  /** No agrupamento: havia mais lançamentos do que o teto carregado. */
+  truncated?: boolean;
   /** Previsão e contas a pagar (opcional: some se a api falhar). */
   forecast?: ForecastResponse | null;
   /** AAAA-MM-DD, vencimento padrão do formulário de contas. */
@@ -65,8 +71,9 @@ export function TransactionsView({
     { value: "expense", label: dict.txPage.expense },
   ];
 
-  function pageHref(target: number): string {
+  function queryOf(view: TransactionsSearch["view"], target = 1): string {
     const params = new URLSearchParams();
+    if (view) params.set("view", view);
     if (search.q) params.set("q", search.q);
     if (search.account) params.set("account", search.account);
     if (search.category) params.set("category", search.category);
@@ -78,12 +85,23 @@ export function TransactionsView({
     return query ? `${basePath}?${query}` : basePath;
   }
 
+  const pageHref = (target: number) => queryOf(search.view, target);
+  const grouped = search.view === "groups";
+
   return (
     <main className="page">
       <header className="page-header">
         <div>
           <h1 className="page-title">{dict.nav.transactions}</h1>
           <p className="page-subtitle">{dict.txPage.total(total)}</p>
+        </div>
+        <div className="view-toggle" role="group" aria-label={dict.txPage.viewLabel}>
+          <Link href={queryOf(undefined)} aria-current={grouped ? undefined : "page"} className={grouped ? undefined : "active"}>
+            {dict.txPage.viewList}
+          </Link>
+          <Link href={queryOf("groups")} aria-current={grouped ? "page" : undefined} className={grouped ? "active" : undefined}>
+            {dict.txPage.viewGroups}
+          </Link>
         </div>
       </header>
 
@@ -128,6 +146,7 @@ export function TransactionsView({
           </>
         }
       >
+        {grouped ? <input type="hidden" name="view" value="groups" /> : null}
         <div className="filter-seg" role="radiogroup" aria-label={dict.txPage.typeLabel}>
           {typeOptions.map((option) => (
             <label key={option.value || "all"} className="filter-seg-opt">
@@ -196,14 +215,27 @@ export function TransactionsView({
             <p className="tx-totals-note">{dict.txPage.totalsNote}</p>
           </section>
           <section className="chart-card flush">
-            <TransactionTable
-              transactions={transactions}
-              locale={locale}
-              dict={dict.txPage}
-              readOnly={readOnly}
-              customCategories={customCategories}
-            />
-            {pages > 1 ? (
+            {grouped ? (
+              <>
+                {truncated ? <p className="muted-cell groups-note">{dict.txPage.groupsTruncated(transactions.length, total)}</p> : null}
+                <CategoryGroups
+                  transactions={transactions}
+                  locale={locale}
+                  dict={dict}
+                  readOnly={readOnly}
+                  customCategories={customCategories}
+                />
+              </>
+            ) : (
+              <TransactionTable
+                transactions={transactions}
+                locale={locale}
+                dict={dict.txPage}
+                readOnly={readOnly}
+                customCategories={customCategories}
+              />
+            )}
+            {!grouped && pages > 1 ? (
               <nav className="pagination" aria-label="Paginação">
                 {page > 1 ? (
                   <Link

@@ -1,4 +1,5 @@
 import type { ActionLogEntry } from "@azulito/shared";
+import { AdminBack } from "@/components/admin-back";
 import { formatDateTime } from "@/lib/format";
 import { describeAction } from "@/lib/history-message";
 import { UndoButton } from "@/components/undo-button";
@@ -21,6 +22,7 @@ export function HistoryView({
 
   return (
     <main className="page">
+      <AdminBack href="/dash/admin" label={dict.nav.admin} />
       <header className="page-header">
         <div>
           <h1 className="page-title">{dict.nav.history}</h1>

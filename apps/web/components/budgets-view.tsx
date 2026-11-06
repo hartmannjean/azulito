@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminBack } from "@/components/admin-back";
 import { BudgetForm } from "@/components/budget-form";
 import { MonthNav } from "@/components/month-nav";
 import { RemoveBudgetButton } from "@/components/remove-budget-button";
@@ -76,6 +77,7 @@ export function BudgetsView({
 
   return (
     <main className="page">
+      <AdminBack href={basePath.replace(/\/budgets$/, "/admin")} label={dict.nav.admin} />
       <header className="page-header">
         <div>
           <h1 className="page-title">{dict.nav.budgets}</h1>

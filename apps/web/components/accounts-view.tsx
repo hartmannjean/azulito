@@ -1,4 +1,5 @@
 import { ImportOfxButton } from "@/components/import-ofx-button";
+import { AdminBack } from "@/components/admin-back";
 import { AiBot } from "@/components/ai-bot";
 import { CategorizeButton } from "@/components/categorize-button";
 import { CardCycleForm } from "@/components/card-cycle-form";
@@ -26,6 +27,7 @@ export function AccountsView({
 }) {
   return (
     <main className="page">
+      <AdminBack href={demo ? "/demo/admin" : "/dash/admin"} label={dict.nav.admin} />
       <header className="page-header">
         <div>
           <h1 className="page-title">{dict.nav.accounts}</h1>

@@ -57,6 +57,8 @@ export function AutoSubmitForm({
         if (!form) return;
         if (timer.current) clearTimeout(timer.current);
         for (const element of Array.from(form.elements)) {
+          // Visualização (lista/por categoria) não é filtro: Limpar não a muda.
+          if (element instanceof HTMLInputElement && element.type === "hidden") continue;
           if (element instanceof HTMLInputElement && element.type === "checkbox") element.checked = false;
           // Rádios mantêm o `value`; só volta a marcar a opção "todas" (valor vazio).
           else if (element instanceof HTMLInputElement && element.type === "radio") element.checked = element.value === "";

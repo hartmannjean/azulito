@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminBack } from "@/components/admin-back";
 import { requireSession } from "@/lib/session";
 import { fetchSettings } from "@/lib/api-client";
 import { SettingsForm } from "@/components/settings-form";
@@ -16,6 +17,7 @@ export default async function AccountPage() {
 
   return (
     <main className="page">
+      <AdminBack href="/dash/admin" label={dict.nav.admin} />
       <header className="page-header">
         <div>
           <h1 className="page-title">{t.title}</h1>

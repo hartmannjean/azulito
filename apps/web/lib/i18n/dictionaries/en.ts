@@ -236,6 +236,7 @@ export const en: typeof ptBR = {
     recurring: "Recurring",
     accounts: "Accounts & import",
     history: "History",
+    admin: "Administration",
     label: "Main",
     more: "More",
     short: {
@@ -247,6 +248,19 @@ export const en: typeof ptBR = {
       recurring: "Recurring",
       accounts: "Accounts",
       history: "History",
+      admin: "Admin",
+    },
+  },
+  adminPage: {
+    title: "Administration",
+    subtitle: "Budgets, categories, accounts and security in one place.",
+    account: "My account",
+    cards: {
+      budgets: "Set a monthly limit per category and track how much you have spent.",
+      categories: "Create and organize the categories used to classify spending.",
+      accounts: "Upload statements (OFX or CSV), see your accounts and the file history.",
+      history: "See what changed in the app and undo it if you need to.",
+      account: "Export your data, passkeys, sign out of other devices and delete the account.",
     },
   },
   overview: {
@@ -274,6 +288,15 @@ export const en: typeof ptBR = {
     typeAll: "All",
     typeLabel: "Type",
     moreFilters: "More filters",
+    viewLabel: "View",
+    viewList: "List",
+    viewGroups: "By category",
+    others: "Other",
+    groupCount: (n: number) => (n === 1 ? "1 entry" : `${n} entries`),
+    groupShare: (pct: string) => pct,
+    groupsTruncated: (shown: number, total: number) =>
+      `Showing ${shown} of ${total} entries. Pick a month or use the filters to see the rest.`,
+    groupsNoSpend: "No spending",
     income: "Income",
     expense: "Expenses",
     month: "Month",
